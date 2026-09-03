@@ -4,6 +4,10 @@ A small third-person motorbike courier game inspired by *Into the Wind*, set on 
 reference painting, built in **Godot 4.3** with the GL Compatibility renderer. Everything (terrain, roads, buildings, vegetation, the bike and the
 rider) is generated procedurally from GDScript at start-up, so the project has no binary assets.
 
+## Reference
+
+![Flying over the city](ReferenceImages/Phase_1/flying_over_city.png)
+
 ## Run it
 
 1. Install Godot 4.3 (standard build) from https://godotengine.org/download.
