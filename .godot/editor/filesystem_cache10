@@ -1,0 +1,74 @@
+9cad1ddce9e5a63143ba340c9520626b
+::res://::1788412168
+CONTEXT.md::TextFile::-1::1788409842::0::1::::<><><>0<>0<><>::
+PROGRESS.md::TextFile::-1::1788409842::0::1::::<><><>0<>0<><>::
+README.md::TextFile::-1::1788409842::0::1::::<><><>0<>0<><>::
+::res://_incoming/::1788409835
+::res://_ref_small/::1788321918
+level_01.png::CompressedTexture2D::70076073717828702::1788314552::1788321918::1::::<><><>0<>0<>822265e6699c3e74b081dcb6e297687c<>res://.godot/imported/level_01.png-e4b25ddbad5c63fa52870f96d319ac08.ctex::
+level_02.png::CompressedTexture2D::1550965804884568530::1788314553::1788321917::1::::<><><>0<>0<>954ae92f70ec694f9ae213a6cb393d17<>res://.godot/imported/level_02.png-4368ee39603e81ec88667d8c7a296667.ctex::
+level_03.png::CompressedTexture2D::5039166007431490121::1788314553::1788321917::1::::<><><>0<>0<>3ac7732f74d540925d9332c23e20fb80<>res://.godot/imported/level_03.png-038c586ba4662a0532891af7dc20b5cd.ctex::
+level_04.png::CompressedTexture2D::6870787776952209744::1788314553::1788321917::1::::<><><>0<>0<>354633409d870ca252942931d796b2dc<>res://.godot/imported/level_04.png-f4a677c042d1dfef3e0a5f97fcfeaa62.ctex::
+level_05.png::CompressedTexture2D::5521754740505624593::1788314554::1788321917::1::::<><><>0<>0<>b435c6f7017728c4d4f5ca356737cc6c<>res://.godot/imported/level_05.png-ae46a98eb537a75343f83b7a73cce67d.ctex::
+level_06.png::CompressedTexture2D::3649424827385610608::1788314554::1788321917::1::::<><><>0<>0<>bd441abdfe29bb505815878e2d3406cc<>res://.godot/imported/level_06.png-678367f2271cdf2b4519baa50624ec78.ctex::
+level_07.png::CompressedTexture2D::1560946381840163084::1788314554::1788321917::1::::<><><>0<>0<>c23cefbdd99b654fe6d33a8acbb1a04d<>res://.godot/imported/level_07.png-fef0deab2e4637eb12bea51b723551a7.ctex::
+level_08.png::CompressedTexture2D::3385759334886543525::1788314555::1788321917::1::::<><><>0<>0<>0d58532e63dfa7609b794079446b271a<>res://.godot/imported/level_08.png-0ab9caa24ec6fe2e290a3e709d2f9ed4.ctex::
+level_09.png::CompressedTexture2D::2584704639433943583::1788314555::1788321917::1::::<><><>0<>0<>0d94d171d588f871653fe7709d3c0c63<>res://.godot/imported/level_09.png-71280d6fba4c8a0496e41f32c1d40e93.ctex::
+level_10.png::CompressedTexture2D::6856215100961248774::1788314555::1788321917::1::::<><><>0<>0<>f47b3e9349bf5b5d77646c4284dadade<>res://.godot/imported/level_10.png-dbd7c5e98e0586142e8365b8e17a61c9.ctex::
+level_11.png::CompressedTexture2D::5023756043629570793::1788314556::1788321917::1::::<><><>0<>0<>08a4d8a8c809a9051641b0fe8a18b6a1<>res://.godot/imported/level_11.png-e8a129fecb488b74c983525bf08c66b7.ctex::
+::res://Claude outputs/::1788409857
+island_overview.png::CompressedTexture2D::8886337200186118288::1788409857::1788412170::1::::<><><>0<>0<>d8fbbb12ea06446e9d89bab55fbb32d1<>res://.godot/imported/island_overview.png-1ac18ee92f543472583f469eba176d11.ctex::
+island_views.png::CompressedTexture2D::2081406841779212370::1788409857::1788412170::1::::<><><>0<>0<>b9ab9b18353a953953ba93faf35a90ce<>res://.godot/imported/island_views.png-514b9d4a9c449ad3c1876f479159b73f.ctex::
+::res://data/::1788409842
+island_map.png::CompressedTexture2D::8808128244352831077::1788409842::1788412170::1::::<><><>0<>0<>86658cbe8f24eaa7119206d20268a6c4<>res://.godot/imported/island_map.png-0ee4d6137c0407d0684c8b5ec4b9a30e.ctex::
+island_meta.json::JSON::-1::1788409842::0::1::::<><><>0<>0<><>::
+sea_depth.png::CompressedTexture2D::4002178850435308788::1788409842::1788412170::1::::<><><>0<>0<>196b48eeb2488d0a1f40dbdec7a93cd1<>res://.godot/imported/sea_depth.png-4249b6644e15470249d778ac50b60239.ctex::
+::res://ReferenceImages/::1788313798
+::res://ReferenceImages/bike-concept/::1788321917
+Codex Image Aug 31, 2026, 07_46_39 PM.png::CompressedTexture2D::1193898837461461857::1788220007::1788321917::1::::<><><>0<>0<>c0a760f2fa844ab2261a3563e7bbf6cb<>res://.godot/imported/Codex Image Aug 31, 2026, 07_46_39 PM.png-f2f59c7cc48e78745a536dc7e4f66910.ctex::
+Codex Image Aug 31, 2026, 07_47_38 PM.png::CompressedTexture2D::5776642497368688223::1788220063::1788321917::1::::<><><>0<>0<>aa1c9bafb836b4a9ff830728d32b0359<>res://.godot/imported/Codex Image Aug 31, 2026, 07_47_38 PM.png-5fffe8cad0cd31b9186f5fe56b7a58fe.ctex::
+Codex Image Aug 31, 2026, 07_48_19 PM.png::CompressedTexture2D::382588706846566013::1788220104::1788321917::1::::<><><>0<>0<>365abc8f831ca7dbaf5ec18b99528308<>res://.godot/imported/Codex Image Aug 31, 2026, 07_48_19 PM.png-9e5a52a35c941ce17d9a225858fd3798.ctex::
+::res://ReferenceImages/Character/::1788321917
+Codex Image Sep 1, 2026, 09_52_41 PM.png::CompressedTexture2D::3543290320604862397::1788313963::1788321917::1::::<><><>0<>0<>b500ea831fec9529e5e5de2e8820d657<>res://.godot/imported/Codex Image Sep 1, 2026, 09_52_41 PM.png-9a734c9d2d4865ab511ce75ff650d721.ctex::
+::res://ReferenceImages/Level/::1788321918
+Screenshot 2026-08-29 at 4.46.20 PM.png::CompressedTexture2D::329727797027113227::1788036383::1788321918::1::::<><><>0<>0<>242d68d3f78b03f1df6c96ea9634eead<>res://.godot/imported/Screenshot 2026-08-29 at 4.46.20 PM.png-d4c09928b9426e521b99af69749ae8a8.ctex::
+Screenshot 2026-08-29 at 4.46.30 PM.png::CompressedTexture2D::3135716635710271338::1788036396::1788321917::1::::<><><>0<>0<>62666e2ca28c55c9a77d0980b2211864<>res://.godot/imported/Screenshot 2026-08-29 at 4.46.30 PM.png-2bb4d72a5fc6e9ecb4be91714f724a48.ctex::
+Screenshot 2026-08-29 at 4.46.37 PM.png::CompressedTexture2D::2522342005068286443::1788036403::1788321917::1::::<><><>0<>0<>7d595334450f4938461119b7be546d1b<>res://.godot/imported/Screenshot 2026-08-29 at 4.46.37 PM.png-2c0dae730a47369f7aa7e284317f6283.ctex::
+Screenshot 2026-08-29 at 4.46.58 PM.png::CompressedTexture2D::5876890990154832689::1788036424::1788321917::1::::<><><>0<>0<>78245ae71ec3d4b95c6eead35cce84bb<>res://.godot/imported/Screenshot 2026-08-29 at 4.46.58 PM.png-d370563c888fa65c01d78fc4c57e39b3.ctex::
+Screenshot 2026-08-29 at 4.47.20 PM.png::CompressedTexture2D::1642665769789285474::1788036446::1788321917::1::::<><><>0<>0<>917e9351e0c54d6582f911143dd47059<>res://.godot/imported/Screenshot 2026-08-29 at 4.47.20 PM.png-cafc5e0863a9e93524fc5d4ef65d3838.ctex::
+Screenshot 2026-08-29 at 4.47.26 PM.png::CompressedTexture2D::9087421542248714135::1788036452::1788321917::1::::<><><>0<>0<>05888d1e9498ac50e1745dc9ebb72b93<>res://.godot/imported/Screenshot 2026-08-29 at 4.47.26 PM.png-750d3e9035e232985e07f01bc0c0cda0.ctex::
+Screenshot 2026-08-29 at 4.47.38 PM.png::CompressedTexture2D::2872302787812180510::1788036464::1788321917::1::::<><><>0<>0<>6dc746074dcd7e30150a3a6483fe9649<>res://.godot/imported/Screenshot 2026-08-29 at 4.47.38 PM.png-61e9a2c906e8f62c9a6aa8b750bda8bc.ctex::
+Screenshot 2026-08-29 at 4.47.44 PM.png::CompressedTexture2D::6868860708642216698::1788036470::1788321917::1::::<><><>0<>0<>f46879fe82a77bfa9f7acfa94d71b16e<>res://.godot/imported/Screenshot 2026-08-29 at 4.47.44 PM.png-9776c7f06b83b9d17ec560c37d78b903.ctex::
+Screenshot 2026-08-29 at 4.47.51 PM.png::CompressedTexture2D::1650364353510859284::1788036477::1788321917::1::::<><><>0<>0<>f1f8e5f8637ab11c2f991f2b9f0cbe54<>res://.godot/imported/Screenshot 2026-08-29 at 4.47.51 PM.png-0ee29e321a3f3aae4d0f1b099c97d125.ctex::
+Screenshot 2026-08-29 at 4.48.00 PM.png::CompressedTexture2D::529864610171502035::1788036485::1788321917::1::::<><><>0<>0<>250a5205770cf575388ac3ca7998816e<>res://.godot/imported/Screenshot 2026-08-29 at 4.48.00 PM.png-6ff7f8cc7d1277ea090b154192d77e12.ctex::
+Screenshot 2026-08-29 at 4.48.10 PM.png::CompressedTexture2D::2369237739443870264::1788036495::1788321917::1::::<><><>0<>0<>df753564f4ecc6cebf33a1a98cf5e843<>res://.godot/imported/Screenshot 2026-08-29 at 4.48.10 PM.png-6f3c14d914928eaa5ff40896c25bef26.ctex::
+::res://scenes/::1788317876
+main.tscn::PackedScene::-1::1788409842::0::1::::<><><>0<>0<><>::res://scripts/main.gd
+::res://scripts/::1788409842
+autopilot.gd::GDScript::2581686901812218720::1788409842::0::1::::Autopilot<>Node<><>0<>0<><>::
+bike.gd::GDScript::8067998773412152504::1788409842::0::1::::Bike<>CharacterBody3D<><>0<>0<><>::
+bike_audio.gd::GDScript::1470713343138307239::1788409842::0::1::::BikeAudio<>Node<><>0<>0<><>::
+bike_visual.gd::GDScript::1301652317051603527::1788409842::0::1::::<>Node3D<><>0<>0<><>::
+chase_camera.gd::GDScript::3462701537916334232::1788409842::0::1::::ChaseCamera<>Camera3D<><>0<>0<><>::
+controls.gd::GDScript::9034902262282660882::1788409842::0::1::::Controls<>RefCounted<><>0<>0<><>::
+game_manager.gd::GDScript::5449879962429521113::1788409842::0::1::::GameManager<>Node<><>0<>0<><>::
+gun.gd::GDScript::4938078043234295068::1788409842::0::1::::GunSystem<>Node<><>0<>0<><>::
+hub.gd::GDScript::3784414447196907346::1788409842::0::1::::Hub<>RefCounted<><>0<>0<><>::
+hud.gd::GDScript::3069586992530138164::1788409842::0::1::::HUD<>CanvasLayer<><>0<>0<><>::
+level.gd::GDScript::5431811680380679041::1788409842::0::1::::Level<>WorldKit<><>0<>0<><>::
+main.gd::GDScript::5598466976226725584::1788409842::0::1::::<>Node3D<><>0<>0<><>::
+materials.gd::GDScript::3248627348068350591::1788409842::0::1::::Mats<>RefCounted<><>0<>0<><>::
+player.gd::GDScript::8315519591863257764::1788409842::0::1::::Player<>CharacterBody3D<><>0<>0<><>::
+rider.gd::GDScript::5591918523388513289::1788409842::0::1::::Rider<>Node<><>0<>0<><>::
+rider_model.gd::GDScript::5369516868736843864::1788409842::0::1::::RiderModel<>Node3D<><>0<>0<><>::
+terrain.gd::GDScript::6022484582417758976::1788409842::0::1::::Terrain<>Node3D<><>0<>0<><>::
+world_kit.gd::GDScript::146532212999955989::1788409842::0::1::::WorldKit<>Node3D<><>0<>0<><>::
+::res://tools/::1788409842
+bike_view.gd::GDScript::1273072624817591434::1788409842::0::1::::<>SceneTree<><>0<>0<><>::
+edge_tests.gd::GDScript::3438236641426468487::1788409842::0::1::::<>SceneTree<><>0<>0<><>::
+feature_shots.gd::GDScript::8850826096137651761::1788409842::0::1::::<>SceneTree<><>0<>0<><>::
+feature_tests.gd::GDScript::9027286656919312339::1788409842::0::1::::<>SceneTree<><>0<>0<><>::
+near_probe.gd::GDScript::8930758905438316519::1788409842::0::1::::<>SceneTree<><>0<>0<><>::
+road_dump.gd::GDScript::3656914104425688434::1788409842::0::1::::<>SceneTree<><>0<>0<><>::
+view.gd::GDScript::697308501932410121::1788409842::0::1::::<>SceneTree<><>0<>0<><>::
+::res://tools/mapgen/::1788409842
