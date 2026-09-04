@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="JobDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/delivery/job_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"job.eggs_and_oil"
+display_name = "Eggs and oil"
+from_location = &"hilltop_farm"
+to_location = &"harbour_cafe"
+item = "Eggs and olive oil"
+reward = 55

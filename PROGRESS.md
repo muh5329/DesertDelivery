@@ -183,3 +183,59 @@ rendered screenshots compared against the references.
 - **Remaining polish (non-blocking per critic):** 3 m sawtooth on the shoreline, aqueduct piers not
   tapered, quay props sparse.
 - **Budget:** 1 build round + 8 critic rounds.
+
+## Round 15 — restructure into an open-world foundation (before NPCs and cars)
+- **What changed:** the project is now "a small engine on top of Godot" (see `ARCHITECTURE.md`):
+  feature-based folders (`core/ world/ entities/ gameplay/ ai/ ui/ data/ tests/`); a small runtime tree
+  (`Game → WorldManager / EntityManager / GameplayManager / Rider / ChaseCamera / UI / Debug`); two
+  autoloads only (`Events` bus, `Saves`); definitions as Resources (`VehicleDefinition`,
+  `JobDefinition`, `WorldConfig` in `data/`); `Vehicle` base class with a `VehicleDefinition`
+  (the bike reads its tunables from `data/vehicles/bike.tres`); the island generator writes a
+  `WorldDatabase` of build recipes per 60 m chunk plus locations/hubs, and a `WorldStreamer`
+  instantiates a 7×7 ring of `Chunk`s around the focus and frees the rest (terrain, sea, sky stay
+  resident); `EntityManager` registers everything by stable id and assigns simulation tiers by
+  distance; `SaveManager` writes diffs keyed by id (delivery, gun/cans, bike, rider) to
+  `user://saves/<slot>.json` (F5/F9); `DebugOverlay` (F3) with chunk/entity/draw-call stats and
+  teleport / reload-chunk / streaming toggles; the HUD subscribes to events instead of being wired to
+  systems; tests run inside the booted game via `--test=NAME` (a test runner in `Game`).
+- **Evidence:** `--autotest --deliveries=4` PASS (streaming live: 41 of 90 chunks loaded, tree
+  ~5 k nodes instead of ~10 k), new `architecture_tests` (21 checks: database independent of loading,
+  chunks load/unload as the focus teleports, bounded chunk count, ids, tiers, save/load round trip,
+  definitions, tree shape) PASS, edge_tests PASS, feature_tests PASS (28), fixed-view and feature
+  renders identical to round 14.
+- **Failed approaches:** running the SceneTree-script tests with autoloads present (Godot's `-s`
+  mode never registers autoload globals) → tests became nodes run by the game; 120 m chunks with
+  radius 2 loaded the whole island (streaming did nothing) → 60 m chunks, radius 3; `--nostream`
+  renders lost far chunks because the streamer kept unloading → `load_everything()` disables streaming.
+- **Known:** the autopilot still cuts corners into props occasionally (its own reset recovers);
+  a benign "ObjectDB instances leaked" warning can appear on quit(0) mid-frame.
+- **Budget:** 1 round.
+
+## Round — Terrain3D, 3x island, twice the places
+- **Changed:** the ground is now rendered and collided by the Terrain3D plugin: `Terrain.build()` keeps
+  producing the 3 m heightfield (roads, bridges, viaducts, pads), then `_build_terrain3d()` resamples it
+  to 1.5 m (cubic) with a little per-biome micro relief, writes a control map (texture per biome, rock
+  on slopes, dirt on roads, ploughed strips in the fields) and a colour map (tints), and imports them;
+  `height_at` / `normal_at` read Terrain3D's data so props, rings and the bike all sit on the drawn
+  ground. Textures: ambientCG Ground037 + Rock030 (CC0) and five baked by `world/mapgen/textures.py`.
+  World 720 m → 1248 m (3x area): `expand.py` scales the painted island by 1.733 (roads/hubs in painting
+  pixels follow through `_px`; world-metre constants scaled) and grows the Highlands (MOOR) north and
+  the Southern Shore (DUNES, SALTFLAT, FARM, BADLANDS headland, lagoon) south. New hubs: monastery,
+  quarry, cala_blanca, salinas; new places: bodega, torre_vieja, lakeside_camp, windmill_ridge, chapel,
+  refugio; new roads (pass, quarry loop, coast road, links); 10 chained jobs; new kits (windmill, fort
+  tower, crane, tents, campfire, cloister, sheep, salt heaps, dykes, reeds, heather, dune grass).
+- **Evidence:** architecture / feature / edge tests pass headless (test coordinates moved to the new
+  map); `--autotest --deliveries=10` drives the whole loop; `--test=view` renders 20+ views under Xvfb.
+- **Known:** world generation is ~8.5 s in the cloud container (heightfield 2.4 s, Terrain3D maps
+  1.7 s, scatter 4 s); the bike's turn-back edge and the streaming grid follow `Terrain.SIZE`.
+
+## Round — foliage and the propeller
+- **Changed:** the plane's propeller moved from the tail to the nose (`bike_visual.gd`). All
+  vegetation is now alpha-cut texture cards baked by `world/mapgen/foliage.py` into
+  `assets/foliage`: pines / olives / cypresses / bushes / heather / vines are crossed-card canopies
+  (`WorldKit._tier`, up-facing normals so leaves take the ground's light), and grass, dry grass,
+  dune grass and wild flowers (~280k plants) go through Terrain3D's instancer
+  (`Terrain.plant_ground_cover`, density per biome, never on roads/pads/steep ground, 110 m fade).
+- **Evidence:** tests pass; `--test=view --close` renders show grass, canopies and vines.
+- **Known:** `Terrain3DInstancer.add_transforms(..., update=false)` needs one `update_mmis(true)`
+  afterwards or the earlier mesh ids never get their MultiMeshes. Generation is now ~12 s here.

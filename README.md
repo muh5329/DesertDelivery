@@ -1,18 +1,20 @@
 # Desert Delivery
 
-A small third-person motorbike courier game inspired by *Into the Wind*, set on an island generated from a
-reference painting, built in **Godot 4.3** with the GL Compatibility renderer. Everything (terrain, roads, buildings, vegetation, the bike and the
-rider) is generated procedurally from GDScript at start-up, so the project has no binary assets.
-
-## Reference
-
-![Flying over the city](ReferenceImages/Phase_1/flying_over_city.png)
+A small third-person motorbike courier game inspired by *Into the Wind*, set on a 1.25 km island grown from a
+reference painting, built in **Godot 4.4+** with the GL Compatibility renderer. Everything (roads, buildings,
+vegetation, the bike and the rider) is generated procedurally from GDScript at start-up. The ground itself is
+drawn and collided by the **Terrain3D** plugin (`addons/terrain_3d`): the generated heightfield is handed to it
+with a per-cell texture map (grass, limestone, dirt roads, sand, red clay, ploughed soil, salt) and a colour
+tint map, so it renders with real PBR textures, normal maps and a clipmap LOD instead of the old flat facets.
 
 ## Run it
 
-1. Install Godot 4.3 (standard build) from https://godotengine.org/download.
+1. Install Godot 4.4 or newer (standard build) from https://godotengine.org/download.
 2. Open Godot → **Import** → pick `project.godot` in this folder → **Edit** → press **F5** (Play).
    Or from a terminal: `godot --path /path/to/DesertDelivery`.
+   The Terrain3D GDExtension ships in `addons/terrain_3d` (binaries for macOS, Windows, Linux, iOS, Android, web);
+   it does not need to be enabled as an editor plugin for the game to run. `--facet` on the command line
+   (after `--`) renders the old flat-shaded terrain instead, for comparison.
 
 ## Controls
 
@@ -38,40 +40,51 @@ rider) is generated procedurally from GDScript at start-up, so the project has n
 
 Ride to the glowing ring at the pickup, slow to a stop inside it to load the package onto the rear
 rack, then follow the compass (top-left) to the destination ring and stop again to hand it over.
-Four jobs chain across the island: Villa Rosa Office (SW vineyards) → Hilltop Farm (NW massif) → Harbour
-Cafe (NE town, over the strait aqueduct) → Dunes Lookout (badlands, over the gorge viaduct) → back to the Villa. Signposts at each hub point the way.
+Ten jobs chain round the island: Villa Rosa Office (SW vineyards) → Hilltop Farm (NW massif) → Harbour Cafe
+(NE town, over the strait aqueduct) → Dunes Lookout (badlands, over the gorge viaduct) → Lakeside Camp →
+Bodega San Marco (the southern vineyards) → the Salinas (salt pans) → Cala Blanca (fishing cove) → the Marble
+Quarry and San Telmo Monastery (the northern Highlands, over the mountain pass) → back to the Villa.
+Signposts at each hub point the way; F6 teleports to the next hub.
+
+## Places
+
+Eight hubs with delivery rings — Villa Rosa, Hilltop Farm, the Harbour, Dunes Lookout, San Telmo Monastery,
+the Marble Quarry, Cala Blanca and the Salinas — and nine more named places to find: the Town Square and the
+Lighthouse on the town island, the Hamlet by the bay, Windmill Ridge, the Hill Chapel, the Refugio on the pass,
+the Lakeside Camp, the Bodega and Torre Vieja (the old fort on the southern headland).
 
 ## Automated checks
 
+All checks run inside the booted game through the test runner (`--test=NAME` loads `tests/NAME.gd`):
+
 ```
-godot --headless --path . -- --autotest --deliveries=4          # drives itself, exits 0 on success
-godot --headless --path . -s tools/edge_tests.gd                # brake/reverse, sea reset, camera
-godot --headless --path . -s tools/feature_tests.gd             # dismount, swim, pistol, plane
-xvfb-run godot --path . --rendering-driver opengl3 -s tools/feature_shots.gd -- --out=/tmp/fshots
+godot --headless --path . -- --autotest --deliveries=10 --maxtime=2800   # drives the whole loop, exits 0 on success
+godot --headless --path . -- --test=architecture_tests          # streaming, world database, tiers, events, save/load
+godot --headless --path . -- --test=edge_tests                  # brake/reverse, sea reset, camera
+godot --headless --path . -- --test=feature_tests               # dismount, swim, pistol, plane
+xvfb-run godot --path . --rendering-driver opengl3 -- --test=feature_shots --out=/tmp/fshots
+xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --out=/tmp/view   # 20+ fixed views, streamed
 xvfb-run godot --path . --rendering-driver opengl3 -- --shots=/tmp/shots --autotest   # + screenshots
-godot --path . --rendering-driver opengl3 -s tools/view.gd -- --out=/tmp/view --nofog  # 9 fixed views
-godot --headless --path . -s tools/road_dump.gd                                # road profiles / bridges (ROAD=n)
-python3 tools/mapgen/extract.py [painting.png]                                 # regenerate data/ from the painting
-godot --path . --rendering-driver opengl3 -s tools/bike_view.gd -- --out=/tmp/bike     # bike turntable
+python3 world/mapgen/extract.py [painting.png]   # painting -> world/mapgen/island_map_720.png (the 720 m map)
+python3 world/mapgen/expand.py                   # 720 m map -> data/ (1248 m world with the new land)
+python3 world/mapgen/textures.py                 # bake the procedural ground textures in assets/terrain
 ```
+
+Debug keys in game: **F3** overlay (fps, chunk, loaded chunks, entities per tier, draw calls...),
+**F5/F9** quick save/load, **F6** teleport to the next hub, **F7** reload the chunk under you, **F8** toggle streaming.
 
 ## Layout
 
-The domain vocabulary (Rider, Mode, ControlIntent, Framing, Hub, Ground) is in `CONTEXT.md`.
+See `ARCHITECTURE.md` for the full picture; `CONTEXT.md` for the domain vocabulary.
 
-- `scripts/main.gd` – entry point and wiring only
-- `scripts/rider.gd` – the Rider module: owns the mode (riding / flying / on foot / swimming) and every transition
-- `scripts/controls.gd` – the ControlIntent seam: `Controls.Keyboard` (reads input, decides key meaning per mode) and `Controls.Scripted` (autopilot, tests)
-- `scripts/hub.gd` – Hub records (centre, ring, walls, bench) published by the level
-- `tools/mapgen/extract.py` – turns the reference painting into `data/island_map.png` (height / biome / tree density), `data/sea_depth.png` and `data/island_meta.json`
-- `scripts/terrain.gd` – map-driven heightfield: biomes, roads (bridges, viaducts, ramps, grade limit), pads, flat-shaded facet mesh, collision, `probe(pos)` / `nearest_road(pos)`
-- `scripts/world_kit.gd` – the building blocks: sky/light, depth-banded sea, rocks, tree / hoodoo kits, houses, walls, piers, boats, arcades, lighthouse
-- `scripts/level.gd` – the island layout from the painting: roads in painting pixels, massif, harbour town, hamlet, vineyards, badlands + lake, aqueducts, hubs
-- `scripts/bike.gd` – arcade bike physics (CharacterBody3D), `scripts/bike_visual.gd` – bike + rider model
-- `scripts/chase_camera.gd` – third-person camera: `follow(target, framing)`, `look(delta)`, `view_ray()`
-- `scripts/game_manager.gd` – jobs, pickup / drop-off zones, `scripts/hud.gd` – HUD
-- `scripts/player.gd` / `scripts/rider_model.gd` – on-foot controller (walk/run/jump/swim) and the animated boy
-- `scripts/gun.gd` – pistol pickup, over-the-shoulder hitscan, tin-can targets
-- `scripts/bike_audio.gd` – procedural engine / wind / prop / gunshot audio
-- `scripts/autopilot.gd` – road-graph driver used by the verifier
-# DesertDelivery
+- `core/` – `Game` root (boot + wiring), `Events` bus, `Saves`, definitions, utils
+- `world/` – `WorldManager`, `WorldDatabase` (recipes per chunk, locations, hubs), `WorldStreamer` + `Chunk`, `Terrain` (heightfield → Terrain3D), `WorldKit` builders, the `Island` generator, `mapgen/` (extract, expand, textures)
+- `assets/terrain/` – ground textures (two CC0 ambientCG sets + five baked ones)
+- `assets/foliage/` – grass / flower / leaf-clump cards (baked by `world/mapgen/foliage.py`) for the tree canopies and Terrain3D's instancer grass
+- `addons/terrain_3d/` – the Terrain3D plugin
+- `entities/` – `EntityManager` (ids + simulation tiers), player (`Player`, `Rider`, `RiderModel`), vehicles (`Vehicle` base, `Bike`), camera
+- `gameplay/` – `GameplayManager`, `Controls` seam, `DeliverySystem` + `JobDefinition`, `GunSystem`
+- `ai/` – `Autopilot`
+- `ui/` – `HUD`, `DebugOverlay`
+- `data/` – island maps, `config/world.tres`, `vehicles/bike.tres`, `jobs/*.tres`
+- `tests/` – test nodes and render tools

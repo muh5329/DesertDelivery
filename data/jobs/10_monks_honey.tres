@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="JobDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/delivery/job_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"job.monks_honey"
+display_name = "Monks' honey"
+from_location = &"monastery"
+to_location = &"villa_rosa_office"
+item = "Jars of honey"
+reward = 80

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WorldConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://world/world_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"world.island"
+display_name = "The island"
+chunk_size = 60.0
+stream_radius = 3
+unload_margin = 1
+chunks_per_frame = 1
+seed = 2026
+full_tier_radius = 100.0
+reduced_tier_radius = 250.0
+abstract_tier_radius = 600.0

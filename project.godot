@@ -16,8 +16,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Desert Delivery"
 config/description="Third-person motorbike courier game inspired by Into the Wind. Ride, collect packages, deliver them."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://core/app/game.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[autoload]
+
+Events="*res://core/events/event_bus.gd"
+Saves="*res://core/save/save_manager.gd"
 
 [display]
 

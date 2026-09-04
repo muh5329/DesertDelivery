@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="JobDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/delivery/job_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"job.marble_sample"
+display_name = "Marble sample"
+from_location = &"cala_blanca"
+to_location = &"quarry"
+item = "Marble order"
+reward = 90
