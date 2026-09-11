@@ -32,7 +32,7 @@ func build(terrain: Terrain) -> void:
 			buckets[cell].append(id)
 	for bridge in terrain.bridges:
 		var samples: PackedVector3Array=bridge.samples
-		var span:=bridge.deck_span(terrain)
+		var span: Vector2i = bridge.deck_span(terrain)
 		for i in range(span.x,mini(span.y,samples.size()-1)):
 			var segment: Dictionary={"a":samples[i],"b":samples[i+1]}
 			bridge_segments.append(segment)

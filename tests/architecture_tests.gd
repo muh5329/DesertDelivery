@@ -136,7 +136,7 @@ func _check_intent_seam() -> void:
 ## They are two named questions now, and this is the check that they still agree.
 func _check_ground_seam() -> void:
 	var terrain: Terrain = main.world.terrain
-	var drift := terrain.heightfield_drift()
+	var drift: float = terrain.heightfield_drift()
 	_check(drift < 1.2, "the drawn ground follows the heightfield the build cut (worst %.2f m)" % drift)
 	# Every Bridge answers for its own deck, ramps included — the rule used to be copied into
 	# the aqueduct builder and the pedestrian router with the same three magic numbers.
@@ -225,7 +225,7 @@ func _reach_of(root: Node3D, origin: Vector2) -> float:
 ## a flat sea behind one push_error.
 func _check_map_contract() -> void:
 	var terrain: Terrain = main.world.terrain
-	var problem := terrain.map_contract_error()
+	var problem: String = terrain.map_contract_error()
 	_check(problem == "", "data/island_map.png matches the contract expand.py wrote%s" % ("" if problem == "" else ": " + problem))
 	var img := Image.new()
 	var loaded := img.load(Terrain.MAP_PATH) == OK

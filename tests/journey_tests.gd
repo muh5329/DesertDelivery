@@ -106,7 +106,7 @@ func _run() -> void:
 	check(is_equal_approx(gm.parcel_condition,.78),"gentle landings preserve fragile cargo")
 	Events.vehicle_landed.emit(game.bike.entity_id,10.0)
 	check(gm.parcel_condition<.78,"hard landing damages fragile cargo")
-	var expected_payout:=gm.current_payout(); var wallet_before:=gm.coins
+	var expected_payout: int = gm.current_payout(); var wallet_before:=gm.coins
 	gm._complete_stage()
 	check(gm.coins==wallet_before+expected_payout,"handoff pays adjusted fragile value exactly once")
 	# All service entry points revalidate location; button state is not authorization.

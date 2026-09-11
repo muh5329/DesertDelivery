@@ -74,7 +74,7 @@ painting ──extract.py──▶ island_map_720.png ──expand.py──▶ d
                                                    └─ recipes:  one Callable per prop, per chunk
                                                                  → WorldDatabase.records
 player position ──▶ WorldStreamer ──▶ Chunk.build(): run the chunk's recipes → nodes
-                                  └──▶ Chunk.queue_free() when out of range
+								  └──▶ Chunk.queue_free() when out of range
 ```
 
 A recipe is a closure that calls a `WorldKit` builder with every parameter already decided at

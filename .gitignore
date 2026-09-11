@@ -1,4 +1,6 @@
 .godot/
 *.import
+*.uid
 _incoming/
 _to_delete/
+__pycache__/

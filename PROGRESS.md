@@ -5,6 +5,22 @@ the Reference Images (bike + boy) and the Level folder (arid Mediterranean coast
 Budget: 12 attempts. Verifier = headless autotest (autopilot drives pickup → delivery, exit 0) +
 rendered screenshots compared against the references.
 
+## Round 15 — cargo truck, Tetris rack and climbing winch
+- Added a second, fully drivable `Truck` vehicle parked near the starting bike. The rider, camera,
+  HUD, audio, saves, streaming focus and delivery system now follow the active vehicle; walk up and
+  press E to switch between bike and truck.
+- Added a playable 4×6 cargo rack with I/L/T/S/O pieces. G enters packing mode while stopped,
+  WASD positions the preview, Z rotates, Space locks supported/non-overlapping pieces, and X removes
+  the last piece. Packed cargo is saved and its weight reduces top speed.
+- Added a front winch (Q / RB) with a visible cable, 38 m collision raycast against trees, rocks,
+  buildings and terrain, moving-anchor support, automatic reeling, release, and upward assistance
+  for wall climbing.
+- Added the compact red procedural truck model, tall metal cargo frame, driver, lights, mirrors,
+  working wheels, dust, larger delivery parcel, truck framing and contextual HUD instructions.
+- Evidence: `truck_tests` passes mounting, packing/rotation, real collision hook, pull and wall lift;
+  architecture, edge, feature and one-delivery autopilot suites pass. Four-angle `truck_view` renders
+  verified the model and rear load in the existing low-poly art direction.
+
 ## Round 1 — project skeleton, terrain, bike, delivery loop
 - **Changed:** Created the project from scratch (no prior project existed in the folder — only
   `ReferenceImages`). Procedural heightfield terrain with stamped dirt roads, flat building pads,
@@ -240,6 +256,34 @@ rendered screenshots compared against the references.
 - **Known:** `Terrain3DInstancer.add_transforms(..., update=false)` needs one `update_mmis(true)`
   afterwards or the earlier mesh ids never get their MultiMeshes. Generation is now ~12 s here.
 
+
+## Round — Blender assets, island life and parchment journal (2026-09-05)
+- **Changed:** authored motorcycle, articulated courier, rural/town houses, compact cars,
+  foliage, cliffs and wildlife through Blender MCP. Town uses white/aqua/ochre facades,
+  blue shutters/domes, barrel vaults, continuous stone streets and planted Lemon Court.
+  Terrain-sampled paving fixes dirt gaps; shared endpoint normals close street seams;
+  house plinths anchor facade details. Sky clouds and daylight animate.
+- **Life:** 64 named residents, 16 drivers, continuous daily/weekly schedules, distant
+  simulation, saved clock/routes/work, 108 animals/birds and two sailing boats. Ground
+  sampling handles bridges and slope contact; resident bodies collide with the player,
+  bike and truck. Drivers brake, yield and resolve crossing priority. Actual collision
+  response must reach a waypoint before the route advances. Harbour workstations now
+  span town and waterfront, including the new courtyard.
+- **Journal:** searchable/sortable parchment book with actual portraits, weekly grid,
+  exact day itinerary and saved notes. Keyboard focus follows rows; closing input cannot
+  also fire/quit. Reviewed at1600x900 and1280x720; 17interaction checks pass.
+- **Delivery:** grounded half-second handoffs on bike/truck/onfoot; correct active courier;
+  one reward per delivery, stable loaded stage without duplicate events, no phantom final
+  target, initial HUD objective/wallet correctly populated. Jumping cannot hand off.
+- **Evidence:** all25resident assertions pass, delivery transaction suite passes, full10job
+  autopilot completes6,904m in506.8simulationseconds (seven obstacle reset recoveries).
+  Architecture, features, truck and edge suites pass. Final import has no script errors.
+  Captures and logs: `artifacts/review-2026-09-05/`.
+- **Rendering:** Forward+ / Vulkan selected on macOS after reproducible Metal crashes and
+  black captures. Final Vulkan renders inspected. Source blends excluded from Godot import.
+- **Limits:** this is simplified reference-inspired art; NPCs share a base mesh. Work is
+  timed outdoor activity, not shop interiors/economic production. Autopilot obstacle
+  recovery remains. Existing Terrain3D/exit warnings remain recorded in review logs.
 ## Round — the fidelity push (six adversarial rounds against the *Into the Wind* references)
 - **Method:** `reference/` holds the three reference screenshots, `BRIEF.md`, camera `spots.json`,
   `compare.py` (colour / texture-energy / luminance-layout similarity + side-by-sides) and, per

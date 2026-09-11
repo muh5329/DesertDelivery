@@ -8,6 +8,7 @@ extends Node3D
 
 signal delivery_completed(total: int)
 signal package_collected()
+signal wallet_changed(coins: int)
 
 enum Stage { TO_PICKUP, TO_DROPOFF, DONE }
 
@@ -17,7 +18,13 @@ var stage: int = Stage.TO_PICKUP
 var deliveries := 0
 var carrying := false
 var elapsed := 0.0
+var coins := 0
+var _revision := 0
+var active_job_override: JobDefinition
+var handoffs_paused := false
+var _foot_package: Node3D
 var bike: Bike
+var vehicle: Vehicle
 var db: WorldDatabase
 var pickup_zone: Area3D
 var dropoff_zone: Area3D
@@ -31,6 +38,13 @@ var actor: Node3D
 var player: Node3D
 var rider: Rider
 var _foot_hint_shown := false
+## Fragile cargo: 1.0 intact .. 0.0 wrecked. Only the courier's own vehicle crashing or landing
+## hard damages it, once per impact (the cooldown stops one collision counting every frame).
+var parcel_condition := 1.0
+var _impact_cooldown := 0.0
+const CRASH_DAMAGE := 0.22
+const LANDING_THRESHOLD := 8.0
+const LANDING_DAMAGE := 0.12
 
 
 func set_actor(a: Node3D) -> void:
@@ -40,6 +54,7 @@ func set_actor(a: Node3D) -> void:
 func setup(p_db: WorldDatabase, p_bike: Bike, p_jobs: Array[JobDefinition]) -> void:
 	db = p_db
 	bike = p_bike
+	vehicle = p_bike
 	jobs = p_jobs
 	_beacon_mat = StandardMaterial3D.new()
 	_beacon_mat.albedo_color = Color(1.0, 0.80, 0.30, 0.12)
@@ -47,21 +62,64 @@ func setup(p_db: WorldDatabase, p_bike: Bike, p_jobs: Array[JobDefinition]) -> v
 	_beacon_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_beacon_mat.emission_enabled = true
 	_beacon_mat.emission = Color(1.0, 0.8, 0.3)
-	_beacon_mat.emission_energy_multiplier = 1.4
+	_beacon_mat.emission_energy_multiplier = 0.45
 	_beacon_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_beacon_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	if not Events.vehicle_crashed.is_connected(_on_vehicle_crashed):
+		Events.vehicle_crashed.connect(_on_vehicle_crashed)
+		Events.vehicle_landed.connect(_on_vehicle_landed)
 	_start_job(0)
 
 
+func _carrying_fragile() -> bool:
+	var j := current_job()
+	return carrying and j != null and j.cargo_kind == "fragile"
+
+
+func _is_courier_vehicle(id: StringName) -> bool:
+	return vehicle != null and vehicle.entity_id == id
+
+
+func _damage_parcel(amount: float) -> void:
+	if _impact_cooldown > 0.0: return
+	parcel_condition = clampf(parcel_condition - amount, 0.0, 1.0)
+	_impact_cooldown = 0.5
+
+
+func _on_vehicle_crashed(id: StringName) -> void:
+	if _carrying_fragile() and _is_courier_vehicle(id): _damage_parcel(CRASH_DAMAGE)
+
+
+func _on_vehicle_landed(id: StringName, impact: float) -> void:
+	if impact > LANDING_THRESHOLD and _carrying_fragile() and _is_courier_vehicle(id):
+		_damage_parcel(LANDING_DAMAGE * (impact / LANDING_THRESHOLD))
+
+
+## What the current job really pays: fragile cargo loses up to half its value as it breaks.
+func current_payout() -> int:
+	var j := current_job()
+	if j == null: return 0
+	if j.cargo_kind == "fragile": return roundi(j.reward * (0.5 + 0.5 * parcel_condition))
+	return j.reward
+
+
+func set_vehicle(next: Vehicle) -> void:
+	if next == vehicle: return
+	if vehicle: vehicle.set_package_visible(false)
+	vehicle = next
+	if vehicle: vehicle.set_package_visible(carrying)
+
+
 func current_job() -> JobDefinition:
-	if job_index < jobs.size():
+	if active_job_override != null: return active_job_override
+	if job_index >= 0 and job_index < jobs.size():
 		return jobs[job_index]
 	return null
 
 
 func target_location() -> StringName:
 	var j := current_job()
-	if j == null: return &""
+	if j == null or stage == Stage.DONE: return &""
 	return j.from_location if stage == Stage.TO_PICKUP else j.to_location
 
 
@@ -84,6 +142,7 @@ func _make_zone(pos: Vector3, radius: float) -> Area3D:
 	a.collision_layer = 0
 	a.collision_mask = 2 | 4
 	a.position = pos
+	a.set_meta("radius", radius)
 	var cs := CollisionShape3D.new()
 	var sh := CylinderShape3D.new()
 	sh.radius = radius
@@ -116,30 +175,44 @@ func _clear_zones() -> void:
 	if dropoff_zone: dropoff_zone.queue_free(); dropoff_zone = null
 
 
-func _start_job(i: int) -> void:
+func _start_job(i: int, announce: bool = true) -> void:
 	_clear_zones()
-	job_index = i
+	active_job_override = null
+	_revision += 1
+	_zone_timer = 0.0; _in_zone = false; _foot_hint_shown = false
+	job_index = clampi(i, 0, jobs.size())
+	carrying = false
+	_all_done = false
+	vehicle.set_package_visible(false)
 	if job_index >= jobs.size():
 		stage = Stage.DONE
 		_all_done = true
 		Events.job_changed.emit(null, &"done")
-		_say("All deliveries done! Ride free, or press R by a road to reset. Total: %d packages in %s" % [deliveries, format_time(elapsed)], 12.0)
+		if announce: _say("Route list complete! Visit a courier counter for another job. Total: %d packages in %s" % [deliveries, format_time(elapsed)], 12.0)
 		return
 	stage = Stage.TO_PICKUP
 	carrying = false
-	bike.visual.set_package_visible(false)
+	vehicle.set_package_visible(false)
 	var j := current_job()
 	pickup_zone = _make_zone(db.location_pos(j.from_location), 6.0)
 	Events.job_changed.emit(j, &"pickup")
+	if not announce: return
 	if deliveries == 0:
 		_say("New job: collect the %s at %s" % [j.item, db.location_name(j.from_location)], 5.0)
 	else:
-		get_tree().create_timer(2.6).timeout.connect(func(): _say("Next job: %s → %s" % [j.item, db.location_name(j.to_location)], 4.0))
+		var revision := _revision
+		get_tree().create_timer(2.6).timeout.connect(func():
+			if revision == _revision: _say("Next job: %s → %s" % [j.item, db.location_name(j.to_location)], 4.0))
 
 
 func _process(delta: float) -> void:
+	_sync_package_visuals()
 	if _all_done: return
 	elapsed += delta
+	if handoffs_paused:
+		_zone_timer = 0.0
+		return
+	if _impact_cooldown > 0.0: _impact_cooldown -= delta
 	if _cooldown > 0.0:
 		_cooldown -= delta
 		return
@@ -149,14 +222,19 @@ func _process(delta: float) -> void:
 	if icon:
 		icon.rotation.y += delta * 1.2
 		icon.position.y = 3.6 + sin(Time.get_ticks_msec() * 0.003) * 0.25
-	var inside := zone.overlaps_body(bike)
-	var sp: float = absf(bike.speed)
-	if player and not _foot_hint_shown and zone.overlaps_body(player):
-		_foot_hint_shown = true
-		_say("The package rides on the bike — bring the bike into the ring.", 3.5)
-	if inside and sp < 2.5 and (rider == null or rider.is_riding()):
+	var courier: Node3D = player if rider and rider.is_on_foot() else vehicle
+	if courier == null: return
+	var inside := _contains_courier(zone, courier)
+	var velocity_speed := 0.0
+	if courier is CharacterBody3D:
+		velocity_speed = Vector2(courier.velocity.x, courier.velocity.z).length()
+	var speed := maxf(velocity_speed, absf(vehicle.speed)) if courier == vehicle else velocity_speed
+	var available := rider == null or rider.mode == Rider.Mode.RIDING or rider.mode == Rider.Mode.DRIVING or rider.mode == Rider.Mode.ON_FOOT
+	if courier == vehicle: available = available and vehicle.grounded
+	elif courier is CharacterBody3D: available = available and courier.is_on_floor()
+	if inside and speed < 2.5 and available:
 		_zone_timer += delta
-		if _zone_timer > 0.5:
+		if _zone_timer >= 0.5:
 			_complete_stage()
 			_zone_timer = 0.0
 	else:
@@ -169,39 +247,110 @@ func _process(delta: float) -> void:
 
 func _complete_stage() -> void:
 	var j := current_job()
+	if j == null or stage == Stage.DONE: return
+	_in_zone = false; _zone_timer = 0.0
 	if stage == Stage.TO_PICKUP:
 		stage = Stage.TO_DROPOFF
 		carrying = true
-		bike.visual.set_package_visible(true)
+		parcel_condition = 1.0
+		vehicle.set_package_visible(true)
 		if pickup_zone: pickup_zone.queue_free(); pickup_zone = null
 		dropoff_zone = _make_zone(db.location_pos(j.to_location), 6.5)
 		package_collected.emit()
 		Events.package_collected.emit(j.id)
 		Events.job_changed.emit(j, &"dropoff")
-		_say("Package on the rack! Deliver the %s to %s." % [j.item, db.location_name(j.to_location)], 5.0)
+		_say("Package loaded! Deliver the %s to %s." % [j.item, db.location_name(j.to_location)], 5.0)
 	elif stage == Stage.TO_DROPOFF:
 		deliveries += 1
+		var paid := current_payout()
+		coins += paid
+		wallet_changed.emit(coins)
 		carrying = false
-		bike.visual.set_package_visible(false)
+		vehicle.set_package_visible(false)
 		delivery_completed.emit(deliveries)
 		Events.delivery_completed.emit(j.id, deliveries)
-		_say("Delivered! +%d coins  (%d/%d)" % [j.reward, deliveries, jobs.size()], 4.0)
+		_say("Delivered! +%d coins · %d completed" % [paid, deliveries], 4.0)
+		parcel_condition = 1.0
 		_cooldown = 2.5
 		_start_job(job_index + 1)
 
 
+func _contains_courier(zone: Area3D, courier: Node3D) -> bool:
+	# Body origins are at the feet/wheel contact. A 3D area alone accepts a truck roof
+	# or a hovering aircraft, so require the actual courier to be at the handoff height.
+	var offset := courier.global_position - zone.global_position
+	return Vector2(offset.x, offset.z).length() <= float(zone.get_meta("radius", 6.0)) and absf(offset.y) < 1.6
+
+
+func _sync_package_visuals() -> void:
+	var on_foot := rider != null and rider.is_on_foot()
+	if vehicle: vehicle.set_package_visible(carrying and not on_foot)
+	if player and _foot_package == null and player.get("model"):
+		_foot_package = Node3D.new(); _foot_package.name = "CourierParcel"
+		player.model.torso.add_child(_foot_package)
+		var paper := Mats.solid(Color(.70,.59,.37),.88)
+		var cord := Mats.solid(Color(.33,.23,.12),.9)
+		_foot_package.add_child(Mats.box(Vector3(.28,.32,.16),paper,Vector3(0,.28,.20)))
+		_foot_package.add_child(Mats.box(Vector3(.025,.33,.17),cord,Vector3(0,.28,.20)))
+		_foot_package.add_child(Mats.box(Vector3(.29,.024,.17),cord,Vector3(0,.28,.20)))
+	if _foot_package: _foot_package.visible = carrying and on_foot
+
+
 func save_state() -> Dictionary:
-	return {"job_index": job_index, "stage": stage, "deliveries": deliveries, "elapsed": elapsed}
+	var job := current_job()
+	var data := {"job_id": String(job.id) if job else "", "job_index": job_index, "stage": stage, "deliveries": deliveries, "elapsed": elapsed, "coins": coins, "parcel_condition": parcel_condition}
+	if active_job_override:
+		data["offer"]={"kind":active_job_override.cargo_kind,"mass_kg":active_job_override.cargo_mass_kg,"reward":active_job_override.reward}
+	return data
 
 
 func load_state(d: Dictionary) -> void:
-	deliveries = int(d.get("deliveries", 0))
-	elapsed = float(d.get("elapsed", 0.0))
-	_all_done = false
-	_start_job(int(d.get("job_index", 0)))
+	deliveries = maxi(0, int(d.get("deliveries", 0)))
+	elapsed = maxf(0.0, float(d.get("elapsed", 0.0)))
+	coins = maxi(0, int(d.get("coins", 0)))
+	var index := int(d.get("job_index", 0))
+	if d.has("job_id") and not String(d.job_id).is_empty():
+		for i in range(jobs.size()):
+			if String(jobs[i].id) == String(d.job_id): index = i; break
+	_cooldown = 0.0
+	_start_job(index, false)
+	if stage != Stage.DONE and d.get("offer",{}) is Dictionary and not d.get("offer",{}).is_empty():
+		_apply_offer(d.offer)
+		Events.job_changed.emit(current_job(), &"pickup")
+	wallet_changed.emit(coins)
+	# Restore the stage directly: loading must never collect again, award coins, or emit
+	# package/delivery events (other systems use those events for real transactions).
 	if int(d.get("stage", Stage.TO_PICKUP)) == Stage.TO_DROPOFF and stage == Stage.TO_PICKUP:
-		_complete_stage()   # re-collect the package silently
-		_cooldown = 0.0
+		stage = Stage.TO_DROPOFF; carrying = true
+		_clear_zones()
+		dropoff_zone = _make_zone(db.location_pos(current_job().to_location), 6.5)
+		Events.job_changed.emit(current_job(), &"dropoff")
+	parcel_condition = clampf(float(d.get("parcel_condition", 1.0)), 0.0, 1.0)
+	_sync_package_visuals()
+
+
+func select_board_offer(index: int, offer: Dictionary) -> bool:
+	# Selecting a route is a reversible choice until a parcel has actually been collected.
+	if carrying or index<0 or index>=jobs.size(): return false
+	var kind:=String(offer.get("kind",""))
+	if kind not in ["light","fragile","heavy"]: return false
+	_start_job(index,false)
+	_apply_offer(offer)
+	_cooldown=0.0
+	Events.job_changed.emit(current_job(), &"pickup")
+	return true
+
+func _apply_offer(offer: Dictionary) -> void:
+	active_job_override=jobs[job_index].duplicate()
+	active_job_override.cargo_kind=String(offer.get("kind","standard"))
+	active_job_override.cargo_mass_kg=clampf(float(offer.get("mass_kg",0.0)),0.0,80.0)
+	active_job_override.reward=maxi(0,int(offer.get("reward",jobs[job_index].reward)))
+
+func spend_coins(amount: int) -> bool:
+	if amount<0 or coins<amount: return false
+	coins-=amount
+	wallet_changed.emit(coins)
+	return true
 
 
 static func format_time(t: float) -> String:

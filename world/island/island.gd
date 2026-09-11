@@ -16,17 +16,19 @@ extends WorldKit
 ## Gameplay data (delivery ring positions, hub walls and benches) is defined here at generation
 ## time, so it exists whether or not the chunk is loaded.
 
-## The hubs: id -> [centre (world m), flat pad radius]. The one place these numbers live.
-## The first four are the painting's places (scaled by K), the rest live on the new land.
+## The hubs: id -> [centre (world m), flat pad radius, how far the built geometry reaches].
+## The one place these numbers live. The first four are the painting's places (scaled by K),
+## the rest live on the new land. The reach is the hub recipe's extent (ADR 0007): the
+## architecture test builds every hub and measures it, so a hub that grows fails loudly.
 const HUB_TABLE := {
-	&"villa_rosa": [Vector2(-326, 3), 24.0],
-	&"hilltop_farm": [Vector2(-265, -253), 20.0],
-	&"harbour": [Vector2(189, -156), 20.0],
-	&"dunes_lookout": [Vector2(166, 127), 10.0],
-	&"monastery": [Vector2(-300, -468), 17.0],
-	&"quarry": [Vector2(-125, -398), 24.0],
-	&"cala_blanca": [Vector2(-340, 438), 16.0],
-	&"salinas": [Vector2(-160, 433), 15.0],
+	&"villa_rosa": [Vector2(-326, 3), 24.0, 90.0],
+	&"hilltop_farm": [Vector2(-265, -253), 20.0, 90.0],
+	&"harbour": [Vector2(189, -156), 20.0, 90.0],
+	&"dunes_lookout": [Vector2(166, 127), 10.0, 90.0],
+	&"monastery": [Vector2(-300, -468), 17.0, 90.0],
+	&"quarry": [Vector2(-125, -398), 24.0, 90.0],
+	&"cala_blanca": [Vector2(-340, 438), 16.0, 90.0],
+	&"salinas": [Vector2(-160, 433), 15.0, 90.0],
 }
 ## Named places without a hub: id -> [position, facing, display name]; each gets a delivery ring
 ## and a little geometry (`_build_place`).
@@ -44,6 +46,7 @@ const IMG_H := 941.0
 const K := Terrain.SIZE / 720.0   # scale from the painting's 720 m world to this one
 var _ppm := 1.34
 var _islets: Array = []
+var _cover_seed := 0
 
 
 func hub_table() -> Dictionary:
@@ -209,6 +212,13 @@ func generate(database: WorldDatabase, env: Node3D, seed_v: int) -> void:
 	_build_boundaries()
 	sink = null
 	_gen_coast_and_islets()
+	_plan_town_courtyards()
+	# the terrain is told what to keep bare (the paved courtyards and their promenades); the grass
+	# is planted now, with the seed drawn where it always was so every other draw is unchanged
+	for i in range(_town_courtyards.size()):
+		terrain.keep_clear.append({"centre": _town_courtyards[i], "radius": 29.0})
+		terrain.keep_clear.append({"a": _town_walkways[i][0], "b": _town_walkways[i][1], "width": 2.5})
+	terrain.plant_ground_cover(_cover_seed)
 	_gen_biomes()
 	for id in HUB_TABLE.keys():
 		define_hub(id)
@@ -219,6 +229,26 @@ func generate(database: WorldDatabase, env: Node3D, seed_v: int) -> void:
 	_gen_highlands()
 	_gen_south_shore()
 	_gen_aqueducts()
+	_gen_courier_signs()
+
+
+## Red enamel counters mark the same pickup locations used by the job board.
+func _gen_courier_signs() -> void:
+	var done: Array[StringName]=[]
+	for job in GameplayManager.load_jobs():
+		var id: StringName=job.from_location
+		if id in done: continue
+		done.append(id)
+		var location:=db.location_pos(id)
+		var road:=terrain.nearest_road(location)
+		var outward: Vector3=location-road.point; outward.y=0
+		if outward.length()<.1: outward=Vector3(-road.tangent.z,0,road.tangent.x)
+		outward=outward.normalized()
+		var p: Vector3=road.point+outward*7.0
+		if p.distance_to(location)>21 or terrain.road_dist_at(p.x,p.z)<5.8: continue
+		p.y=_ground(p.x,p.z)
+		var yaw:=atan2(outward.x,outward.z)
+		_at(p.x,p.z,func(): _courier_counter(sink,p,yaw))
 
 
 ## Sky, light and the heightfield with its roads and hub pads (resident, into `sink`).
@@ -237,7 +267,7 @@ func build_terrain() -> void:
 		terrain.pads.append(Vector3(c.x, c.y, 9.0))
 	terrain.vine_fields = _vine_field_rects()
 	terrain.build()
-	terrain.plant_ground_cover(rng.randi())
+	_cover_seed = rng.randi()   # drawn here, spent in generate() once the keep-clear regions are known
 	print("[terrain] build stages ms: ", terrain.build_ms)
 
 
@@ -253,25 +283,35 @@ func _load_meta() -> void:
 ## Publish one hub's data (ring, walls, bench) and record its geometry recipe.
 func define_hub(id: StringName) -> Hub:
 	var h := Hub.new(id, HUB_TABLE[id][0], HUB_TABLE[id][1], terrain)
+	var reach: float = HUB_TABLE[id][2]
 	db.hubs[id] = h
 	match id:
 		&"villa_rosa":
-			_define_villa(h); _at(h.centre.x, h.centre.y, func(): _build_villa_hub(h))
+			_define_villa(h); _at(h.centre.x, h.centre.y, func(): _build_villa_hub(h), reach)
 		&"hilltop_farm":
-			_define_farm(h); _at(h.centre.x, h.centre.y, func(): _build_farm(h))
+			_define_farm(h); _at(h.centre.x, h.centre.y, func(): _build_farm(h), reach)
 		&"harbour":
-			_define_harbour(h); _at(h.centre.x, h.centre.y, func(): _build_harbour(h))
+			_define_harbour(h); _at(h.centre.x, h.centre.y, func(): _build_harbour(h), reach)
 		&"dunes_lookout":
-			_define_lookout(h); _at(h.centre.x, h.centre.y, func(): _build_lookout(h))
+			_define_lookout(h); _at(h.centre.x, h.centre.y, func(): _build_lookout(h), reach)
 		&"monastery":
-			_define_monastery(h); _at(h.centre.x, h.centre.y, func(): _build_monastery(h))
+			_define_monastery(h); _at(h.centre.x, h.centre.y, func(): _build_monastery(h), reach)
 		&"quarry":
-			_define_quarry(h); _at(h.centre.x, h.centre.y, func(): _build_quarry(h))
+			_define_quarry(h); _at(h.centre.x, h.centre.y, func(): _build_quarry(h), reach)
 		&"cala_blanca":
-			_define_cala(h); _at(h.centre.x, h.centre.y, func(): _build_cala(h))
+			_define_cala(h); _at(h.centre.x, h.centre.y, func(): _build_cala(h), reach)
 		&"salinas":
-			_define_salinas(h); _at(h.centre.x, h.centre.y, func(): _build_salinas(h))
+			_define_salinas(h); _at(h.centre.x, h.centre.y, func(): _build_salinas(h), reach)
 	return h
+
+
+## Render a Hub's declared walls (`first` .. `first + count`, all of them by default). The
+## record in `_define_*` is the only description of a wall; `Hub.wall_top` reads the same one.
+func _hub_walls(parent: Node3D, h: Hub, first: int = 0, count: int = -1, mat: Material = null) -> void:
+	var last := h.walls.size() if count < 0 else mini(first + count, h.walls.size())
+	for i in range(first, last):
+		var w: Dictionary = h.walls[i]
+		_stone_wall(parent, w.a, w.b, w.height, null, mat)
 
 
 ## A named place: its location record (ring position on the pad) and a geometry recipe.
@@ -540,6 +580,7 @@ func _scatter_biome(biome: int, count: int, min_road: float, max_slope: float, s
 		var x := rng.randf_range(-half, half)
 		var z := rng.randf_range(-half, half)
 		if terrain.biome_at(x, z) != biome: continue
+		if biome == Terrain.Biome.TOWN and _near_town_courtyard(Vector2(x,z), 29.0): continue
 		var h := _ground(x, z)
 		if h < min_h: continue
 		if terrain.road_dist_at(x, z) < min_road: continue
@@ -903,23 +944,24 @@ func _gen_ground_cover() -> void:
 
 # ---------------------------------------------------------------- the town (NE peninsula)
 func _gen_town() -> void:
-	var walls := [Color(0.93, 0.88, 0.76), Color(0.90, 0.80, 0.62), Color(0.88, 0.74, 0.58), Color(0.95, 0.92, 0.84), Color(0.86, 0.70, 0.52)]
+	_build_town_courtyards()
+	var walls := [Color(.94,.92,.84), Color(.90,.67,.24), Color(.42,.73,.76), Color(.98,.95,.88), Color(.91,.89,.79), Color(.79,.38,.23)]
 	var roofs := [TERRACOTTA, Color(0.66, 0.36, 0.26), Color(0.78, 0.46, 0.30), Color(0.60, 0.34, 0.24)]
 	var placed := 0; var tries := 0
-	while placed < 230 and tries < 120000:
+	while placed < 290 and tries < 140000:
 		tries += 1
 		var x := rng.randf_range(69, 572); var z := rng.randf_range(-347, -69)
 		if terrain.biome_at(x, z) != Terrain.Biome.TOWN: continue
 		var h := _ground(x, z)
 		if h < 2.0: continue
 		var rd := terrain.road_dist_at(x, z)
-		var w := rng.randf_range(5.5, 9.0); var d := rng.randf_range(5.0, 7.0)
-		if rd < 5.5 + maxf(w, d) * 0.5 or rd > 18.0: continue   # the whole footprint clears the road
-		if terrain.normal_at(x, z).y < 0.86: continue
-		if _near_location(x, z, 26.0) or _near_house(x, z, 9.5): continue
+		var w := rng.randf_range(5.6, 8.0); var d := rng.randf_range(5.0, 6.8)
+		if rd < 5.5 + maxf(w, d) * 0.5 or rd > 29.0: continue   # the whole footprint clears the road
+		if terrain.normal_at(x, z).y < 0.80: continue
+		if _near_location(x, z, 26.0) or _near_house(x, z, 9.0) or _near_town_walkway(Vector2(x,z), 6.5): continue
 		var t := terrain.nearest_road(Vector3(x, 0, z))
 		var yaw := rad_to_deg(atan2(-(t.point.x - x), -(t.point.z - z)))
-		var floors := 1 + rng.randi_range(0, 1) + (1 if rng.randf() < 0.25 else 0)
+		var floors := 2 + (1 if rd > 19.0 and rng.randf() < 0.45 else 0)
 		var wc: Color = walls[rng.randi_range(0, walls.size() - 1)]; var rc: Color = roofs[rng.randi_range(0, roofs.size() - 1)]
 		_at(x, z, func(): _house(sink, Vector3(x, h, z), yaw, w, d, floors, wc, rc))
 		_houses.append(Vector2(x, z))
@@ -927,6 +969,7 @@ func _gen_town() -> void:
 			var pp := Vector3(x, h, z) + Vector3(cos(deg_to_rad(yaw)) * (w * 0.5 + 0.8), 0, -sin(deg_to_rad(yaw)) * (w * 0.5 + 0.8))
 			if terrain.road_dist_at(pp.x, pp.z) > 5.5: _at(pp.x, pp.z, func(): _pot_plant(sink, pp, 1.0))
 		placed += 1
+	_gen_town_streets()
 	# church with a bell tower on the town's high square
 	var sq := _px(1160, 150)
 	var sq_y := _ground(sq.x, sq.y)
@@ -959,7 +1002,7 @@ func _gen_town() -> void:
 		if nrm == Vector2.ZERO or _near_road(sp.x, sp.y, 8.0): continue
 		var yaw := rad_to_deg(atan2(nrm.x, nrm.y)) + 180.0
 		var len := 16.0 + (pier_i % 3) * 5.0
-		_at(sp.x, sp.y, func(): _pier(sink, Vector3(sp.x, 1.0, sp.y), yaw, len))
+		_at(sp.x, sp.y, func(): _pier(sink, Vector3(sp.x, 1.0, sp.y), yaw, len), len + 4.0)
 		# boats moored along both sides of the pier
 		var along := Vector2(-sin(deg_to_rad(yaw)), -cos(deg_to_rad(yaw)))
 		var perp := Vector2(along.y, -along.x)
@@ -969,7 +1012,7 @@ func _gen_town() -> void:
 				var bp: Vector2 = sp + along * d + perp * (side * 3.0)
 				if not terrain.is_land(bp.x, bp.y):
 					var byaw := yaw + rng.randf_range(-8, 8); var hc: Color = hull_cols[rng.randi_range(0, hull_cols.size() - 1)]; var sail := rng.randf() < 0.3
-					_at(sp.x, sp.y, func(): _boat(sink, Vector3(bp.x, 0.2, bp.y), byaw, hc, sail))
+					_at(sp.x, sp.y, func(): _boat(sink, Vector3(bp.x, 0.2, bp.y), byaw, hc, sail), d + 6.0)   # filed at the pier head, moored `d` m along it
 				d += 4.5
 		pier_i += 1
 	# quay clutter: crates, barrels and lamp posts along the waterfront
@@ -1078,7 +1121,7 @@ func _gen_hamlet() -> void:
 		_houses.append(w)
 	var wp := _px(965, 345)
 	var shore := _shore_point(wp, 10.0)
-	_at(shore.x, shore.y, func(): _pier(sink, Vector3(shore.x, 1.0, shore.y), 250.0, 16.0))
+	_at(shore.x, shore.y, func(): _pier(sink, Vector3(shore.x, 1.0, shore.y), 250.0, 16.0), 20.0)
 	var bp := _px(985, 372)
 	if not terrain.is_land(bp.x, bp.y):
 		_at(bp.x, bp.y, func(): _boat(sink, Vector3(bp.x, 0.25, bp.y), 40.0, Color(0.85, 0.30, 0.25)))
@@ -1092,21 +1135,21 @@ func _gen_aqueducts() -> void:
 	var stone := Mats.solid(Color(0.81, 0.76, 0.64), 0.95)
 	for b in terrain.bridges:
 		if b.to - b.from < 8: continue
-		var samples: PackedVector3Array = terrain.road_samples[b.road]
-		# the deck also covers the embankment ramps on both banks (wherever the road sits above the ground)
+		var samples: PackedVector3Array = b.samples
+		# the deck also covers the embankment ramps on both banks: the Bridge answers where it ends
 		var pts := PackedVector3Array()
-		var k: int = b.from
-		while k > 0 and samples[k - 1].y - terrain.height_at(samples[k - 1].x, samples[k - 1].z) > 0.25 and b.from - k < 80: k -= 1
-		var last_k: int = b.to
-		while last_k < samples.size() - 1 and samples[last_k + 1].y - terrain.height_at(samples[last_k + 1].x, samples[last_k + 1].z) > 0.25 and last_k - b.to < 80: last_k += 1
-		k = maxi(k - 3, 0); last_k = mini(last_k + 3, samples.size() - 1)
+		var span: Vector2i = b.deck_span(terrain)
+		var k: int = span.x
+		var last_k: int = span.y
 		while k <= last_k:
 			pts.append(samples[k])
 			k += 4
 		if pts[pts.size() - 1] != samples[last_k]: pts.append(samples[last_k])
 		var mid: Vector3 = pts[pts.size() / 2]
 		var deck: float = b.deck
-		_at(mid.x, mid.z, func(): _arcade(sink, pts, deck, stone))
+		var reach := 8.0   # the arcade runs the whole deck: its extent is the farthest sample plus the arches' footing
+		for q in pts: reach = maxf(reach, Vector2(q.x - mid.x, q.z - mid.z).length() + 8.0)
+		_at(mid.x, mid.z, func(): _arcade(sink, pts, deck, stone), reach)
 
 
 # ---------------------------------------------------------------- hubs
@@ -1136,16 +1179,14 @@ func _build_villa_hub(hb_rec: Hub) -> void:
 	_static_box(gate, Vector3(1.2, 4.0, 1.2), stone, Vector3(2.2, 2.0, 0))
 	gate.add_child(Mats.box(Vector3(5.6, 0.8, 1.4), stone, Vector3(0, 4.4, 0)))
 	gate.add_child(Mats.prism(Vector3(6.4, 1.3, 2.4), Mats.solid(TERRACOTTA, 0.85), Vector3(0, 5.45, 0)))
-	_stone_wall(hub, Vector2(cx - 22 * K, cz + 14 * K), Vector2(cx - 4 * K, cz + 26 * K))
-	_stone_wall(hub, Vector2(cx + 22 * K, cz + 18 * K), Vector2(cx + 36 * K, cz + 30 * K))
+	_hub_walls(hub, hb_rec, 0, 2)
 	# r5 item 13: low dry-stone walls along the lane east of the square (7 m off the centreline,
 	# clear of both delivery rings) and a shed by the gate - the reference lines every lane with
 	# them. `_villa_lane_walls` is shared with `_define_villa` so gameplay sees the same walls.
 	# r6 item 7: the lane walls in the talus rock material (grain, a lit cap) at a dark warm tint
 	# instead of the flat STONE_DARK box - the reference's walls are #1f221b-#726a29 dry-stone
 	var wall_mat: Material = rock_material("rock024", Color(0.38, 0.32, 0.16), 0.0, 0.8, 0.0, true)
-	for wl in _villa_lane_walls(cx, cz):
-		_stone_wall(hub, wl[0], wl[1], 0.9, null, wall_mat)
+	_hub_walls(hub, hb_rec, 2, -1, wall_mat)
 	var shed_p := Vector2(cx + 10 * K, cz + 20 * K)
 	if terrain.road_dist_at(shed_p.x, shed_p.y) >= 6.0:
 		var shed := _house(hub, Vector3(shed_p.x, _ground(shed_p.x, shed_p.y), shed_p.y), 12, 6.0, 4.0, 1, Color(0.74, 0.66, 0.50), Color(0.46, 0.40, 0.30))
@@ -1204,8 +1245,7 @@ func _build_farm(hb_rec: Hub) -> void:
 	ws.add_child(Mats.cylinder(0.05, 6.0, Mats.solid(Color(0.6, 0.6, 0.6), 0.5, 0.4), Vector3(0, 3, 0)))
 	ws.add_child(Mats.cylinder(0.32, 2.2, Mats.solid(Color(0.95, 0.40, 0.15), 0.8), Vector3(1.1, 5.9, 0), Vector3(0, 0, 90), 10, 0.18))
 	_add_cylinder_body(ws, 0.1, 6.0, Vector3.ZERO)
-	_stone_wall(farm, Vector2(cx + 6 * K, cz - 24 * K), Vector2(cx + 40 * K, cz - 24 * K), 0.8)   # the long wall east of the road (tin cans go here)
-	_stone_wall(farm, Vector2(cx + 40 * K, cz - 24 * K), Vector2(cx + 36 * K, cz + 14 * K), 0.8)
+	_hub_walls(farm, hb_rec)   # wall 0 is the long wall east of the road (the tin cans go there)
 	for i in range(4):
 		farm.add_child(Mats.cylinder(0.7, 1.2, Mats.solid(Color(0.86, 0.72, 0.38), 1.0), Vector3(cx - 16 * K + i * 1.6, g + 0.7, cz + 18 * K), Vector3(90, 0, 0), 10))
 		_add_cylinder_body(farm, 0.7, 1.4, Vector3(cx - 16 * K + i * 1.6, g, cz + 18 * K))
@@ -1267,9 +1307,11 @@ func _build_lookout(hb_rec: Hub) -> void:
 	# an old stone hut with a bench looking over the lake in the badlands
 	_house(lk, Vector3(cx - 8 * K, g, cz - 4 * K), 110, 5.0, 4.5, 1, STONE_DARK, Color(0.5, 0.42, 0.34))
 	_signpost(lk, Vector3(cx + 2 * K, _ground(cx + 2 * K, cz + 6 * K), cz + 6 * K), -70, [["THE DUNES", 1.0], ["VILLA ROSA", -1.0], ["LAKESIDE CAMP", 1.0]])
-	lk.add_child(Mats.box(Vector3(2.0, 0.1, 0.5), Mats.solid(WOOD, 0.9), Vector3(cx + 4 * K, g + 0.5, cz - 3 * K)))
+	# the bench plank is built from the record the Hub answers `bench_top` with
+	var plank := hb_rec.bench
+	lk.add_child(Mats.box(Vector3(hb_rec.bench_width, 0.1, 0.5), Mats.solid(WOOD, 0.9), plank - Vector3(0, 0.05, 0)))
 	for sx in [-0.8, 0.8]:
-		lk.add_child(Mats.box(Vector3(0.1, 0.5, 0.5), Mats.solid(WOOD, 0.9), Vector3(cx + 4 * K + sx, g + 0.25, cz - 3 * K)))
+		lk.add_child(Mats.box(Vector3(0.1, plank.y - g - 0.1, 0.5), Mats.solid(WOOD, 0.9), Vector3(plank.x + sx, (plank.y - 0.1 + g) * 0.5, plank.z)))
 
 
 func _define_lookout(hb_rec: Hub) -> void:
@@ -1277,7 +1319,7 @@ func _define_lookout(hb_rec: Hub) -> void:
 	var g := _ground(cx, cz)
 	_register(&"dunes_lookout", "Dunes Lookout", cx + 1 * K, cz - 1 * K, Vector3(1, 0, 0))
 	hb_rec.ring_pos = db.location_pos(&"dunes_lookout"); hb_rec.ring_facing = Vector3(1, 0, 0)
-	hb_rec.bench = Vector3(cx + 4 * K, g + 0.55, cz - 3 * K); hb_rec.bench_width = 2.0
+	hb_rec.set_bench(Vector3(cx + 4 * K, g + 0.55, cz - 3 * K), 2.0)
 
 
 # ---------------------------------------------------------------- the Highlands (north)
@@ -1386,9 +1428,7 @@ func _build_monastery(hb_rec: Hub) -> void:
 	_tower(m, Vector3(cx + 6, g, cz - 24), 3.6, 15.0, wall)
 	_cloister(m, Vector3(cx + 13, g, cz + 1), 14.0, wall)
 	_house(m, Vector3(cx - 18, g, cz - 6), 90, 7.0, 15.0, 2, wall)
-	_stone_wall(m, Vector2(cx - 22, cz + 18), Vector2(cx - 16, cz + 18), 1.2)   # the gate gap is where the road comes in
-	_stone_wall(m, Vector2(cx - 4, cz + 18), Vector2(cx + 24, cz + 18), 1.2)
-	_stone_wall(m, Vector2(cx - 22, cz - 26), Vector2(cx - 22, cz + 18), 1.2)
+	_hub_walls(m, hb_rec)
 	_lamp_post(m, Vector3(cx + 3, g, cz + 8))
 	_signpost(m, Vector3(cx - 16, _ground(cx - 16, cz + 12), cz + 12), 80, [["QUARRY", 1.0], ["REFUGIO", -1.0], ["HILLTOP FARM", -1.0]])
 	var cyp := _cypress_parts()
@@ -1407,6 +1447,8 @@ func _define_monastery(hb_rec: Hub) -> void:
 	_register(&"monastery", "San Telmo Monastery", cx, cz + 4, Vector3(0, 0, -1))
 	hb_rec.ring_pos = db.location_pos(&"monastery"); hb_rec.ring_facing = Vector3(0, 0, -1)
 	hb_rec.add_wall(Vector2(cx - 4, cz + 18), Vector2(cx + 24, cz + 18), 1.2)
+	hb_rec.add_wall(Vector2(cx - 22, cz + 18), Vector2(cx - 16, cz + 18), 1.2)   # the gate gap is where the road comes in
+	hb_rec.add_wall(Vector2(cx - 22, cz - 26), Vector2(cx - 22, cz + 18), 1.2)
 
 
 func _build_quarry(hb_rec: Hub) -> void:
@@ -1428,7 +1470,7 @@ func _build_quarry(hb_rec: Hub) -> void:
 	_house(q, Vector3(cx - 14, g, cz + 16), 0, 9.0, 6.0, 1, Color(0.66, 0.52, 0.36), Color(0.50, 0.34, 0.22))
 	_lamp_post(q, Vector3(cx + 7, g, cz + 3))
 	_signpost(q, Vector3(cx + 10, _ground(cx + 10, cz + 20), cz + 20), 100, [["MONASTERY", -1.0], ["HILLTOP FARM", 1.0]])
-	_stone_wall(q, Vector2(cx - 24, cz + 20), Vector2(cx - 4, cz + 22), 0.9)
+	_hub_walls(q, hb_rec)
 	# rubble everywhere
 	var pale := _limestone_material()
 	for k in range(14):
@@ -1487,7 +1529,7 @@ func _build_cala(hb_rec: Hub) -> void:
 	_lamp_post(c, Vector3(cx - 2, g, cz + 6))
 	_lamp_post(c, Vector3(shore.x + 2, _ground(shore.x + 2, shore.y + 3), shore.y + 3))
 	_signpost(c, Vector3(cx + 4, _ground(cx + 4, cz + 12), cz + 12), -20, [["SALINAS", 1.0], ["VILLA ROSA", -1.0]])
-	_stone_wall(c, Vector2(cx - 12, cz + 14), Vector2(cx + 4, cz + 16), 0.8)
+	_hub_walls(c, hb_rec)
 
 
 func _define_cala(hb_rec: Hub) -> void:
@@ -1512,7 +1554,7 @@ func _build_salinas(hb_rec: Hub) -> void:
 		_static_box(s, Vector3(1.0, 1.0, 1.0), Mats.solid(Color(0.86, 0.82, 0.70), 0.95), bp, Vector3(0, rng.randf_range(-10, 10), 0))
 	_salt_heap(s, Vector3(cx + 22, _ground(cx + 22, cz + 9), cz + 9), 1.6)
 	_signpost(s, Vector3(cx - 16, _ground(cx - 16, cz + 4), cz + 4), 30, [["CALA BLANCA", -1.0], ["BODEGA", 1.0]])
-	_stone_wall(s, Vector2(cx - 22, cz - 16), Vector2(cx + 22, cz - 16), 0.8)
+	_hub_walls(s, hb_rec)
 
 
 func _define_salinas(hb_rec: Hub) -> void:
@@ -1614,3 +1656,186 @@ func _build_place(id: StringName, c: Vector2) -> void:
 			var pale := _limestone_material()
 			for i in range(4):
 				n.add_child(Mats.sphere(0.5 - i * 0.08, pale, Vector3(cx - 8 + rng.randf_range(-0.2, 0.2), _ground(cx - 8, cz - 6) + 0.3 + i * 0.55, cz - 6), Vector3(1.3, 0.8, 1.1), 6))
+
+
+## Paving follows the same road curves and height sampler used by the traffic simulation.
+## Two narrow stone footways define the street edge without adding collision steps.
+func _gen_town_streets() -> void:
+	var street := ShaderMaterial.new(); street.shader = load("res://world/kit/town_paving.gdshader")
+	street.set_shader_parameter("stone_color", Color(.45,.46,.45))
+	street.set_shader_parameter("tile_scale", 2.1)
+	var sidewalk: ShaderMaterial = street.duplicate()
+	sidewalk.set_shader_parameter("stone_color", Color(.74,.71,.62))
+	sidewalk.set_shader_parameter("tile_scale", 1.45)
+	var palm_parts := IslandArt.prop_parts("harbour_palm")
+	var street_olives := _olive_parts()
+	for curve in terrain.roads:
+		var length := curve.get_baked_length()
+		var cursor := 0.0
+		while cursor < length - .1:
+			var a := curve.sample_baked(cursor); var b := curve.sample_baked(minf(cursor + 3.0, length))
+			var mid := (a + b) * .5
+			if terrain.biome_at(mid.x, mid.z) == Terrain.Biome.TOWN and _ground(mid.x, mid.z) > 1.2:
+				var tangent := Vector3(b.x-a.x, 0, b.z-a.z).normalized()
+				var side := Vector3(-tangent.z,0,tangent.x)
+				var quad_a := a; var quad_b := b
+				var side_a := _town_curve_side(curve, cursor)
+				var side_b := _town_curve_side(curve, minf(cursor + 3.0, length))
+				_at(mid.x, mid.z, func():
+					_town_paving_strip(quad_a, quad_b, side_a, -3.3, 3.3, street, side_b)
+					_town_paving_strip(quad_a, quad_b, side_a, -5.5, -3.3, sidewalk, side_b)
+					_town_paving_strip(quad_a, quad_b, side_a, 3.3, 5.5, sidewalk, side_b))
+				if int(cursor) % 27 == 0:
+					for sign_v in [-1.0,1.0]:
+						var lamp_pos: Vector3 = mid + side * sign_v * 5.1
+						lamp_pos.y = _ground(lamp_pos.x,lamp_pos.z)
+						var lamp_point: Vector3 = lamp_pos
+						_at(lamp_point.x,lamp_point.z,func(): _lamp_post(sink,lamp_point))
+				if int(cursor) % 54 == 0:
+					var palm_pos := mid + side * 7.0
+					if not _near_house(palm_pos.x,palm_pos.z,5.0) and terrain.normal_at(palm_pos.x,palm_pos.z).y > .85:
+						palm_pos.y = _ground(palm_pos.x,palm_pos.z)
+						var tree_point := palm_pos
+						_at(tree_point.x,tree_point.z,func(): _place_prop(palm_parts,tree_point,1.25,0.0))
+				if int(cursor) % 21 == 0:
+					var planted := mid - side * 7.6
+					if not _near_house(planted.x,planted.z,6.4) and not _near_town_walkway(Vector2(planted.x,planted.z),3.0) and not _near_location(planted.x,planted.z,12.0) and terrain.road_dist_at(planted.x,planted.z)>6.2 and terrain.normal_at(planted.x,planted.z).y>.94:
+						planted.y=_ground(planted.x,planted.z)
+						var planting := planted
+						_at(planting.x,planting.z,func():
+							_place_prop(street_olives,planting,1.25,cursor*.05)
+							for offset in [Vector3(-.8,0,.7),Vector3(.7,0,-.5)]:
+								var flower_point: Vector3=planting+offset
+								flower_point.y=_ground(flower_point.x,flower_point.z)
+								_place_prop(_flower_parts(Color(.76,.42,.63)),flower_point,1.25,0))
+			cursor += 3.0
+
+
+func _town_paving_strip(a: Vector3, b: Vector3, side: Vector3, inner: float, outer: float, mat: Material, side_end: Vector3 = Vector3.ZERO) -> void:
+	if side_end == Vector3.ZERO: side_end = side
+	# Sample across the crowned road as well as along it. A single wide quad
+	# cuts through the terrain at its centre and leaves alternating dirt gaps.
+	var along_steps:=maxi(1,ceili(a.distance_to(b)/.7))
+	var across_steps:=maxi(1,ceili(absf(outer-inner)/.65))
+	var surface:=SurfaceTool.new(); surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for row in along_steps:
+		for column in across_steps:
+			var points: Array[Vector3]=[]
+			for uv in [Vector2(0,0),Vector2(0,1),Vector2(1,1),Vector2(1,0)]:
+				var fraction: float = (row+uv.x)/float(along_steps)
+				var p:=a.lerp(b,fraction)+side.lerp(side_end,fraction)*lerpf(inner,outer,(column+uv.y)/float(across_steps))
+				p.y=_ground(p.x,p.z)+.045
+				points.append(p)
+			for index in [0,2,1,0,3,2]:
+				surface.set_uv(Vector2(points[index].x,points[index].z))
+				surface.set_normal(terrain.normal_at(points[index].x,points[index].z))
+				surface.add_vertex(points[index])
+	var instance:=MeshInstance3D.new(); instance.mesh=surface.commit(); instance.material_override=mat
+	instance.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sink.add_child(instance)
+
+
+func _town_curve_side(curve: Curve3D, distance: float) -> Vector3:
+	var before := curve.sample_baked(maxf(0,distance-.3))
+	var after := curve.sample_baked(minf(curve.get_baked_length(),distance+.3))
+	var tangent := (after-before).normalized()
+	return Vector3(-tangent.z,0,tangent.x).normalized()
+
+
+var _town_courtyards: Array[Vector2] = []
+var _town_walkways: Array[PackedVector2Array] = []
+
+## Reserve planted pedestrian blocks before woodland scatter and house placement.
+## The centre promenade meets the existing road; vehicles keep their existing graph.
+func _plan_town_courtyards() -> void:
+	for candidate in [Vector2(300,-245),Vector2(365,-235),Vector2(420,-240)]:
+		if terrain.biome_at(candidate.x,candidate.y) != Terrain.Biome.TOWN: continue
+		if terrain.normal_at(candidate.x,candidate.y).y < .9: continue
+		var nearest := terrain.nearest_road(Vector3(candidate.x,0,candidate.y))
+		var endpoint := Vector2(nearest.point.x,nearest.point.z)
+		if endpoint.distance_to(candidate) < 32.0: continue
+		_town_courtyards.append(candidate)
+		_town_walkways.append(PackedVector2Array([candidate,endpoint]))
+	print("[town] pedestrian courtyard centres ",_town_courtyards)
+
+
+func _near_town_courtyard(point: Vector2, radius: float) -> bool:
+	for center in _town_courtyards:
+		if center.distance_to(point)<radius: return true
+	return _near_town_walkway(point,4.5)
+
+
+func _near_town_walkway(point: Vector2, radius: float) -> bool:
+	for path in _town_walkways:
+		if Geometry2D.get_closest_point_to_segment(point,path[0],path[1]).distance_to(point)<radius: return true
+	return false
+
+
+func _build_town_courtyards() -> void:
+	var paving := ShaderMaterial.new(); paving.shader = load("res://world/kit/town_paving.gdshader")
+	paving.set_shader_parameter("stone_color",Color(.75,.71,.59))
+	paving.set_shader_parameter("tile_scale",1.6)
+	var palette := [Color(.96,.94,.86),Color(.93,.91,.82),Color(.47,.74,.74),Color(.91,.68,.26)]
+	for block in range(_town_courtyards.size()):
+		var center := _town_courtyards[block]
+		var path := _town_walkways[block]
+		var forward := (path[1]-center).normalized()
+		var right := Vector2(forward.y,-forward.x)
+		var footprint: Array[Vector2] = []
+		# A close row behind the garden; the front row leaves an eight metre entrance.
+		for x in [-15.0,-7.5,0.0,7.5,15.0]: footprint.append(Vector2(x,-18.0))
+		for x in [-15.0,-7.5,7.5,15.0]: footprint.append(Vector2(x,18.0))
+		for x in [-22.0,22.0]:
+			for z in [-8.0,0.0,8.0]: footprint.append(Vector2(x,z))
+		for house_index in range(footprint.size()):
+			var offset := footprint[house_index]
+			var point := center+right*offset.x+forward*offset.y
+			if terrain.biome_at(point.x,point.y)!=Terrain.Biome.TOWN or terrain.road_dist_at(point.x,point.y)<11.0: continue
+			if terrain.normal_at(point.x,point.y).y<.88 or _near_house(point.x,point.y,6.7): continue
+			var direction := (center-point).normalized()
+			if absf(offset.y)==18: direction=forward*(-signf(offset.y))
+			else: direction=right*(-signf(offset.x))
+			var yaw := rad_to_deg(atan2(-direction.x,-direction.y))
+			var origin := Vector3(point.x,_ground(point.x,point.y),point.y)
+			var tint: Color = palette[posmod(house_index+block, palette.size())]
+			var floors := 2+(1 if house_index%5==0 else 0)
+			_at(point.x,point.y,func(): _house(sink,origin,yaw,6.6,5.8,floors,tint))
+			_houses.append(point)
+		var a := Vector3(center.x,0,center.y)
+		var b := Vector3(path[1].x,0,path[1].y)
+		var side := Vector3(right.x,0,right.y)
+		# Promenade into town and a cross-axis between the courtyard doors.
+		var reach := maxf(center.distance_to(path[1]) + 3.0, 24.0)   # the promenade runs to the road; the cross-axis is 18 m each way
+		_at(center.x,center.y,func():
+			_town_paving_strip(a,b,side,-2.2,2.2,paving)
+			_town_paving_strip(a-Vector3(forward.x,0,forward.y)*14.0,a+Vector3(forward.x,0,forward.y)*14.0,side,-18.0,18.0,paving)
+			_town_courtyard_garden(center,forward,right), reach)
+		_register(StringName("town_courtyard_%d"%block),"Lemon Court %d"%(block+1),center.x,center.y,Vector3(forward.x,0,forward.y))
+
+
+func _town_courtyard_garden(center: Vector2, forward: Vector2, right: Vector2) -> void:
+	var olive := _olive_parts()
+	var flowers := _flower_parts(Color(.76,.32,.59))
+	var shrubs := _bush_parts()
+	# Raised clipped beds, flowering borders, shaded benches and central clear walkway.
+	for sign_v: float in [-1.0,1.0]:
+		for along: float in [-7.0,7.0]:
+			var point := center+right*sign_v*9.0+forward*along
+			var y := _ground(point.x,point.y)
+			var plan := Node3D.new(); plan.position=Vector3(point.x,y,point.y); sink.add_child(plan)
+			var stone := Mats.solid(Color(.76,.75,.66),.9)
+			plan.add_child(Mats.cylinder(3.1,.38,stone,Vector3(0,.19,0),Vector3.ZERO,24))
+			plan.add_child(Mats.cylinder(2.92,.03,Mats.solid(Color(.22,.31,.10),.98),Vector3(0,.40,0),Vector3.ZERO,24))
+			_place_prop(olive,Vector3(point.x,y+.41,point.y),1.65,along*11.0,Color(.90,1.04,.91))
+			for i in range(9):
+				var angle:=i*TAU/9.0
+				var plant:=Vector3(point.x+cos(angle)*2.43,y+.43,point.y+sin(angle)*2.43)
+				_place_prop(shrubs,plant,.7,rad_to_deg(angle),Color(.76,1.15,.72),false)
+				_place_prop(flowers,plant+Vector3(0,.30,0),.76,rad_to_deg(angle),Color(1,1,1),false)
+		var bench_point:=center+right*sign_v*5.2
+		var bench:=Node3D.new(); bench.position=Vector3(bench_point.x,_ground(bench_point.x,bench_point.y),bench_point.y)
+		bench.rotation.y=atan2(forward.x,forward.y); sink.add_child(bench)
+		bench.add_child(Mats.box(Vector3(.6,.12,2.5),Mats.solid(WOOD,.85),Vector3(0,.55,0)))
+		for z in [-.85,.85]: bench.add_child(Mats.box(Vector3(.45,.50,.16),Mats.solid(STONE_DARK,.9),Vector3(0,.25,z)))
+		var lamp:=center+right*sign_v*3.2+forward*11.0
+		_lamp_post(sink,Vector3(lamp.x,_ground(lamp.x,lamp.y),lamp.y))

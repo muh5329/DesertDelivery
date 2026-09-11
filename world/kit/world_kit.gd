@@ -928,8 +928,8 @@ func _cliff_wall(points: Array, height: float, base_y: float = -3.0, depth: floa
 
 ## Record a build recipe for the chunk containing (x, z) (the Island overrides nothing here: the
 ## kit writes straight into the database, the same as `Island._at`).
-func _at(x: float, z: float, builder: Callable) -> void:
-	db.add(x, z, builder)
+func _at(x: float, z: float, builder: Callable, reach: float = 0.0) -> void:
+	db.add(x, z, builder, reach)
 
 
 ## Split a scatter into per-chunk MultiMesh recipes.
@@ -1458,13 +1458,7 @@ func _cypress_parts() -> Array[PropPart]:
 
 
 func _olive_parts() -> Array[PropPart]:
-	var parts: Array[PropPart] = []
-	var trunk := CylinderMesh.new(); trunk.top_radius = 0.14; trunk.bottom_radius = 0.28; trunk.height = 2.0; trunk.radial_segments = 6
-	parts.append(PropPart.new(trunk, Mats.solid(WOOD.darkened(0.15), 0.9), Transform3D(Basis(), Vector3(0, 1.0, 0))))
-	var mat := _leaf_material("olive_clump")
-	_tier(parts, mat, 3.8, 2.8, 1.6, 3, true, 0.25)
-	_tier(parts, mat, 2.8, 2.4, 2.6, 2, true, -0.2, 1)
-	return parts
+	return IslandArt.prop_parts("olive_tree")
 
 
 func _bush_parts() -> Array[PropPart]:
@@ -1532,7 +1526,8 @@ func _scatter(count: int, min_road: float, min_h: float, max_h: float, max_slope
 		var z := rng.randf_range(region.position.y, region.end.y)
 		var h := _ground(x, z)
 		if h < min_h or h > max_h: continue
-		if terrain.road_dist_at(x, z) < min_road: continue
+		var road_clearance:=maxf(min_road,6.2) if terrain.biome_at(x,z)==Terrain.Biome.TOWN else min_road
+		if terrain.road_dist_at(x, z) < road_clearance: continue
 		if terrain.normal_at(x, z).y < 1.0 - max_slope: continue
 		if hub_clear > 0.0 and _near_location(x, z, hub_clear): continue
 		var s := rng.randf_range(scale_range.x, scale_range.y)
@@ -1568,38 +1563,38 @@ func _add_cylinder_body(parent: Node3D, radius: float, height: float, pos: Vecto
 
 func _house(parent: Node3D, pos: Vector3, rot_y: float, w: float, d: float, floors: int, wall: Color = STONE, roof_col: Color = TERRACOTTA) -> Node3D:
 	var n := Node3D.new()
-	n.position = pos
-	n.rotation_degrees = Vector3(0, rot_y, 0)
-	parent.add_child(n)
-	var fh := 3.1
-	var h := fh * floors
-	var wall_mat := Mats.solid(wall, 0.9)
-	_static_box(n, Vector3(w, h + 3.0, d), wall_mat, Vector3(0, (h - 3.0) * 0.5, 0))
-	# roof
-	var roof := Mats.prism(Vector3(w + 0.9, 1.6 + w * 0.12, d + 0.9), Mats.solid(roof_col, 0.85), Vector3(0, h + (1.6 + w * 0.12) * 0.5, 0))
-	n.add_child(roof)
-	var rb := StaticBody3D.new(); rb.collision_layer = 1
-	var rcs := CollisionShape3D.new()
-	rcs.shape = (roof.mesh as PrismMesh).create_convex_shape()
-	rb.add_child(rcs)
-	rb.position = roof.position
-	n.add_child(rb)
-	# eave band
-	n.add_child(Mats.box(Vector3(w + 0.9, 0.18, d + 0.9), Mats.solid(STONE_DARK, 0.9), Vector3(0, h + 0.05, 0)))
-	# windows + shutters (front & back)
-	var win := Mats.solid(Color(0.16, 0.19, 0.24), 0.3, 0.2)
-	var shutter := Mats.solid(Color(0.30, 0.42, 0.32), 0.8)
-	for f in range(floors):
-		var y := fh * f + 1.75
-		var count := maxi(int(w / 2.6), 1)
-		for i in range(count):
-			var x := -w * 0.5 + (i + 0.5) * (w / count)
-			for side in [-1.0, 1.0]:
-				n.add_child(Mats.box(Vector3(0.9, 1.1, 0.08), win, Vector3(x, y, side * (d * 0.5 + 0.02))))
-				n.add_child(Mats.box(Vector3(0.3, 1.15, 0.06), shutter, Vector3(x - 0.62, y, side * (d * 0.5 + 0.03))))
-				n.add_child(Mats.box(Vector3(0.3, 1.15, 0.06), shutter, Vector3(x + 0.62, y, side * (d * 0.5 + 0.03))))
-	# door on the front (-Z)
-	n.add_child(Mats.box(Vector3(1.1, 2.1, 0.1), Mats.solid(WOOD, 0.8), Vector3(0, 1.05, -(d * 0.5 + 0.03))))
+	n.position = pos; n.rotation_degrees.y = rot_y; parent.add_child(n)
+	var town := terrain != null and (terrain.biome_at(pos.x, pos.z) == Terrain.Biome.TOWN or Vector2(pos.x, pos.z).distance_to(Vector2(-340, 438)) < 44.0)
+	var variation := posmod(int(round(pos.x * 7.0 + pos.z * 13.0)), 7)
+	var style := 2 if variation == 0 else (1 if variation <= 2 else 0)
+	var asset := "town_house_%d_%d" % [mini(floors, 2), style] if town else "village_house_%d" % mini(floors, 2)
+	var model := IslandArt.instantiate(asset)
+	model.scale = Vector3(w / 6.0, float(floors) / mini(floors, 2), d / 6.0)
+	n.add_child(model)
+	if town: _town_foundation(n, w, d)
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		for index in range(mi.mesh.get_surface_count()):
+			var source: Material = mi.get_surface_override_material(index)
+			if source is StandardMaterial3D and "plaster" in source.resource_name:
+				var tint: StandardMaterial3D = source.duplicate()
+				tint.albedo_color = wall
+				mi.set_surface_override_material(index, tint)
+	var sb := StaticBody3D.new(); sb.collision_layer = 1
+	var cs := CollisionShape3D.new(); var shape := BoxShape3D.new()
+	shape.size = Vector3(w, floors * 3.1 + 3.0, d)
+	cs.shape = shape; cs.position.y = (floors * 3.1 - 3.0) * .5
+	sb.add_child(cs); n.add_child(sb)
+	var roof_shape := ConvexPolygonShape3D.new()
+	var top := floors * 3.1
+	roof_shape.points = PackedVector3Array([Vector3(-w*.56,top,-d*.56),Vector3(w*.56,top,-d*.56),Vector3(0,top+1.75,-d*.56),Vector3(-w*.56,top,d*.56),Vector3(w*.56,top,d*.56),Vector3(0,top+1.75,d*.56)])
+	var rc := CollisionShape3D.new()
+	if town:
+		var terrace_shape := BoxShape3D.new()
+		terrace_shape.size = Vector3(w, .7, d)
+		rc.shape = terrace_shape; rc.position.y = top + .25
+	else:
+		rc.shape = roof_shape
+	sb.add_child(rc)
 	return n
 
 
@@ -1611,6 +1606,27 @@ func _lamp_post(parent: Node3D, pos: Vector3) -> void:
 	n.add_child(Mats.box(Vector3(0.36, 0.42, 0.36), Mats.solid(Color(1.0, 0.9, 0.6), 0.3, 0, Color(1.0, 0.8, 0.4)), Vector3(0, 3.55, 0)))
 	n.add_child(Mats.cone(0.3, 0.25, iron, Vector3(0, 3.88, 0)))
 	_add_cylinder_body(n, 0.12, 3.4, Vector3.ZERO)
+
+
+func _courier_counter(parent: Node3D, pos: Vector3, yaw: float) -> void:
+	var n:=Node3D.new(); n.name="CourierCounter"; parent.add_child(n)
+	n.position=pos; n.rotation.y=yaw
+	var iron:=Mats.solid(Color("353c39"),.7,.3)
+	var enamel:=Mats.solid(Color("a93427"),.43,.1)
+	var cream:=Mats.solid(Color("e9dbb7"),.75)
+	n.add_child(Mats.cylinder(.065,2.8,iron,Vector3(0,1.4,0)))
+	n.add_child(Mats.box(Vector3(1.2,.90,.11),cream,Vector3(0,2.3,0)))
+	n.add_child(Mats.box(Vector3(1.10,.80,.13),enamel,Vector3(0,2.3,0)))
+	# A parcel glyph and lettering are readable from both road approaches.
+	for face in [-1.,1.]:
+		var label:=Label3D.new(); label.text="COURIER\nJ · Jobs & services"
+		label.font_size=30; label.pixel_size=.0045; label.outline_size=0
+		label.modulate=Color("f1e6c9"); label.position=Vector3(0,2.3,.08*face)
+		label.rotation.y=PI if face<0 else 0; n.add_child(label)
+	n.add_child(Mats.box(Vector3(.62,.78,.46),enamel,Vector3(.48,.77,0)))
+	n.add_child(Mats.box(Vector3(.40,.055,.025),iron,Vector3(.48,.95,.24)))
+	n.add_child(Mats.box(Vector3(.66,.055,.50),cream,Vector3(.48,1.18,0)))
+	_add_cylinder_body(n,.10,2.8,Vector3.ZERO)
 
 
 func _signpost(parent: Node3D, pos: Vector3, rot_y: float, labels: Array) -> void:
@@ -2083,3 +2099,17 @@ func _dune_grass_parts() -> Array[PropPart]:
 ## Cut marble block (quarry).
 func _marble_block(parent: Node3D, pos: Vector3, size: Vector3, yaw: float) -> void:
 	_static_box(parent, size, Mats.solid(Color(0.92, 0.90, 0.86), 0.7), pos + Vector3(0, size.y * 0.5, 0), Vector3(0, yaw, 0))
+
+
+## Facade pots, thresholds and walls share a level stone plinth on sloping lots.
+## Its base samples all corners so no authored decoration floats above the ground.
+func _town_foundation(parent: Node3D, width: float, depth: float) -> void:
+	var lowest := parent.position.y - .16
+	for x in [-width*.5-.10, width*.5+.10]:
+		for z in [-depth*.5-.84,depth*.5+.10]:
+			var point: Vector3 = parent.transform * Vector3(x,0,z)
+			lowest = minf(lowest,_ground(point.x,point.z)-.12)
+	var height := maxf(.16,parent.position.y-lowest)
+	var material := Mats.solid(Color(.66,.65,.58),.94)
+	var plinth := Mats.box(Vector3(width+.20,height,depth+.94),material,Vector3(0,-height*.5,-.37))
+	parent.add_child(plinth)

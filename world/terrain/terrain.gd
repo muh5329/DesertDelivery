@@ -44,7 +44,10 @@ var roads: Array[Curve3D] = []
 var pads: Array[Vector3] = []          # (x, z, radius) flat courtyards for buildings
 var vine_fields: Array[Rect2] = []     # the vineyard parcels (world m): ploughed soil strips only inside these
 var road_samples: Array = []          # Array of PackedVector3Array (world-space samples every ~1 m)
-var bridges: Array = []               # {road, from, to, deck} sample ranges that are elevated (water or viaduct)
+var bridges: Array = []
+## Regions ground cover leaves bare, handed in by the Island (ADR 0009): {centre, radius} discs
+## and {a, b, width} strips. The terrain does not know where the Town Square is.
+var keep_clear: Array = []               # {road, from, to, deck} sample ranges that are elevated (water or viaduct)
 var viaducts: Array = []              # {a: Vector2, b: Vector2, deck: float} road stretches carried on arches over land
 
 var _map_h := PackedFloat32Array()    # raw map height per cell
@@ -187,6 +190,57 @@ func height_at(x: float, z: float) -> float:
 	return _bilinear(heights, x, z)
 
 
+## The 3 m field the build cut (roads, ramps, pads) — what every build stage asks; `height_at`
+## is the ground as drawn and collided (ADR 0009).
+func heightfield_at(x: float, z: float) -> float:
+	return _bilinear(heights, x, z)
+
+
+## How far the drawn ground strays from the heightfield the build cut (worst case, metres),
+## measured along the roads — the surfaces the build cut and the courier rides. Off-road the
+## 1.5 m resample adds deliberate relief (micro relief, crest lips), which is not drift.
+func heightfield_drift() -> float:
+	var worst := 0.0
+	for r in range(road_samples.size()):
+		var samples: PackedVector3Array = road_samples[r]
+		var skip := PackedInt32Array()   # deck spans: the courier rides the deck there, not the ground
+		for b in bridges:
+			if b.road != r: continue
+			var span: Vector2i = b.deck_span(self)
+			skip.append(span.x); skip.append(span.y)
+		for k in range(0, samples.size(), 4):
+			var on_deck := false
+			for q in range(0, skip.size(), 2):
+				if k >= skip[q] - 8 and k <= skip[q + 1] + 8: on_deck = true; break
+			if on_deck: continue
+			var p := samples[k]
+			var hf := heightfield_at(p.x, p.z)
+			if hf < 0.5: continue
+			worst = maxf(worst, absf(height_at(p.x, p.z) - hf))
+	return worst
+
+
+## Validates data/island_map.json (written by expand.py) against what this runtime assumes.
+## Returns "" when it matches, else a named mismatch.
+func map_contract_error() -> String:
+	var f := FileAccess.open("res://data/island_map.json", FileAccess.READ)
+	if f == null: return "data/island_map.json is missing"
+	var parsed = JSON.parse_string(f.get_as_text())
+	if not (parsed is Dictionary): return "data/island_map.json is not a JSON object"
+	var m: Dictionary = parsed
+	if not is_equal_approx(float(m.get("size", -1.0)), SIZE): return "size %s != %s" % [m.get("size"), SIZE]
+	if not is_equal_approx(float(m.get("cell", -1.0)), CELL): return "cell %s != %s" % [m.get("cell"), CELL]
+	if int(m.get("grid", -1)) != N: return "grid %s != %d" % [m.get("grid"), N]
+	if not is_equal_approx(float(m.get("height_min", 1.0)), -10.0): return "height_min %s != -10" % m.get("height_min")
+	if not is_equal_approx(float(m.get("height_range", 0.0)), 90.0): return "height_range %s != 90" % m.get("height_range")
+	var biomes: Dictionary = m.get("biomes", {})
+	for name in Biome.keys():
+		if not biomes.has(name): return "biome %s missing from the map contract" % name
+		if int(biomes[name]) != Biome[name]: return "biome %s is %s in the map, %d in Terrain" % [name, biomes[name], Biome[name]]
+	if biomes.size() != Biome.size(): return "map declares %d biomes, Terrain has %d" % [biomes.size(), Biome.size()]
+	return ""
+
+
 func normal_at(x: float, z: float) -> Vector3:
 	if _t3d_data != null:
 		var n: Vector3 = _t3d_data.get_normal(Vector3(x, 0.0, z))
@@ -269,7 +323,7 @@ func build() -> void:
 						var q := Vector2(pts[k0].x, pts[k0].z)
 						if Geometry2D.get_closest_point_to_segment(q, v.a, v.b).distance_to(q) < 2.5: deck = v.deck
 				for kk in range(k0, k1 + 1): hs[kk] = deck
-				bridges.append({"road": r, "from": k0, "to": k1, "deck": deck})
+				bridges.append(Bridge.new(r, PackedVector3Array(), k0, k1, deck))
 			else:
 				k += 1
 		# smooth the land profile so grades are gentle (bridges stay flat)
@@ -338,6 +392,10 @@ func build() -> void:
 				var t := 1.0 - float(i) / n_blend
 				pts[k].y = lerpf(pts[k].y, other_h, t)
 		road_samples[r] = pts
+	# bind each Bridge to its road's final samples (PackedVector3Array is a value type, so this
+	# has to happen after the junction blending above)
+	for b in bridges:
+		b.samples = road_samples[b.road]
 	# stamp every road into the heightfield (nearest sample wins)
 	var r_cells := int(ceil(19.0 / CELL))
 	for r in range(road_samples.size()):
@@ -1071,6 +1129,15 @@ func _build_road_grid() -> void:
 
 
 ## Nearest road sample to a world position: {point: Vector3, tangent: Vector3 (flat, unit)}.
+## Is this ground-cover point inside a region the Island asked to keep bare?
+func _in_keep_clear(p: Vector2) -> bool:
+	for r in keep_clear:
+		if r.has("centre"):
+			if p.distance_squared_to(r.centre) < r.radius * r.radius: return true
+		elif p.distance_to(Geometry2D.get_closest_point_to_segment(p, r.a, r.b)) < r.width: return true
+	return false
+
+
 func nearest_road(pos: Vector3) -> Dictionary:
 	if _road_grid.is_empty():
 		_build_road_grid()
@@ -1185,7 +1252,7 @@ func plant_ground_cover(seed_v: int) -> void:
 			var id := _idx(i, j)
 			var b := _map_b[id]
 			if not COVER_BY_BIOME.has(b): continue
-			if road_dist[id] < 5.0 or _slope[id] > 0.45 or heights[id] < 1.2: continue
+			if road_dist[id] < (6.1 if b==Biome.TOWN else 5.0) or _slope[id] > 0.45 or heights[id] < 1.2: continue
 			var spec: Array = COVER_BY_BIOME[b]
 			var mesh_id: int = spec[0]
 			var want: float = spec[1]
@@ -1214,6 +1281,8 @@ func plant_ground_cover(seed_v: int) -> void:
 			var n := int(want) + (1 if rng.randf() < want - int(want) else 0)
 			for k in range(n):
 				var x := cx + rng.randf_range(-1.5, 1.5); var z := cz + rng.randf_range(-1.5, 1.5)
+				var grass_point:=Vector2(x,z)
+				if _in_keep_clear(grass_point): continue
 				var y := height_at(x, z)
 				var s := rng.randf_range(0.75, 1.35)
 				var basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU)).scaled(Vector3(s, s * rng.randf_range(0.8, 1.2), s))
