@@ -36,7 +36,6 @@ func _init() -> void:
 		[Vector3(3.0, 1.6, -3.2), Vector3(0, 0.9, 0)],
 	]
 	cam = Camera3D.new(); cam.fov = 45; root.add_child(cam); cam.current = true
-	_place()
 
 
 func _place() -> void:

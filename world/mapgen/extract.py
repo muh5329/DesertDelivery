@@ -1,4 +1,14 @@
-"""Extracts data/island_map.png (R=height, G=biome class, B=tree density) from the reference island image."""
+"""Extracts the 720 m island map (R=height, G=biome class, B=tree density) from the reference painting.
+
+Stage 1 of two. Its product is world/mapgen/island_map_720.png at 241 px, which is *not* what
+the game loads: expand.py turns it into the 1248 m / 417 px data/island_map.png the runtime
+needs. This script used to write its 241 px result straight to data/island_map.png, so running
+it on its own left Terrain._load_map rejecting the map and the whole world flat sea behind a
+single push_error.
+
+Run from the project root:  python3 world/mapgen/extract.py [painting.png]
+Then:                       python3 world/mapgen/expand.py
+"""
 from PIL import Image, ImageDraw
 import numpy as np, json, sys
 from scipy import ndimage
@@ -98,7 +108,7 @@ dist_m = ndimage.distance_transform_edt(~land_grid) * (SIZE/(N-1))
 sea_h = -1.2 - np.clip(dist_m/86.0, 0, 1)*9.0
 sea_cells = out[...,1] == 0
 out[sea_cells, 0] = np.clip((sea_h[sea_cells]+10)/90*255, 0, 255).astype(np.uint8)
-Image.fromarray(out).save("data/island_map.png")
+Image.fromarray(out).save("world/mapgen/island_map_720.png")
 # a wider depth map for the sea shader (1000 m square): the shelf keeps its true width past the world's edge
 SEA_SIZE = 1000.0; SN = 334
 sea_map = np.zeros((SN, SN), np.uint8)
@@ -114,10 +124,10 @@ dist_big = ndimage.distance_transform_edt(~land_big) * (SEA_SIZE / (SN - 1))
 h_big = -1.2 - np.clip(dist_big / 86.0, 0, 1) * 9.0
 sea_map[:] = np.clip((h_big + 10) / 90 * 255, 0, 255).astype(np.uint8)
 sea_map[land_big] = 255
-Image.fromarray(np.stack([sea_map] * 3, -1)).save("data/sea_depth.png")
+Image.fromarray(np.stack([sea_map] * 3, -1)).save("world/mapgen/sea_depth_720.png")
 pal = {0:(20,60,140),1:(230,225,210),2:(40,90,40),3:(170,170,60),4:(200,110,60),5:(190,80,60),6:(240,220,170),7:(60,130,190)}
 prev = np.zeros((H,W,3),np.uint8)
 for k,c in pal.items(): prev[cls==k]=c
 Image.fromarray(prev).resize((W//2,H//2)).save("/tmp/biome_preview.png")
-json.dump({"islets":islets, "px_per_m":px_per_m, "size":SIZE, "img_w":W, "img_h":H}, open("data/island_meta.json","w"))
+json.dump({"islets":islets, "px_per_m":px_per_m, "size":SIZE, "img_w":W, "img_h":H}, open("world/mapgen/island_meta_720.json","w"))
 print("islets:", len(islets)); print("class counts:", {k:int((cls==k).sum()) for k in range(8)})

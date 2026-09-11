@@ -1,0 +1,224 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:79)
+         [1] _init (res://world/terrain/terrain.gd:69)
+         [2] build_terrain (res://world/island/island.gd:109)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:579)
+         [1] build (res://world/terrain/terrain.gd:426)
+         [2] build_terrain (res://world/island/island.gd:119)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+[terrain] build stages ms: { "heightfield": 979, "t3d_setup": 141, "t3d_maps": 728, "t3d_import": 32, "ground_cover": 1075, "ground_cover_n": 279689 }
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3421 road nodes, seven-day routines
+[game] autopilot enabled (autotest=true shots=)
+[game] world generated in 4105 ms (4568 recipes in 385 chunks); tree 7373 nodes
+[autopilot] pos=(-303.5, 4.9, 2.5) speed=6.9 m/s target=Villa Rosa Office dist=13.0 grounded=true
+[game] package collected at t=5.4
+[autopilot] pos=(-311.9, 4.9, -2.2) speed=2.0 m/s target=Hilltop Farm dist=252.5 grounded=true
+[autopilot] pos=(-304.7, 4.9, -1.6) speed=2.6 m/s target=Hilltop Farm dist=252.1 grounded=true
+[autopilot] pos=(-304.7, 4.9, -1.6) speed=2.3 m/s target=Hilltop Farm dist=252.1 grounded=true
+[autopilot] pos=(-304.8, 4.9, -1.6) speed=1.8 m/s target=Hilltop Farm dist=252.1 grounded=true
+[autopilot] pos=(-304.8, 4.9, -1.6) speed=1.2 m/s target=Hilltop Farm dist=252.1 grounded=true
+[autopilot] wedged at (-304.7503, 4.932924, -1.562896) -> reset to road
+[autopilot] pos=(-298.7, 5.1, 2.7) speed=10.6 m/s target=Hilltop Farm dist=255.5 grounded=true
+[autopilot] pos=(-261.9, 5.6, 1.3) speed=16.6 m/s target=Hilltop Farm dist=252.7 grounded=true
+[autopilot] pos=(-192.3, 5.8, 15.2) speed=29.2 m/s target=Hilltop Farm dist=277.6 grounded=true
+[autopilot] pos=(-153.4, 5.4, 3.5) speed=9.0 m/s target=Hilltop Farm dist=280.3 grounded=true
+[autopilot] pos=(-159.1, 5.6, 18.2) speed=9.0 m/s target=Hilltop Farm dist=291.5 grounded=true
+[autopilot] pos=(-144.6, 10.9, -16.0) speed=18.8 m/s target=Hilltop Farm dist=266.7 grounded=true
+[autopilot] pos=(-95.9, 15.8, -72.5) speed=29.2 m/s target=Hilltop Farm dist=249.7 grounded=true
+[autopilot] pos=(-91.0, 14.5, -110.6) speed=7.8 m/s target=Hilltop Farm dist=227.8 grounded=true
+[autopilot] pos=(-119.3, 21.4, -130.5) speed=21.1 m/s target=Hilltop Farm dist=193.3 grounded=true
+[autopilot] pos=(-169.9, 33.8, -182.3) speed=28.5 m/s target=Hilltop Farm dist=121.7 grounded=true
+[autopilot] pos=(-234.6, 36.7, -239.3) speed=29.2 m/s target=Hilltop Farm dist=37.5 grounded=true
+[autopilot] pos=(-269.0, 38.8, -256.7) speed=3.2 m/s target=Hilltop Farm dist=5.6 grounded=true
+[game] DELIVERY COMPLETED #1 at t=55.1 (odometer 685 m)
+[autopilot] pos=(-269.4, 38.8, -255.0) speed=-0.0 m/s target=Hilltop Farm dist=3.9 grounded=true
+[game] package collected at t=58.1
+[autopilot] pos=(-262.4, 38.8, -256.2) speed=10.7 m/s target=Harbour Cafe dist=467.3 grounded=true
+[autopilot] pos=(-229.3, 36.9, -232.3) speed=24.2 m/s target=Harbour Cafe dist=429.9 grounded=true
+[autopilot] pos=(-166.4, 34.1, -175.6) speed=29.1 m/s target=Harbour Cafe dist=359.9 grounded=true
+[autopilot] pos=(-106.9, 16.0, -114.8) speed=29.2 m/s target=Harbour Cafe dist=301.3 grounded=true
+[autopilot] pos=(-58.3, 17.6, -106.8) speed=9.2 m/s target=Harbour Cafe dist=254.3 grounded=true
+[autopilot] pos=(-75.1, 14.4, -106.0) speed=8.2 m/s target=Harbour Cafe dist=271.0 grounded=true
+[autopilot] pos=(-74.8, 15.4, -114.5) speed=11.7 m/s target=Harbour Cafe dist=269.5 grounded=false
+[autopilot] pos=(-44.9, 29.8, -148.6) speed=22.9 m/s target=Harbour Cafe dist=237.4 grounded=true
+[autopilot] pos=(5.4, 15.2, -192.6) speed=19.4 m/s target=Harbour Cafe dist=192.1 grounded=true
+[autopilot] pos=(14.7, 10.0, -189.4) speed=2.7 m/s target=Harbour Cafe dist=182.3 grounded=true
+[autopilot] pos=(14.7, 9.8, -189.3) speed=2.7 m/s target=Harbour Cafe dist=182.3 grounded=true
+[autopilot] pos=(14.7, 9.8, -189.2) speed=2.6 m/s target=Harbour Cafe dist=182.3 grounded=true
+[autopilot] pos=(14.7, 9.8, -189.3) speed=2.7 m/s target=Harbour Cafe dist=182.3 grounded=true
+[autopilot] wedged at (14.6732, 9.761982, -189.2505) -> reset to road
+[autopilot] pos=(16.8, 14.9, -190.5) speed=6.7 m/s target=Harbour Cafe dist=180.4 grounded=true
+[autopilot] pos=(70.4, 14.9, -194.4) speed=26.9 m/s target=Harbour Cafe dist=130.2 grounded=true
+[autopilot] pos=(140.5, 9.7, -217.0) speed=2.6 m/s target=Harbour Cafe dist=85.5 grounded=true
+[autopilot] pos=(138.3, 9.4, -212.1) speed=2.2 m/s target=Harbour Cafe dist=83.1 grounded=true
+[autopilot] pos=(138.5, 9.3, -211.7) speed=2.7 m/s target=Harbour Cafe dist=82.7 grounded=true
+[autopilot] pos=(138.6, 9.3, -211.4) speed=1.7 m/s target=Harbour Cafe dist=82.4 grounded=true
+[autopilot] pos=(138.7, 9.3, -211.2) speed=0.6 m/s target=Harbour Cafe dist=82.2 grounded=true
+[autopilot] pos=(138.8, 9.2, -210.9) speed=2.7 m/s target=Harbour Cafe dist=81.9 grounded=true
+[autopilot] pos=(138.9, 9.2, -210.7) speed=2.3 m/s target=Harbour Cafe dist=81.7 grounded=true
+[autopilot] pos=(138.9, 9.2, -210.7) speed=2.3 m/s target=Harbour Cafe dist=81.6 grounded=true
+[autopilot] pos=(138.9, 9.2, -210.7) speed=2.3 m/s target=Harbour Cafe dist=81.6 grounded=true
+[autopilot] wedged at (138.8749, 9.219337, -210.6583) -> reset to road
+[autopilot] pos=(128.5, 8.8, -197.1) speed=16.7 m/s target=Harbour Cafe dist=80.0 grounded=true
+[autopilot] pos=(173.6, 9.1, -145.3) speed=18.9 m/s target=Harbour Cafe dist=19.3 grounded=true
+[game] DELIVERY COMPLETED #2 at t=138.3 (odometer 1484 m)
+[autopilot] pos=(189.4, 9.2, -146.6) speed=0.0 m/s target=Harbour Cafe dist=3.9 grounded=true
+[game] package collected at t=141.3
+[autopilot] pos=(189.4, 9.2, -146.6) speed=0.2 m/s target=Dunes Lookout dist=272.8 grounded=true
+[autopilot] pos=(173.2, 9.2, -147.8) speed=15.8 m/s target=Dunes Lookout dist=273.1 grounded=true
+[autopilot] pos=(128.8, 8.8, -197.2) speed=29.2 m/s target=Dunes Lookout dist=324.8 grounded=true
+[autopilot] pos=(102.2, 12.1, -203.0) speed=18.5 m/s target=Dunes Lookout dist=334.8 grounded=true
+[autopilot] pos=(28.2, 14.9, -191.4) speed=29.2 m/s target=Dunes Lookout dist=346.1 grounded=true
+[autopilot] pos=(-8.8, 19.4, -179.2) speed=5.2 m/s target=Dunes Lookout dist=351.9 grounded=true
+[autopilot] pos=(20.4, 5.6, -162.9) speed=16.7 m/s target=Dunes Lookout dist=323.6 grounded=true
+[autopilot] pos=(53.1, 13.7, -102.8) speed=29.2 m/s target=Dunes Lookout dist=255.2 grounded=true
+[autopilot] pos=(59.3, 13.6, -40.8) speed=13.1 m/s target=Dunes Lookout dist=198.3 grounded=true
+[autopilot] pos=(64.5, 12.3, -51.8) speed=9.0 m/s target=Dunes Lookout dist=205.0 grounded=true
+[autopilot] pos=(40.1, 14.6, -21.9) speed=22.7 m/s target=Dunes Lookout dist=194.8 grounded=true
+[autopilot] pos=(-10.7, 15.6, 33.2) speed=18.3 m/s target=Dunes Lookout dist=200.8 grounded=true
+[autopilot] pos=(2.9, 15.8, 34.7) speed=13.7 m/s target=Dunes Lookout dist=188.0 grounded=true
+[autopilot] pos=(31.5, 16.6, 21.5) speed=17.3 m/s target=Dunes Lookout dist=171.2 grounded=true
+[autopilot] pos=(102.9, 18.6, 39.3) speed=29.2 m/s target=Dunes Lookout dist=107.7 grounded=true
+[autopilot] pos=(172.4, 23.7, 81.2) speed=25.9 m/s target=Dunes Lookout dist=44.3 grounded=true
+[autopilot] pos=(179.0, 15.9, 106.5) speed=1.4 m/s target=Dunes Lookout dist=21.9 grounded=true
+[autopilot] pos=(179.0, 15.9, 106.5) speed=2.4 m/s target=Dunes Lookout dist=21.9 grounded=true
+[autopilot] pos=(179.0, 15.9, 106.5) speed=2.9 m/s target=Dunes Lookout dist=21.9 grounded=true
+[autopilot] pos=(179.0, 15.9, 106.5) speed=1.9 m/s target=Dunes Lookout dist=21.9 grounded=true
+[autopilot] wedged at (179.0254, 15.876, 106.5478) -> reset to road
+[autopilot] pos=(186.4, 20.1, 91.8) speed=1.4 m/s target=Dunes Lookout dist=38.3 grounded=true
+[autopilot] pos=(176.4, 15.4, 105.8) speed=1.0 m/s target=Dunes Lookout dist=21.3 grounded=true
+[autopilot] pos=(170.4, 9.0, 117.2) speed=4.6 m/s target=Dunes Lookout dist=8.5 grounded=true
+[game] DELIVERY COMPLETED #3 at t=209.1 (odometer 2388 m)
+[autopilot] pos=(169.0, 8.7, 121.6) speed=0.0 m/s target=Dunes Lookout dist=3.9 grounded=true
+[game] package collected at t=212.1
+[autopilot] pos=(171.4, 8.7, 123.0) speed=4.5 m/s target=Lakeside Camp dist=116.9 grounded=true
+[autopilot] pos=(178.8, 13.3, 112.6) speed=2.6 m/s target=Lakeside Camp dist=129.5 grounded=true
+[autopilot] pos=(179.5, 13.9, 111.6) speed=5.3 m/s target=Lakeside Camp dist=130.8 grounded=true
+[autopilot] pos=(179.5, 13.9, 111.6) speed=19.9 m/s target=Lakeside Camp dist=130.8 grounded=true
+[autopilot] pos=(179.5, 13.9, 111.6) speed=27.8 m/s target=Lakeside Camp dist=130.8 grounded=true
+[autopilot] pos=(179.5, 13.9, 111.6) speed=29.2 m/s target=Lakeside Camp dist=130.8 grounded=true
+[autopilot] wedged at (179.5488, 13.85952, 111.6095) -> reset to road
+[autopilot] pos=(170.1, 23.6, 80.5) speed=17.1 m/s target=Lakeside Camp dist=149.1 grounded=true
+[autopilot] pos=(133.6, 15.4, 62.7) speed=8.9 m/s target=Lakeside Camp dist=149.4 grounded=true
+[autopilot] pos=(137.1, 17.3, 68.8) speed=3.9 m/s target=Lakeside Camp dist=144.8 grounded=true
+[autopilot] pos=(123.9, 19.7, 103.2) speed=22.3 m/s target=Lakeside Camp dist=108.0 grounded=true
+[autopilot] pos=(75.3, 8.3, 170.5) speed=29.2 m/s target=Lakeside Camp dist=36.7 grounded=true
+[autopilot] pos=(84.6, 1.6, 201.4) speed=2.6 m/s target=Lakeside Camp dist=4.9 grounded=true
+[game] DELIVERY COMPLETED #4 at t=247.3 (odometer 2873 m)
+[autopilot] pos=(85.3, 1.6, 202.2) speed=0.0 m/s target=Lakeside Camp dist=3.9 grounded=true
+[game] package collected at t=250.3
+[autopilot] pos=(84.8, 1.8, 195.1) speed=10.6 m/s target=Bodega San Marco dist=243.6 grounded=true
+[autopilot] pos=(82.8, 11.0, 155.2) speed=20.1 m/s target=Bodega San Marco dist=281.9 grounded=true
+[autopilot] pos=(130.7, 20.2, 93.8) speed=29.0 m/s target=Bodega San Marco dist=354.0 grounded=true
+[autopilot] pos=(139.5, 18.6, 57.0) speed=2.6 m/s target=Bodega San Marco dist=391.7 grounded=true
+[autopilot] pos=(129.9, 12.5, 51.2) speed=9.8 m/s target=Bodega San Marco dist=394.4 grounded=true
+[autopilot] pos=(129.5, 12.2, 51.3) speed=1.8 m/s target=Bodega San Marco dist=394.3 grounded=true
+[autopilot] pos=(129.5, 12.2, 51.3) speed=1.8 m/s target=Bodega San Marco dist=394.3 grounded=true
+[autopilot] pos=(129.5, 12.2, 51.3) speed=1.8 m/s target=Bodega San Marco dist=394.3 grounded=true
+[autopilot] wedged at (129.5311, 12.23667, 51.25381) -> reset to road
+[autopilot] pos=(130.0, 19.1, 49.5) speed=0.4 m/s target=Bodega San Marco dist=396.1 grounded=true
+[autopilot] pos=(93.0, 18.3, 36.8) speed=23.4 m/s target=Bodega San Marco dist=400.0 grounded=true
+[autopilot] pos=(11.4, 16.4, 17.8) speed=29.2 m/s target=Bodega San Marco dist=412.3 grounded=true
+[autopilot] pos=(-38.7, 15.7, 52.8) speed=22.7 m/s target=Bodega San Marco dist=381.7 grounded=true
+[autopilot] pos=(-86.9, 20.8, 114.1) speed=27.6 m/s target=Bodega San Marco dist=333.5 grounded=true
+[autopilot] pos=(-70.8, 25.2, 197.2) speed=29.2 m/s target=Bodega San Marco dist=249.9 grounded=true
+[autopilot] pos=(-5.3, 24.2, 244.8) speed=29.2 m/s target=Bodega San Marco dist=186.9 grounded=true
+[autopilot] pos=(60.1, 5.4, 290.6) speed=26.5 m/s target=Bodega San Marco dist=145.0 grounded=true
+[autopilot] pos=(138.3, 7.7, 301.3) speed=19.1 m/s target=Bodega San Marco dist=174.8 grounded=true
+[autopilot] pos=(125.5, 10.0, 308.9) speed=15.5 m/s target=Bodega San Marco dist=160.6 grounded=true
+[autopilot] pos=(115.5, 11.1, 315.2) speed=14.1 m/s target=Bodega San Marco dist=149.3 grounded=true
+[autopilot] pos=(103.9, 9.7, 370.6) speed=27.7 m/s target=Bodega San Marco dist=102.8 grounded=true
+[autopilot] pos=(100.9, 8.9, 447.8) speed=2.6 m/s target=Bodega San Marco dist=82.8 grounded=true
+[autopilot] pos=(98.3, 7.9, 432.3) speed=12.3 m/s target=Bodega San Marco dist=78.4 grounded=true
+[autopilot] pos=(55.0, 7.9, 427.0) speed=24.4 m/s target=Bodega San Marco dist=35.2 grounded=true
+[autopilot] pos=(24.8, 8.2, 429.4) speed=2.5 m/s target=Bodega San Marco dist=4.8 grounded=true
+[game] DELIVERY COMPLETED #5 at t=322.4 (odometer 4006 m)
+[autopilot] pos=(23.9, 8.2, 429.5) speed=0.0 m/s target=Bodega San Marco dist=3.9 grounded=true
+[game] package collected at t=325.4
+[autopilot] pos=(-1.8, 8.4, 435.2) speed=18.8 m/s target=The Salinas dist=156.2 grounded=true
+[autopilot] pos=(-70.2, 8.9, 429.7) speed=29.2 m/s target=The Salinas dist=87.9 grounded=true
+[autopilot] pos=(-149.4, 7.3, 429.7) speed=13.2 m/s target=The Salinas dist=9.6 grounded=true
+[game] DELIVERY COMPLETED #6 at t=335.1 (odometer 4190 m)
+[autopilot] pos=(-154.8, 7.3, 431.9) speed=0.0 m/s target=The Salinas dist=3.9 grounded=true
+[game] package collected at t=338.1
+[autopilot] pos=(-159.2, 7.3, 432.6) speed=3.8 m/s target=Cala Blanca dist=179.0 grounded=true
+[autopilot] pos=(-180.0, 0.9, 457.5) speed=19.8 m/s target=Cala Blanca dist=159.0 grounded=true
+[autopilot] pos=(-250.5, 7.7, 483.3) speed=28.0 m/s target=Cala Blanca dist=97.6 grounded=true
+[autopilot] pos=(-328.1, 4.8, 452.2) speed=19.7 m/s target=Cala Blanca dist=15.7 grounded=true
+[game] DELIVERY COMPLETED #7 at t=350.2 (odometer 4403 m)
+[autopilot] pos=(-335.5, 4.6, 443.1) speed=0.0 m/s target=Cala Blanca dist=4.0 grounded=true
+[game] package collected at t=353.2
+[autopilot] pos=(-346.5, 4.6, 433.4) speed=15.5 m/s target=Marble Quarry dist=861.9 grounded=true
+[autopilot] pos=(-405.7, 3.2, 398.2) speed=21.8 m/s target=Marble Quarry dist=845.8 grounded=true
+[autopilot] pos=(-433.7, 6.2, 324.1) speed=29.2 m/s target=Marble Quarry dist=787.0 grounded=true
+[autopilot] pos=(-447.1, 14.2, 239.9) speed=29.2 m/s target=Marble Quarry dist=716.4 grounded=true
+[autopilot] pos=(-441.0, 14.3, 152.9) speed=29.2 m/s target=Marble Quarry dist=637.0 grounded=true
+[autopilot] pos=(-414.0, 5.7, 70.4) speed=29.2 m/s target=Marble Quarry dist=552.3 grounded=true
+[autopilot] pos=(-360.7, 5.2, 15.3) speed=24.7 m/s target=Marble Quarry dist=477.6 grounded=true
+[autopilot] pos=(-339.8, 4.9, -0.2) speed=2.2 m/s target=Marble Quarry dist=453.9 grounded=true
+[autopilot] pos=(-339.8, 4.9, -0.2) speed=1.7 m/s target=Marble Quarry dist=453.9 grounded=true
+[autopilot] pos=(-339.8, 4.9, -0.2) speed=1.1 m/s target=Marble Quarry dist=453.9 grounded=true
+[autopilot] pos=(-339.8, 4.9, -0.2) speed=2.9 m/s target=Marble Quarry dist=453.9 grounded=true
+[autopilot] wedged at (-339.7888, 4.935337, -0.194633) -> reset to road
+[autopilot] pos=(-327.1, 4.9, 3.1) speed=14.3 m/s target=Marble Quarry dist=450.9 grounded=true
+[autopilot] pos=(-257.0, 5.4, 1.9) speed=29.2 m/s target=Marble Quarry dist=422.7 grounded=true
+[autopilot] pos=(-175.7, 6.0, 22.7) speed=26.6 m/s target=Marble Quarry dist=425.0 grounded=true
+[autopilot] pos=(-168.3, 5.5, 9.4) speed=9.0 m/s target=Marble Quarry dist=410.9 grounded=true
+[autopilot] pos=(-134.3, 14.6, -25.0) speed=24.5 m/s target=Marble Quarry dist=374.2 grounded=true
+[autopilot] pos=(-87.8, 14.1, -94.3) speed=29.0 m/s target=Marble Quarry dist=306.7 grounded=true
+[autopilot] pos=(-98.8, 15.0, -111.3) speed=10.6 m/s target=Marble Quarry dist=288.8 grounded=true
+[autopilot] pos=(-107.7, 15.4, -107.4) speed=12.3 m/s target=Marble Quarry dist=292.0 grounded=true
+[autopilot] pos=(-132.7, 27.0, -145.1) speed=21.8 m/s target=Marble Quarry dist=254.1 grounded=true
+[autopilot] pos=(-183.3, 33.1, -194.7) speed=20.3 m/s target=Marble Quarry dist=213.0 grounded=true
+[autopilot] pos=(-171.3, 32.9, -201.6) speed=10.0 m/s target=Marble Quarry dist=203.3 grounded=true
+[autopilot] pos=(-173.7, 32.6, -212.7) speed=15.0 m/s target=Marble Quarry dist=193.1 grounded=true
+[autopilot] pos=(-157.0, 19.7, -275.5) speed=29.2 m/s target=Marble Quarry dist=128.1 grounded=true
+[autopilot] pos=(-114.8, 14.8, -350.4) speed=28.1 m/s target=Marble Quarry dist=49.3 grounded=true
+[autopilot] pos=(-116.5, 25.4, -390.0) speed=5.8 m/s target=Marble Quarry dist=11.1 grounded=true
+[game] DELIVERY COMPLETED #8 at t=432.3 (odometer 5765 m)
+[autopilot] pos=(-120.7, 25.4, -395.9) speed=-0.0 m/s target=Marble Quarry dist=3.9 grounded=true
+[game] package collected at t=435.3
+[autopilot] pos=(-123.9, 25.4, -398.3) speed=8.6 m/s target=San Telmo Monastery dist=187.9 grounded=true
+[autopilot] pos=(-166.8, 34.0, -408.9) speed=17.8 m/s target=San Telmo Monastery dist=144.1 grounded=true
+[autopilot] pos=(-233.1, 47.6, -422.5) speed=28.0 m/s target=San Telmo Monastery dist=78.7 grounded=true
+[autopilot] pos=(-316.9, 58.8, -430.7) speed=20.0 m/s target=San Telmo Monastery dist=37.4 grounded=true
+[autopilot] pos=(-319.8, 61.2, -444.0) speed=9.1 m/s target=San Telmo Monastery dist=28.2 grounded=true
+[autopilot] pos=(-308.9, 62.9, -450.0) speed=4.9 m/s target=San Telmo Monastery dist=16.6 grounded=true
+[game] DELIVERY COMPLETED #9 at t=454.2 (odometer 6042 m)
+[autopilot] pos=(-302.7, 63.1, -460.7) speed=1.6 m/s target=San Telmo Monastery dist=4.2 grounded=true
+[game] package collected at t=457.3
+[autopilot] pos=(-302.5, 63.1, -460.9) speed=-0.0 m/s target=Villa Rosa Office dist=457.2 grounded=true
+[autopilot] pos=(-311.2, 63.0, -452.6) speed=14.5 m/s target=Villa Rosa Office dist=448.6 grounded=true
+[autopilot] pos=(-338.4, 45.9, -387.5) speed=26.2 m/s target=Villa Rosa Office dist=384.3 grounded=true
+[autopilot] pos=(-315.2, 29.0, -320.6) speed=13.1 m/s target=Villa Rosa Office dist=316.6 grounded=true
+[autopilot] pos=(-289.7, 42.0, -300.0) speed=16.4 m/s target=Villa Rosa Office dist=297.2 grounded=false
+[autopilot] pos=(-255.8, 38.8, -265.0) speed=3.7 m/s target=Villa Rosa Office dist=267.6 grounded=true
+[autopilot] pos=(-229.1, 36.9, -232.7) speed=5.5 m/s target=Villa Rosa Office dist=244.3 grounded=true
+[autopilot] pos=(-209.1, 36.6, -218.2) speed=13.5 m/s target=Villa Rosa Office dist=238.9 grounded=true
+[autopilot] pos=(-159.0, 33.7, -170.6) speed=29.2 m/s target=Villa Rosa Office dist=228.1 grounded=true
+[autopilot] pos=(-100.1, 14.9, -108.6) speed=29.2 m/s target=Villa Rosa Office dist=238.8 grounded=true
+[autopilot] pos=(-82.1, 15.9, -71.4) speed=5.4 m/s target=Villa Rosa Office dist=242.3 grounded=true
+[autopilot] pos=(-101.5, 14.8, -89.4) speed=8.9 m/s target=Villa Rosa Office dist=229.8 grounded=true
+[autopilot] pos=(-109.6, 15.5, -50.2) speed=21.6 m/s target=Villa Rosa Office dist=210.3 grounded=true
+[autopilot] pos=(-165.5, 5.5, 9.2) speed=29.2 m/s target=Villa Rosa Office dist=149.8 grounded=true
+[autopilot] pos=(-188.9, 5.8, 18.7) speed=9.0 m/s target=Villa Rosa Office dist=127.8 grounded=true
+[autopilot] pos=(-240.7, 5.0, -0.3) speed=27.6 m/s target=Villa Rosa Office dist=74.1 grounded=true
+[autopilot] pos=(-309.9, 4.9, 2.1) speed=6.0 m/s target=Villa Rosa Office dist=7.7 grounded=true
+[game] DELIVERY COMPLETED #10 at t=506.8 (odometer 6904 m)
+AUTOTEST PASS: 10 deliveries in 506.8s, avg fps 1240.4

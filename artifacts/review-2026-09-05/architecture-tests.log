@@ -1,0 +1,49 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:79)
+         [1] _init (res://world/terrain/terrain.gd:69)
+         [2] build_terrain (res://world/island/island.gd:109)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:579)
+         [1] build (res://world/terrain/terrain.gd:426)
+         [2] build_terrain (res://world/island/island.gd:119)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+[terrain] build stages ms: { "heightfield": 984, "t3d_setup": 156, "t3d_maps": 734, "t3d_import": 32, "ground_cover": 1063, "ground_cover_n": 280684 }
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3421 road nodes, seven-day routines
+[game] world generated in 4126 ms (4568 recipes in 385 chunks); tree 7379 nodes
+  PASS database holds recipes for the whole island (4568 recipes, 385 chunks)
+  PASS locations and hubs are defined independent of loading
+  PASS hub wall geometry answers without the farm chunk loaded
+  PASS only chunks near the focus are loaded (49 of 385, radius 3)
+  PASS the chunk under the bike is loaded
+  PASS the far badlands are not loaded from the villa
+  PASS chunk_loaded events flow on the bus
+  PASS after a teleport the new chunk is loaded within a second
+  PASS the villa chunk was unloaded behind us
+  PASS chunk_unloaded events fired (49)
+  PASS loaded chunk count stays bounded (49)
+  PASS entities are registered by stable id
+  PASS a far entity drops out of the FULL tier (ABSTRACT)
+  PASS the bike stays FULL
+  PASS simulation_tier_changed events fired
+  PASS save file written
+  PASS save/load restores delivery and gun state by id
+  PASS game_saved / game_loaded events
+  PASS bike tunables come from its VehicleDefinition
+  PASS jobs come from JobDefinition resources
+  PASS runtime tree: WorldManager, EntityManager, Rider, ChaseCamera, GameplayManager, BikeAudio, UI, Debug, Test_architecture_tests
+ARCHITECTURE TESTS: PASS (0 failures)

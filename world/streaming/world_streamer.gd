@@ -65,8 +65,12 @@ func _load(c: Vector2i) -> void:
 func _unload(c: Vector2i) -> void:
 	var ch: Chunk = loaded[c]
 	loaded.erase(c)
+	ch.release_recipes()          # before the node goes, so we can re-offer them this frame
 	ch.queue_free()
 	Events.chunk_unloaded.emit(c)
+	# An oversize recipe (an aqueduct, a hub) may have been owned by the chunk that just went.
+	# Offer it to the chunks still loaded rather than letting it vanish under the courier.
+	for other in loaded.values(): other.adopt_released(kit)
 
 
 ## Load everything within range right now (tests, screenshots, teleports).

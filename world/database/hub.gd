@@ -29,13 +29,22 @@ func centre3() -> Vector3:
 	return Vector3(centre.x, ground, centre.y)
 
 
-## Record a stone wall that Level built between a and b (world XZ), `height` tall, in 4 m segments.
+## Declare a stone wall between a and b (world XZ), `height` tall, built in 4 m segments.
+## This is the *only* description of that wall: the Island's geometry pass loops these records
+## to build the mesh, so a wall cannot be moved in the builder and left behind in the query.
 func add_wall(a: Vector2, b: Vector2, height: float) -> void:
 	walls.append({"a": a, "b": b, "height": height, "segments": int(ceil(a.distance_to(b) / 4.0))})
 
 
-## World position on top of the first wall at the given x (null if there is no wall there).
-## Mirrors how Level builds the wall: each segment sits at the ground height of its midpoint.
+## Declare the bench: `top` is the world point on its surface, `width` how far it runs in x.
+func set_bench(top: Vector3, width: float) -> void:
+	bench = top
+	bench_width = width
+
+
+## World position on top of a wall at the given x (null if that wall does not span x).
+## Each segment sits at the ground height of its midpoint — the same rule the mesh is built by,
+## because both read this record.
 func wall_top(x: float, wall_index: int = 0) -> Variant:
 	if wall_index >= walls.size(): return null
 	var w: Dictionary = walls[wall_index]

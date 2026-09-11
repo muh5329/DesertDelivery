@@ -61,22 +61,142 @@ func _pxs(pts: Array) -> Array:
 	return out
 
 
-## Record a build recipe for the chunk containing (x, z).
-func _at(x: float, z: float, builder: Callable) -> void:
-	db.add(x, z, builder)
-
-
-## Split a scatter into per-chunk MultiMesh recipes.
-func _scatter_records(parts: Array[PropPart], xforms: Array[Transform3D], colors: Array[Color], collide_radius: float = 0.0, shadows: bool = true) -> void:
-	var by_chunk: Dictionary = {}
+## Imported (mesh) trees: the scatter is dealt round-robin over the model variants and capped per
+## chunk so a 60 m chunk stays under ~150 k triangles (the surplus falls back to `fallback` card
+## parts, so dense forest keeps its count but the far/dense part stays cheap).
+func _scatter_trees(variants: Array, xforms_in: Array[Transform3D], colors_in: Array[Color], collide_radius: float, per_chunk_cap: int, fallback: Array[PropPart] = []) -> void:
+	var xforms: Array[Transform3D] = []; var colors: Array[Color] = []
+	for i in range(xforms_in.size()):
+		# r5 item 3: no trunk within CAMERA_CLEAR of a reference viewpoint (filtered here as well
+		# as in _scatter_records so the halo list below only holds trees that exist)
+		if _near_camera(xforms_in[i].origin.x, xforms_in[i].origin.z, CAMERA_CLEAR): continue
+		xforms.append(xforms_in[i]); colors.append(colors_in[i])
+	for xf in xforms: _halo_trees.append(xf.origin)
+	var groups: Array = []
+	for k in range(variants.size()): groups.append([[] as Array[Transform3D], [] as Array[Color]])
+	var spill_x: Array[Transform3D] = []; var spill_c: Array[Color] = []
+	var per_chunk: Dictionary = {}
 	for i in range(xforms.size()):
 		var c := db.chunk_of_pos(xforms[i].origin)
-		if not by_chunk.has(c): by_chunk[c] = [[] as Array[Transform3D], [] as Array[Color]]
-		by_chunk[c][0].append(xforms[i]); by_chunk[c][1].append(colors[i])
-	for c in by_chunk.keys():
-		var xf: Array[Transform3D] = by_chunk[c][0]; var col: Array[Color] = by_chunk[c][1]
-		var o := db.chunk_origin(c)
-		_at(o.x + 1.0, o.z + 1.0, func(): _spawn_multimesh(parts, xf, col, collide_radius, shadows))
+		var n: int = per_chunk.get(c, 0)
+		if n >= per_chunk_cap and not fallback.is_empty():
+			spill_x.append(xforms[i]); spill_c.append(colors[i])
+			continue
+		per_chunk[c] = n + 1
+		var k := rng.randi_range(0, variants.size() - 1)
+		groups[k][0].append(xforms[i]); groups[k][1].append(colors[i])
+	for k in range(variants.size()):
+		if not (variants[k] as Array).is_empty():
+			_scatter_records(variants[k], groups[k][0], groups[k][1], collide_radius)
+	if not spill_x.is_empty():
+		_scatter_records(fallback, spill_x, spill_c, collide_radius)
+
+
+## Conifer kit: the three lightest Quaternius pines (1.4-2.1 k tris) at forest height.
+func _conifer_variants(scale: float) -> Array:
+	return [_tree_parts("Pine_5", "pine", scale), _tree_parts("Pine_4", "pine", scale * 0.95), _tree_parts("Pine_2", "pine", scale * 1.05)]
+
+
+## Umbrella / stone pines: the twisted trees scaled to ~10 m with the lower crown in shadow.
+## `kind` picks the TREE_LOOK palette: "shade" for the villa / lane trees, "umbrella" is the dark
+## coast palette of the crest pines.
+func _umbrella_variants(scale: float, kind: String = "shade") -> Array:
+	return [_tree_parts("TwistedTree_1", kind, scale), _tree_parts("TwistedTree_2", kind, scale * 0.9), _tree_parts("TwistedTree_3", kind, scale * 0.85)]
+
+
+## Old olives: the same twisted trunks at 5-6 m with grey-green leaves.
+func _olive_variants(scale: float) -> Array:
+	return [_tree_parts("TwistedTree_2", "olive", scale), _tree_parts("TwistedTree_3", "olive", scale * 0.9), _tree_parts("TwistedTree_1", "olive", scale * 0.95)]
+
+
+## Positions of every scattered tree and bush: `_gen_ground_cover` paints a contact halo into
+## the terrain colour map under each of them (Terrain.paint_halos).
+var _halo_trees := PackedVector3Array()
+var _halo_bushes := PackedVector3Array()
+
+
+## True where steep ground (a cliff or a rock face) rises within 6 m of a gentler spot: the
+## reference's scrub gathers at cliff feet and on ledges where soil and water collect.
+func _cliff_foot(x: float, z: float) -> bool:
+	if terrain.normal_at(x, z).y < 0.6: return false
+	for d in [Vector2(6, 0), Vector2(-6, 0), Vector2(0, 6), Vector2(0, -6), Vector2(4.2, 4.2), Vector2(-4.2, -4.2)]:
+		if terrain.normal_at(x + d.x, z + d.y).y < 0.55: return true
+	return false
+
+
+## Vegetation lines on slope breaks: the reference's dark scrub traces the lip of every cliff top
+## and the base of every step. Drawn from the crest / foot cell lists the terrain gathered while
+## it built its control map (`Terrain.crest_cells` / `foot_cells`, 1.5 m cells, every other one)
+## instead of walking the island: the two grid walks with 9 `normal_at` samples per cell cost
+## 2.2 s of the generation (round 3), this is a few ms. `every` subsamples the list (the cells are
+## denser than the old 3 / 4.5 m grids), `p_crest` / `p_foot` are the bush chances.
+func _scatter_slope_lists(biomes: Array, region: Rect2, every: int, min_h: float, p_crest: float, p_foot: float, scale_range: Vector2, hub_clear: float) -> Array:
+	var xforms: Array[Transform3D] = []
+	var colors: Array[Color] = []
+	for kind in [1, -1]:
+		var cells: PackedVector2Array = terrain.crest_cells if kind == 1 else terrain.foot_cells
+		var p := p_crest if kind == 1 else p_foot
+		for ci in range(0, cells.size(), every):
+			var c := cells[ci]
+			if not region.has_point(c): continue
+			var sx := c.x + rng.randf_range(-1.2, 1.2); var sz := c.y + rng.randf_range(-1.2, 1.2)
+			if rng.randf() > p: continue
+			if not biomes.has(terrain.biome_at(sx, sz)): continue
+			var h := _ground(sx, sz)
+			if h < min_h or terrain.road_dist_at(sx, sz) < 4.0 or terrain.normal_at(sx, sz).y < 0.72: continue
+			if hub_clear > 0.0 and _near_location(sx, sz, hub_clear): continue
+			var sc := rng.randf_range(scale_range.x, scale_range.y)
+			# both kinds move uphill: a crest bush 1-2 m back from the lip (its cards would float over
+			# the drop), a foot bush into the ledge; both are sunk so the card bases hide in the rock
+			# lip / talus the control map paints there (critique r2 item 12)
+			var up := Vector2(terrain.height_at(sx - 4.5, sz) - terrain.height_at(sx + 4.5, sz), terrain.height_at(sx, sz - 4.5) - terrain.height_at(sx, sz + 4.5))
+			if up.length_squared() > 0.01:
+				up = -up.normalized() * (1.0 if kind == 1 else 0.6) * (1.0 + fmod(absf(sx * 0.37 + sz * 0.61), 1.0))
+				sx += up.x; sz += up.y
+				h = _ground(sx, sz)
+			var b := Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(Vector3(sc, sc * rng.randf_range(0.7, 1.0), sc))
+			xforms.append(Transform3D(b, Vector3(sx, h - 0.3 * sc, sz)))
+			var v := rng.randf_range(-0.10, 0.06)
+			colors.append(Color(0.92 + v, 0.92 + v * 0.8, 0.88 + v * 0.5))
+	for xf in xforms: _halo_bushes.append(xf.origin)
+	return [xforms, colors]
+
+
+## Scrub in thickets rather than an even sprinkle: cluster centres favour road margins (7-16 m off
+## the centreline) and cliff feet, then 0.08-0.15 bushes/m² inside a 4.5-8.5 m clump and bare
+## ground between (art research §4: thickets 5-15 m across). Bushes are sunk a little so their
+## bases hide in the ground.
+func _scatter_scrub(biomes: Array, clusters: int, region: Rect2, min_h: float, hub_clear: float, scale_range: Vector2, open_chance: float = 0.18) -> Array:
+	var xforms: Array[Transform3D] = []
+	var colors: Array[Color] = []
+	var tries := 0; var made := 0
+	while made < clusters and tries < clusters * 60:
+		tries += 1
+		var x := rng.randf_range(region.position.x, region.end.x)
+		var z := rng.randf_range(region.position.y, region.end.y)
+		if not biomes.has(terrain.biome_at(x, z)): continue
+		if _ground(x, z) < min_h: continue
+		var rd := terrain.road_dist_at(x, z)
+		if rd < 7.0 or terrain.normal_at(x, z).y < 0.6: continue
+		var favoured := rd < 16.0 or _cliff_foot(x, z)
+		if rng.randf() > (0.9 if favoured else open_chance): continue
+		if hub_clear > 0.0 and _near_location(x, z, hub_clear): continue
+		var r := rng.randf_range(4.5, 8.5)
+		var count := int(PI * r * r * rng.randf_range(0.08, 0.15))
+		for k in range(count):
+			var a := rng.randf_range(0, TAU); var d := r * sqrt(rng.randf())
+			var bx := x + cos(a) * d; var bz := z + sin(a) * d
+			if not biomes.has(terrain.biome_at(bx, bz)): continue
+			var bh := _ground(bx, bz)
+			if bh < min_h or terrain.road_dist_at(bx, bz) < 3.5 or terrain.normal_at(bx, bz).y < 0.45: continue
+			var s := rng.randf_range(scale_range.x, scale_range.y)
+			var b := Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(Vector3(s, s * rng.randf_range(0.8, 1.1), s))
+			xforms.append(Transform3D(b, Vector3(bx, bh - 0.12 * s, bz)))
+			_halo_bushes.append(Vector3(bx, bh, bz))
+			var v := rng.randf_range(-0.12, 0.12)
+			colors.append(Color(1.0 + v, 1.0 + v * 0.8, 1.0 + v * 0.5))
+		made += 1
+	return [xforms, colors]
 
 
 ## Build the resident world into `env` and describe the rest in `database`.
@@ -115,6 +235,7 @@ func build_terrain() -> void:
 	for id in PLACE_TABLE.keys():
 		var c: Vector2 = PLACE_TABLE[id][0]
 		terrain.pads.append(Vector3(c.x, c.y, 9.0))
+	terrain.vine_fields = _vine_field_rects()
 	terrain.build()
 	terrain.plant_ground_cover(rng.randi())
 	print("[terrain] build stages ms: ", terrain.build_ms)
@@ -200,6 +321,16 @@ func _define_roads() -> void:
 	# short tracks to the hill chapel and the lakeside camp
 	terrain.add_road([_px(780, 542), Vector2(-25, 72), Vector2(-15, 78)])
 	terrain.add_road([_px(940, 720), Vector2(84, 198), Vector2(88, 205)])
+	# ---- the cliff coast: a spur off the mountain loop down the headland and north along the foot
+	# of the west sea wall on a bench a few metres over the water (the road's own stamping carves
+	# the bench: 11 m flat, blending into the slope behind, where the wall stands), through the
+	# sea arch to a lookout pad at the inlet. The points follow the 3-8 m contour so no stretch is
+	# long enough over water to become a bridge (see Terrain.build).
+	terrain.add_road([_px(232, 262), Vector2(-470, -154), Vector2(-490, -155), Vector2(-506, -158), Vector2(-518, -158), Vector2(-528, -159),
+		Vector2(-536, -165), Vector2(-542, -171), Vector2(-545, -177), Vector2(-547, -183), Vector2(-553, -187), Vector2(-556, -191),
+		Vector2(-560, -196), Vector2(-559, -203), Vector2(-556, -209), Vector2(-556, -215), Vector2(-552, -221), Vector2(-549, -227),
+		Vector2(-549, -233), Vector2(-547, -239), Vector2(-546, -246), Vector2(-544, -251), Vector2(-544, -257), Vector2(-542, -262), Vector2(-538, -266)])
+	terrain.pads.append(Vector3(-541.0, -268.0, 12.0))   # the lookout: a wide bench at the arch's foot
 
 
 # ---------------------------------------------------------------- coast
@@ -222,7 +353,7 @@ func _gen_coast_and_islets() -> void:
 	# offshore sea stacks: pale pillars standing in the water off the western and southern coasts
 	var stacks := 0; var st_tries := 0
 	var hw := Terrain.SIZE * 0.5 - 12.0
-	while stacks < 160 and st_tries < 90000:
+	while stacks < 160 and st_tries < 20000:   # 160 are found long before 20 k tries
 		st_tries += 1
 		var x := rng.randf_range(-hw, hw); var z := rng.randf_range(-hw, hw)
 		if x > 104.0 and z < 69.0 and z > -400.0: continue   # not in the harbour bay / town side
@@ -231,8 +362,12 @@ func _gen_coast_and_islets() -> void:
 		if depth > -1.0 or depth < -8.0: continue
 		if _near_road(x, z, 14.0): continue
 		var s := rng.randf_range(2.0, 7.5)
-		var scl := Vector3(s, s * rng.randf_range(1.4, 2.6), s * rng.randf_range(0.7, 1.1)); var yaw := rng.randf_range(0, 360)
-		_at(x, z, func(): _add_rock(Vector3(x, -s * 0.5, z), scl, yaw, pale, s > 3.0))
+		if s > 4.5:
+			# the big ones are proper stacks: bedded pillar, weathered top, fallen blocks at the foot
+			_sea_stack(Vector2(x, z), s * rng.randf_range(2.2, 3.2), pale, rng.randi())
+		else:
+			var scl := Vector3(s, s * rng.randf_range(1.4, 2.6), s * rng.randf_range(0.7, 1.1)); var yaw := rng.randf_range(0, 360)
+			_at(x, z, func(): _add_rock(Vector3(x, -s * 0.5, z), scl, yaw, pale, s > 3.0))
 		stacks += 1
 	# coastal cliff boulders: pale rocks on the shore ring all round the island
 	var placed := 0; var tries := 0
@@ -251,6 +386,138 @@ func _gen_coast_and_islets() -> void:
 		var scl := Vector3(s, s * rng.randf_range(0.8, 1.5), s * rng.randf_range(0.7, 1.2)); var yaw := rng.randf_range(0, 360)
 		_at(x, z, func(): _add_rock(Vector3(x, h - s * 0.35, z), scl, yaw, rm, s > 2.5))
 		placed += 1
+	_gen_sea_cliffs(pale)
+
+
+## The NW massif's western sea coast (the `cliff_coast` reference view): stratified walls along
+## the shore, a sea arch and stacks, talus aprons at their feet. The west wall stands 10 m behind
+## the coast road spur (`_define_roads`), which carves the bench at its foot; the arch straddles
+## the road so it tunnels through, as in the reference. The other walls sit on the 0-5 m contour
+## and rise straight out of the water. The far right of the `cliff_coast` frame is closed by a
+## headland mass on the south-west shore and two tall islets in the shallows there, 370-520 m
+## down the sightline (the reference's second headland and mountain islet).
+func _gen_sea_cliffs(pale: Material) -> void:
+	# north wall of the big inlet (faces south)
+	_cliff_wall([Vector2(-568, -310), Vector2(-540, -314), Vector2(-510, -317), Vector2(-482, -315), Vector2(-460, -306)], 46.0, -3.0, 9.0, pale, 11)
+	# the west-facing wall along the open coast: 10 m landward of the bench road, with the talus
+	# apron seaward of the road (13-28 m from the wall line) down into the surf
+	_cliff_wall([Vector2(-525, -274), Vector2(-533, -256), Vector2(-537, -236), Vector2(-539, -224), Vector2(-544, -212), Vector2(-544, -204),
+		Vector2(-546, -196), Vector2(-543, -189), Vector2(-539, -184), Vector2(-535, -179)], 42.0, -3.0, 10.0, pale, 12, 0.12, 4.5, Vector2(13.0, 28.0))
+	# the inlet's south shore, facing north over the water to the cliff_coast camera
+	_cliff_wall([Vector2(-522, -278), Vector2(-506, -283), Vector2(-490, -291), Vector2(-476, -299)], 36.0, -3.0, 9.0, pale, 14)
+	# the small inlet south of the headland: a lower wall on its north side, the spur climbs behind it
+	_cliff_wall([Vector2(-516, -150), Vector2(-492, -147), Vector2(-470, -141)], 34.0, -3.0, 8.0, pale, 13)
+	# the arch: a fin off the west wall across the bench with the road through the opening (a
+	# 30 m span: ~21 m clear); its span is set square to the cliff_coast camera's line of sight
+	_sea_arch(Vector2(-562, -242), Vector2(-536, -257), 44.0, pale, 21)
+	# the bench at the arch's foot: 3-4 boulders of 1-2 m beside the road give the opening a scale cue
+	var br := RandomNumberGenerator.new(); br.seed = 77
+	var placed_b := 0; var b_tries := 0
+	while placed_b < 4 and b_tries < 60:
+		b_tries += 1
+		var q := Vector2(-541.0, -268.0) + Vector2(br.randf_range(-16.0, 16.0), br.randf_range(-16.0, 16.0))
+		var bs := br.randf_range(0.5, 1.0)
+		if _ground(q.x, q.y) < 0.5 or terrain.road_dist_at(q.x, q.y) < 3.5 + bs or _near_road(q.x, q.y, 3.5 + bs): continue
+		var byaw := br.randf_range(0.0, 360.0)
+		_at(q.x, q.y, func(): _add_rock(Vector3(q.x, _boulder_y(_ground(q.x, q.y), bs, 0.4), q.y), Vector3(bs, bs * 0.85, bs), byaw, pale, true, "block", 15.0))
+		placed_b += 1
+	# r5: the bench under and around the arch is paved with pale limestone shingle (the road's dirt
+	# showed through the opening as a streaked orange fan); 1.6 slabs / m^2 up to 4 m off the road
+	_shingle(Vector2(-546.0, -256.0), 26.0, 1.6, pale, 78)
+	# talus below the spur where it climbs the headland (the cut would otherwise be a bare slope)
+	_talus([Vector2(-560, -198), Vector2(-556, -191), Vector2(-547, -183), Vector2(-542, -171), Vector2(-528, -159), Vector2(-506, -158)], 1.0, 5.0, 22.0, 0.08, pale, 41)
+	# stacks in the inlet and off the coast
+	_sea_stack(Vector2(-548, -297), 20.0, pale, 31)
+	_sea_stack(Vector2(-575, -291), 16.0, pale, 32)   # in the inlet mouth: its shadow must not fall on the apron
+	_sea_stack(Vector2(-557, -338), 18.0, pale, 33)
+	_sea_stack(Vector2(-581, -192), 24.0, pale, 34, 0.2)
+	_sea_stack(Vector2(-521, -117), 14.0, pale, 35)
+	# the far headland: an 80 m stratified mass on the south-west shore (430 m from the cliff_coast
+	# camera, on the right third of its frame) with its own stacks in the shallows
+	_cliff_wall([Vector2(-556, 30), Vector2(-562, 60), Vector2(-570, 85), Vector2(-566, 112), Vector2(-560, 140), Vector2(-556, 165), Vector2(-552, 195)], 72.0, -3.0, 14.0, pale, 15, 0.06)
+	# two islets 120 m further out than r2 (the fog does the dissolving): each one stratified
+	# mass with a scree shoulder and its stacks attached at one end, never three white prisms
+	# (both within 3 chunks of the cliff_coast camera's chunk, z < 120, or the streamer never loads them)
+	_islet(Vector2(-716, 40), 62.0, pale, 36, deg_to_rad(80.0))
+	_islet(Vector2(-790, 100), 54.0, pale, 37, deg_to_rad(120.0))
+	_sea_stack(Vector2(-590, 192), 28.0, pale, 38, 0.2)
+
+
+## A far islet: one 90-120 m long mass whose top is `h` above the sea, 3-4 tapered columns of
+## differing height with stepped crowns, a low sloped scree shoulder over ~30 % of its length at
+## one end and two stacks attached at the other, dark scrub and two umbrella pines on the crown
+## (instance-tinted dark: at 500 m through the fog a bright green sphere reads as a pom-pom).
+## `yaw` is the direction of its long axis.
+func _islet(pos: Vector2, h: float, pale: Material, seed_v: int, yaw: float) -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_v
+	var dir := Vector2(cos(yaw), sin(yaw))
+	var side := Vector2(-dir.y, dir.x)
+	var length := r.randf_range(90.0, 120.0)
+	var floor_y := minf(_ground(pos.x, pos.y), -3.0) - 1.0
+	var n_col := 3 + (r.randi() % 2)
+	var sh_len := length * 0.3
+	var col_w := (length - sh_len) / n_col
+	var high := r.randi_range(0, n_col - 1)
+	var s0 := -length * 0.5
+	var bush_x: Array[Transform3D] = []; var bush_c: Array[Color] = []
+	var pine_x: Array[Transform3D] = []; var pine_c: Array[Color] = []
+	var far_tint := Color(0.42, 0.48, 0.40)
+	# the shoulder: a low block, strongly tapered and stepped, so it slopes down to the sea
+	var sh_h := h * 0.35
+	var sh_d := r.randf_range(30.0, 40.0)
+	var shc := pos + dir * (s0 + sh_len * 0.5)
+	var sh_yaw := atan2(-dir.y, dir.x) + r.randf_range(-0.1, 0.1)
+	var sh_total := sh_h - floor_y
+	var sh_xf := Transform3D(Basis(Vector3.UP, sh_yaw), Vector3(shc.x, floor_y + sh_total * 0.5, shc.y))
+	var sh_seed := 950 + (seed_v & 7)
+	_at(shc.x, shc.y, func():
+		var piece := RockGen.cached({"size": Vector3(snappedf(sh_len - 2.0, 2.0), snappedf(sh_total, 2.0), snappedf(sh_d, 2.0)), "seed": sh_seed,
+			"cell": 1.2, "cell_lod1": 2.5, "bevel": 1.0, "bevel_top": 2.0, "bed_height": 6.0, "bed_inset": 0.3, "bed_darken": 0.05, "bed_line_width": 0.4, "bed_line_strength": 0.5,
+			"bed_tilt": 0.05, "joint_spacing": 12.0, "joint_depth": 0.6, "joint_width": 1.2, "noise_amp": 2.0, "noise_metres": 14.0, "detail_amp": 0.3, "detail_metres": 3.0,
+			"facet_amp": 1.0, "facet_metres": 9.0, "facet_tilt": 0.16, "top_amp": 4.0, "top_steps": 3, "top_drop": sh_h * 0.5, "taper": 0.45, "ground_y": -sh_total * 0.5 + 1.0})
+		sink.add_child(RockGen.build_node(piece, sh_xf, false, pale, true, 120.0, 0.0)))
+	# the columns
+	for k in n_col:
+		var cs := s0 + sh_len + (k + 0.5) * col_w
+		var c := pos + dir * cs + side * r.randf_range(-4.0, 4.0)
+		var ch := h * (1.0 if k == high else r.randf_range(0.62, 0.85))
+		var d := r.randf_range(34.0, 46.0)
+		var total := ch - floor_y
+		var w := col_w - r.randf_range(1.0, 2.5)
+		var cyaw := atan2(-dir.y, dir.x) + r.randf_range(-0.08, 0.08)
+		var lean := deg_to_rad(r.randf_range(-3.0, 3.0))
+		var xf := Transform3D(Basis(Vector3.UP, cyaw) * Basis(Vector3.RIGHT, lean), Vector3(c.x, floor_y + total * 0.5, c.y))
+		var variant := r.randi_range(0, 3)
+		var steps := 2 + (r.randi() % 2)
+		var tp := snappedf(r.randf_range(0.25, 0.4), 0.05)   # strongly tapered: the silhouette narrows to a crown, not a box
+		var wq := snappedf(w, 2.0); var hq := snappedf(total, 2.0); var dq := snappedf(d, 2.0)
+		_at(c.x, c.y, func():
+			var piece := RockGen.cached({"size": Vector3(wq, hq, dq), "seed": 960 + variant, "cell": 1.0, "cell_lod1": 2.5,
+				"bevel": 0.5, "bevel_top": 1.5, "bed_height": 5.0 + 0.7 * variant, "bed_inset": 0.3, "bed_darken": 0.05, "bed_line_width": 0.4, "bed_line_strength": 0.5,
+				"bed_tilt": 0.04, "joint_spacing": wq * 0.45, "joint_depth": 0.6, "joint_width": 1.2, "noise_amp": 1.5, "noise_metres": 12.0, "detail_amp": 0.25, "detail_metres": 3.0,
+				"facet_amp": 0.9, "facet_metres": 8.0, "facet_tilt": 0.16, "top_amp": 6.0, "top_steps": steps, "top_drop": minf(10.0, ch * 0.25), "taper": tp, "ground_y": -hq * 0.5 + 1.0})
+			sink.add_child(RockGen.build_node(piece, xf, false, pale, true, 120.0, 0.0)))
+		# crown: dark scrub 0.05 / m^2 (the top is narrower by the taper), pines only on the high column
+		var top_w := w * (1.0 - tp); var top_d := d * (1.0 - tp)
+		for b in int(top_w * top_d * 0.05):
+			var bp := c + dir * r.randf_range(-top_w * 0.45, top_w * 0.45) + side * r.randf_range(-top_d * 0.45, top_d * 0.45)
+			var bs := r.randf_range(1.5, 3.0)
+			bush_x.append(Transform3D(Basis(Vector3.UP, r.randf_range(0.0, TAU)).scaled(Vector3(bs, bs, bs)), Vector3(bp.x, ch - 2.5, bp.y)))
+			bush_c.append(far_tint)
+		if k == high:
+			for b in 2:
+				var pp := c + dir * r.randf_range(-top_w * 0.3, top_w * 0.3) + side * r.randf_range(-top_d * 0.3, top_d * 0.3)
+				var ps := r.randf_range(1.0, 1.3)
+				pine_x.append(Transform3D(Basis(Vector3.UP, r.randf_range(0.0, TAU)).scaled(Vector3(ps, ps, ps)), Vector3(pp.x, ch - 3.0, pp.y)))
+				pine_c.append(far_tint)
+	_scatter_records(_bush_parts(), bush_x, bush_c, 0.0)
+	_scatter_records(_tree_parts("TwistedTree_1", "umbrella", 1.0), pine_x, pine_c, 0.6)
+	# two stacks attached at the far end
+	var end_s := s0 + length
+	for k in 2:
+		var q := pos + dir * (end_s + 6.0 + k * 14.0) + side * r.randf_range(-8.0, 8.0)
+		_sea_stack(q, h * r.randf_range(0.45, 0.65), pale, seed_v * 7 + k, 0.2)
 
 
 # ---------------------------------------------------------------- biomes
@@ -288,15 +555,57 @@ func _scatter_biome(biome: int, count: int, min_road: float, max_slope: float, s
 
 
 func _gen_forest() -> void:
-	var pines := _scatter_biome(Terrain.Biome.FOREST, 2200, 6.5, 0.55, Vector2(0.7, 1.3), 0.10, true, 22.0)
-	_scatter_records(_pine_parts(), pines[0], pines[1], 0.35)
-	# pines also climb the mountain gullies and edge the town
-	var pines2 := _scatter_biome(Terrain.Biome.LIMESTONE, 1500, 6.0, 0.5, Vector2(0.6, 1.1), 0.10, true, 34.0)
-	_scatter_records(_pine_parts(), pines2[0], pines2[1], 0.35)
-	var pines3 := _scatter_biome(Terrain.Biome.TOWN, 250, 6.0, 0.5, Vector2(0.6, 1.0), 0.10, true, 20.0)
-	_scatter_records(_pine_parts(), pines3[0], pines3[1], 0.35)
-	var olives := _scatter_biome(Terrain.Biome.FOREST, 700, 5.0, 0.4, Vector2(0.8, 1.3), 0.10, false, 22.0)
-	_scatter_records(_olive_parts(), olives[0], olives[1], 0.5)
+	# the forest: conifers only in the dense painted stands (density > 0.45), mesh conifers up to
+	# ~40 per chunk (~80 k tris) and the rest as cards; the open woodland round the villa and the
+	# lanes is umbrella pines and old olives instead (critique r1 item 12: the villa frame was an
+	# alpine fir/cypress monoculture, the reference is stone pines, olives and round shade trees)
+	var pines := _scatter_biome(Terrain.Biome.FOREST, 2200, 6.5, 0.55, Vector2(1.0, 1.7), 0.10, true, 22.0)
+	var fir_x: Array[Transform3D] = []; var fir_c: Array[Color] = []
+	var fumb_x: Array[Transform3D] = []; var fumb_c: Array[Color] = []
+	var foli_x: Array[Transform3D] = []; var foli_c: Array[Color] = []
+	# (critique r2 item 9: the villa frame's hillside was still a fir plantation - conifers only in
+	# the densest stands, density > 0.6, and never within 160 m of the villa)
+	var villa_c: Vector2 = HUB_TABLE[&"villa_rosa"][0]
+	for i in range(pines[0].size()):
+		var o: Vector3 = pines[0][i].origin
+		var dens := terrain.density_at(o.x, o.z)
+		var near_villa := villa_c.distance_to(Vector2(o.x, o.z)) < 160.0
+		# the rng draws are the r1 ones (a fir draw above 0.45, else the umbrella draw) so every
+		# later scatter keeps its positions; the demoted 0.45-0.6 firs split by position instead
+		var was_fir := dens > 0.45 and rng.randf() < 0.85
+		var umb := was_fir and fmod(absf(o.x) + absf(o.z), 1.0) < 0.55
+		if not was_fir: umb = rng.randf() < 0.55
+		if was_fir and dens > 0.6 and not near_villa:
+			fir_x.append(pines[0][i]); fir_c.append(pines[1][i])
+		elif umb:
+			fumb_x.append(pines[0][i]); fumb_c.append(pines[1][i])
+		else:
+			foli_x.append(pines[0][i]); foli_c.append(pines[1][i])
+	_scatter_trees(_conifer_variants(1.0), fir_x, fir_c, 0.35, 40, _pine_parts())
+	_scatter_trees(_umbrella_variants(0.55), fumb_x, fumb_c, 0.35, 24, _olive_parts())
+	_scatter_trees(_olive_variants(0.40), foli_x, foli_c, 0.5, 24, _olive_parts())
+	# the limestone coast and massif: umbrella pines on the low cliff-top benches (the reference's
+	# flat dark canopies over the sea), conifers climbing the gullies higher up
+	var pines2 := _scatter_biome(Terrain.Biome.LIMESTONE, 1200, 6.0, 0.5, Vector2(0.9, 1.4), 0.10, true, 44.0)   # 44 m: keeps the hilltop farm's shooting stand clear
+	var umb_x: Array[Transform3D] = []; var umb_c: Array[Color] = []
+	var con_x: Array[Transform3D] = []; var con_c: Array[Color] = []
+	for i in range(pines2[0].size()):
+		var o: Vector3 = pines2[0][i].origin
+		var umb := rng.randf() < (0.8 if o.y < 50.0 else 0.3)
+		# the sea-cliff coast (r4 item 7): half the crest trees go, so the straw ground shows between
+		# them the way the reference's cliff top does (a position hash, not an rng draw: the later
+		# scatters keep their positions)
+		if o.x < -440.0 and o.z > -350.0 and o.z < -100.0 and fmod(absf(o.x * 0.73) + absf(o.z * 0.41), 1.0) < 0.5: continue
+		if umb:
+			umb_x.append(pines2[0][i]); umb_c.append(pines2[1][i])
+		else:
+			con_x.append(pines2[0][i]); con_c.append(pines2[1][i])
+	_scatter_trees(_umbrella_variants(0.62, "umbrella"), umb_x, umb_c, 0.35, 20, _pine_parts())
+	_scatter_trees(_conifer_variants(1.05), con_x, con_c, 0.35, 30, _pine_parts())
+	var pines3 := _scatter_biome(Terrain.Biome.TOWN, 250, 6.0, 0.5, Vector2(0.9, 1.3), 0.10, true, 20.0)
+	_scatter_trees(_umbrella_variants(0.55), pines3[0], pines3[1], 0.35, 20, _pine_parts())
+	var olives := _scatter_biome(Terrain.Biome.FOREST, 900, 5.0, 0.4, Vector2(0.9, 1.3), 0.10, false, 22.0)
+	_scatter_trees(_olive_variants(0.36), olives[0], olives[1], 0.5, 16, _olive_parts())
 
 
 func _gen_limestone() -> void:
@@ -314,13 +623,45 @@ func _gen_limestone() -> void:
 		if rng.randf() > steep * 2.5 + 0.08: continue
 		if _near_location(x, z, 48.0): continue
 		var s := rng.randf_range(3.0, 11.0)
+		if x < -440.0 and z > -350.0 and z < -100.0:
+			# the sea-cliff coast: the walls of _gen_sea_cliffs are the cliffs there, so only a
+			# sparse scatter of smaller blocks on the slopes behind them
+			if rng.randf() < 0.6: continue
+			s = minf(s, 7.0)
 		if terrain.road_dist_at(x, z) < 5.0 + s * 1.1 or _near_road(x, z, 5.0 + s * 1.1): continue
 		var scl := Vector3(s, s * rng.randf_range(0.9, 1.6), s * rng.randf_range(0.7, 1.2)); var yaw := rng.randf_range(0, 360)
 		_at(x, z, func(): _add_rock(Vector3(x, h - s * 0.4, z), scl, yaw, pale, s > 4.0))
 		placed += 1
-	# small pale boulders and scrub
-	var bush := _scatter_biome(Terrain.Biome.LIMESTONE, 7000, 3.5, 0.6, Vector2(0.7, 1.6), 0.12, false, 30.0)
+	# scrub thickets over the whole massif, and a much denser cover on the sea-cliff coast (the
+	# headland of the cliff_coast view had none: critique r1 item 8 asks for >= 1 bush per 10 m²
+	# on the bench and headland). The map paints the coast cliffs as sea, hence SEA + min_h 1.5.
+	var bush := _scatter_scrub([Terrain.Biome.LIMESTONE], 640, Rect2(-607, -610, 711, 575), 1.5, 30.0, Vector2(0.7, 1.5), 0.30)
 	_scatter_records(_bush_parts(), bush[0], bush[1], 0.0)
+	var coast := Rect2(-620, -350, 200, 230)
+	var coast_biomes := [Terrain.Biome.LIMESTONE, Terrain.Biome.SEA]
+	var bush2 := _scatter_scrub(coast_biomes, 420, coast, 1.5, 30.0, Vector2(0.7, 1.7), 0.75)
+	# (r4 item 7: the coast scrub is a paler grey-olive than the massif's - the reference's cliff-top
+	# bushes are #6a5743-class over straw, not saturated green)
+	var coast_cast := Color(0.74, 0.68, 0.58)
+	# and thinner: a third of the thicket bushes go (position hash, the rng sequence stays) so
+	# the straw ground shows between them
+	var keep_x: Array[Transform3D] = []; var keep_c: Array[Color] = []
+	for i in range(bush2[0].size()):
+		var o: Vector3 = (bush2[0][i] as Transform3D).origin
+		if fmod(absf(o.x * 0.53) + absf(o.z * 0.29), 1.0) < 0.35: continue
+		keep_x.append(bush2[0][i]); keep_c.append((bush2[1][i] as Color) * coast_cast)
+	_scatter_records(_bush_parts(), keep_x, keep_c, 0.0)
+	# crest and ledge lines along every cliff top and step of the massif and the coast
+	var lines := _scatter_slope_lists([Terrain.Biome.LIMESTONE, Terrain.Biome.MOOR, Terrain.Biome.SEA], Rect2(-620, -610, 724, 575), 2, 1.5, 0.55, 0.30, Vector2(0.8, 2.0), 30.0)
+	var line_x: Array[Transform3D] = []; var line_c: Array[Color] = []
+	for i in range(lines[0].size()):
+		var o: Vector3 = (lines[0][i] as Transform3D).origin
+		var c: Color = lines[1][i]
+		if coast.has_point(Vector2(o.x, o.z)):
+			if fmod(absf(o.x * 0.53) + absf(o.z * 0.29), 1.0) < 0.4: continue
+			c *= coast_cast
+		line_x.append(lines[0][i]); line_c.append(c)
+	_scatter_records(_bush_parts(), line_x, line_c, 0.0)
 	# a scatter of mountain houses along the loop road (the painting's hill villages)
 	var houses := 0; tries = 0
 	while houses < 26 and tries < 20000:
@@ -330,7 +671,8 @@ func _gen_limestone() -> void:
 		var rd := terrain.road_dist_at(x, z)
 		if rd < 10.0 or rd > 15.0: continue
 		if terrain.normal_at(x, z).y < 0.9: continue
-		if _near_location(x, z, 34.0) or _near_house(x, z, 22.0): continue
+		# 48 m: the hilltop farm's tin-can wall and shooting stand lie 36-44 m out from its location
+		if _near_location(x, z, 48.0) or _near_house(x, z, 22.0): continue
 		var t := terrain.nearest_road(Vector3(x, 0, z))
 		var yaw := rad_to_deg(atan2(-(t.point.x - x), -(t.point.z - z)))
 		var hw := rng.randf_range(6.0, 8.0); var hd := rng.randf_range(5.0, 6.5); var fl := 1 + rng.randi_range(0, 1); var wc := STONE.lerp(Color(0.95, 0.90, 0.80), rng.randf())
@@ -392,25 +734,50 @@ func _gen_badlands() -> void:
 
 
 ## Vineyard rows in the field strips, cypress avenues and a few farmhouses.
+## The vineyard parcels (world m): the vine rows are planted inside them, and the terrain paints
+## its ploughed soil strips only there (r5 item 5: the strips used to run over every FARM slope).
+func _vine_field_rects() -> Array[Rect2]:
+	var rects: Array[Rect2] = []
+	# field patches read off the painting (pixel rectangles, rows run along the strip direction)
+	for f in [[300, 560, 460, 640], [480, 520, 600, 600], [250, 640, 420, 720], [430, 640, 560, 700], [300, 480, 380, 540], [560, 440, 660, 520], [400, 400, 520, 460], [200, 560, 300, 640], [470, 600, 600, 680], [520, 380, 640, 440], [360, 380, 460, 440], [230, 480, 300, 560], [600, 520, 700, 600]]:
+		var a := _px(f[0], f[1]); var b := _px(f[2], f[3])
+		rects.append(Rect2(a, b - a))
+	# the bodega's vineyards on the southern shore (world metres)
+	for f in [[-60, 380, 0, 420], [40, 375, 110, 415], [-70, 445, -10, 495], [45, 445, 120, 500], [-20, 470, 30, 520]]:
+		rects.append(Rect2(f[0], f[1], f[2] - f[0], f[3] - f[1]))
+	return rects
+
+
 func _gen_farmland() -> void:
 	var vine_parts: Array[PropPart] = []
 	# a vine: a leafy card along the row (rows run along z) and a narrower one across it
-	var vmat := _leaf_material("broadleaf_clump", Color(0.8, 0.9, 0.7))
-	vine_parts.append(PropPart.new(_card_mesh(2.3, 1.35, true), vmat, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0.05, 0))))
+	# (r3 item 7: the card is baked mid-green H80; the tint stays green - the r2 warm tint over a
+	# yellow-olive card fused with the navy shade side into "orange rows on mud")
+	# (r4 item 8: the shade side of a row went navy - a warmer, yellower shade floor, and the rows
+	# cast no shadows: 1.35 m cards at 2.4 m pitch shaded the whole strip into the blue ambient)
+	# (r5 item 5: the r4 rows rendered #726946 V0.47 ABOVE their soil - the reference's rows are
+	# #333415 V0.20 dark olive on V0.45-0.53 soil: card tint and floors down, the soil goes up)
+	# (r6 item 6: the shader's default far_tint (0.64,0.70,0.72) - the crest pines' cool haze - was
+	# on the rows too, 120-320 m from the villa camera: every row went grey-teal H185-200 S0.25-0.35.
+	# The rows get their own tint, warmer with distance. The critique's darker card (0.66,0.64,0.22)
+	# was tried and reverted: at 250 m the fog sets the row colour, and a darker card only let more
+	# of the blue fog through - left-field teal share 36 -> 42 %, no olive gained)
+	var vmat := _leaf_material("broadleaf_clump", Color(0.78, 0.72, 0.28))
+	vmat.set_shader_parameter("far_tint", Color(0.62, 0.60, 0.40))
+	vmat.set_shader_parameter("far_start", 150.0)
+	vmat.set_shader_parameter("far_end", 400.0)
+	vmat.set_shader_parameter("shade_warm", Color(0.55, 0.52, 0.26))
+	vmat.set_shader_parameter("wrap", 0.8)   # a hedge row has no real shade side at this scale
+	vmat.set_shader_parameter("ambient_floor", Color(0.40, 0.36, 0.12))   # the dark leaves under the fog went navy (23 % of a row at H200-260)
+	vine_parts.append(PropPart.new(_card_mesh(2.8, 1.25, true), vmat, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0.05, 0))))   # 2.8 m on a 2.4 m pitch: a hedge, not a row of blobs
 	vine_parts.append(PropPart.new(_card_mesh(0.9, 1.25, true), vmat, Transform3D(Basis(), Vector3(0, 0.05, 0))))
 	var post := CylinderMesh.new(); post.top_radius = 0.05; post.bottom_radius = 0.05; post.height = 1.8; post.radial_segments = 5
 	vine_parts.append(PropPart.new(post, Mats.solid(WOOD, 0.9), Transform3D(Basis(), Vector3(0, 0.9, -1.1))))
 	var vine_x: Array[Transform3D] = []; var vine_c: Array[Color] = []
-	# field patches read off the painting (pixel rectangles, rows run along the strip direction)
-	var fields := [[300, 560, 460, 640], [480, 520, 600, 600], [250, 640, 420, 720], [430, 640, 560, 700], [300, 480, 380, 540], [560, 440, 660, 520], [400, 400, 520, 460], [200, 560, 300, 640], [470, 600, 600, 680], [520, 380, 640, 440], [360, 380, 460, 440], [230, 480, 300, 560], [600, 520, 700, 600]]
-	var rects: Array = []
-	for f in fields: rects.append([_px(f[0], f[1]), _px(f[2], f[3])])
-	# the bodega's vineyards on the southern shore (world metres)
-	for f in [[-60, 380, 0, 420], [40, 375, 110, 415], [-70, 445, -10, 495], [45, 445, 120, 500], [-20, 470, 30, 520]]:
-		rects.append([Vector2(f[0], f[1]), Vector2(f[2], f[3])])
-	for r in rects:
-		var a: Vector2 = r[0]; var b: Vector2 = r[1]
-		var tint := Color(1, 1, 1).lerp(Color(1.4, 1.2, 0.6), rng.randf() * 0.7)
+	for r in _vine_field_rects():
+		var a: Vector2 = r.position; var b: Vector2 = r.end
+		# (the per-field cast: a mild lighter / darker green only, the rows stay one hue)
+		var tint := Color(1, 1, 1).lerp(Color(0.86, 0.94, 0.70), rng.randf() * 0.6)
 		var x := a.x
 		while x < b.x:
 			var z := a.y
@@ -420,17 +787,32 @@ func _gen_farmland() -> void:
 					vine_c.append(tint.lerp(Color(1, 1, 1), rng.randf() * 0.3))
 				z += 2.4
 			x += 3.2
-	_scatter_records(vine_parts, vine_x, vine_c, 0.0)
-	# cypress lines along the farm lanes and olive groves on the slopes
-	var cyp := _scatter_biome(Terrain.Biome.FARM, 1100, 4.0, 0.4, Vector2(0.9, 1.5), 0.08, false, 22.0)
+	_scatter_records(vine_parts, vine_x, vine_c, 0.0, false)
+	# a few cypress sentinels along the farm lanes (capped: the reference has them as accents,
+	# critique r1 item 12 counted 60 % cypress in the villa frame); the rest of the scatter becomes
+	# round shade trees along the lanes and olive groves on the slopes
+	var cyp := _scatter_biome(Terrain.Biome.FARM, 1100, 4.0, 0.4, Vector2(0.9, 1.5), 0.08, false, 44.0)
 	var keep_x: Array[Transform3D] = []; var keep_c: Array[Color] = []
+	var shade_x: Array[Transform3D] = []; var shade_c: Array[Color] = []
 	for i in range(cyp[0].size()):
 		var o: Vector3 = cyp[0][i].origin
-		if terrain.road_dist_at(o.x, o.z) < 9.0 or rng.randf() < 0.45:
+		var near_lane := terrain.road_dist_at(o.x, o.z) < 9.0
+		# (the draws happen before the camera guard so the rng sequence, and every later
+		# scatter's positions, stay what they were)
+		var pick := rng.randf() < (0.22 if near_lane else 0.04)
+		var shade := not pick and near_lane and rng.randf() < 0.5
+		if _near_camera(o.x, o.z, CAMERA_CLEAR): continue
+		if pick:
 			keep_x.append(cyp[0][i]); keep_c.append(cyp[1][i])
+		elif shade:
+			shade_x.append(cyp[0][i]); shade_c.append(cyp[1][i])
 	_scatter_records(_cypress_parts(), keep_x, keep_c, 0.4)
-	var oli := _scatter_biome(Terrain.Biome.FARM, 700, 5.0, 0.4, Vector2(0.8, 1.4), 0.10, false, 22.0)
-	_scatter_records(_olive_parts(), oli[0], oli[1], 0.5)
+	for xf in keep_x: _halo_trees.append(xf.origin)
+	_scatter_trees(_umbrella_variants(0.5), shade_x, shade_c, 0.4, 20, _olive_parts())
+	# 44 m hub clearance: the hilltop farm's tin-can wall and shooting stand lie 36 m out from its centre
+	var oli := _scatter_biome(Terrain.Biome.FARM, 1100, 5.0, 0.4, Vector2(0.9, 1.4), 0.10, false, 44.0)
+	_scatter_trees(_olive_variants(0.36), oli[0], oli[1], 0.5, 20, _olive_parts())
+	_villa_trees()
 	# farmhouses dotted round the fields
 	for p in [[300, 742], [500, 585], [560, 445], [740, 395], [640, 470], [420, 640]]:
 		var w := _px(p[0], p[1])
@@ -455,11 +837,63 @@ func _gen_farmland() -> void:
 		_at(x, z, func(): _cow(sink, Vector3(x, _ground(x, z), z), yaw))
 
 
+## The villa's own trees (critique r2 item 9: the reference has a 12 m round shade tree over the
+## house, olives and broadleaf round it, no firs): one 16 m shade tree on the square's west side
+## over the lane, a 12 m one by the office, and an olive grove in the 44 m ring the farm scatter
+## keeps clear round the hub. Hub props (house, walls, cypress sentinels) are `_build_villa_hub`.
+func _villa_trees() -> void:
+	# a private rng: every draw from the island rng here would move all the later scatters
+	var r := RandomNumberGenerator.new(); r.seed = 4242
+	var c: Vector2 = HUB_TABLE[&"villa_rosa"][0]
+	var big := _tree_parts("TwistedTree_1", "shade", 1.0)
+	var mids := _umbrella_variants(1.0)
+	for spec in [[Vector2(-13.0, 21.0), 0.95, big], [Vector2(22.0, 31.0), 0.72, mids[1]], [Vector2(-38.0, -30.0), 0.62, mids[2]]]:
+		var p: Vector2 = c + spec[0]
+		var xf := Transform3D(Basis(Vector3.UP, r.randf_range(0, TAU)).scaled(Vector3.ONE * float(spec[1])), Vector3(p.x, _ground(p.x, p.y) - 0.1, p.y))
+		_scatter_records(spec[2], [xf] as Array[Transform3D], [Color(1.0, 0.98, 0.92)] as Array[Color], 0.6)
+		_halo_trees.append(xf.origin)
+	# the olive grove: 26-52 m out, off the lane, clear of the hub's own props and houses
+	var olives := _olive_variants(0.38)
+	var ol_x: Array = [[] as Array[Transform3D], [] as Array[Transform3D], [] as Array[Transform3D]]
+	var ol_c: Array = [[] as Array[Color], [] as Array[Color], [] as Array[Color]]
+	var placed: Array[Vector2] = []
+	var tries := 0
+	while placed.size() < 22 and tries < 600:
+		tries += 1
+		var a := r.randf_range(0, TAU); var d := r.randf_range(26.0, 52.0)
+		var x := c.x + cos(a) * d; var z := c.y + sin(a) * d
+		if terrain.road_dist_at(x, z) < 6.0 or _near_house(x, z, 12.0) or terrain.normal_at(x, z).y < 0.75: continue
+		if _ground(x, z) < 1.5: continue
+		var ok := true
+		for q in placed:
+			if q.distance_to(Vector2(x, z)) < 7.0: ok = false; break
+		if not ok: continue
+		var s := r.randf_range(0.9, 1.3)
+		var k := placed.size() % 3
+		ol_x[k].append(Transform3D(Basis(Vector3.UP, r.randf_range(0, TAU)).scaled(Vector3(s, s, s)), Vector3(x, _ground(x, z) - 0.05, z)))
+		var v := r.randf_range(-0.08, 0.08)
+		ol_c[k].append(Color(1.0 + v, 1.0 + v * 0.8, 1.0 + v * 0.5))
+		placed.append(Vector2(x, z))
+		_halo_trees.append(Vector3(x, 0.0, z))
+	for k in range(3):
+		if not (ol_x[k] as Array).is_empty(): _scatter_records(olives[k], ol_x[k], ol_c[k], 0.5)
+
+
 func _gen_ground_cover() -> void:
 	var world := Rect2(-Terrain.SIZE * 0.5 + 10, -Terrain.SIZE * 0.5 + 10, Terrain.SIZE - 20, Terrain.SIZE - 20)
 	# (grass itself is planted by Terrain3D's instancer: Terrain.plant_ground_cover)
-	var bush := _scatter(2000, 3.6, 1.8, 60.0, 0.45, Vector2(0.5, 1.3), Color(1, 1, 1), 0.12, world, 14.0)
+	var bush := _scatter_scrub([Terrain.Biome.FOREST, Terrain.Biome.FARM, Terrain.Biome.TOWN, Terrain.Biome.DUNES, Terrain.Biome.MOOR, Terrain.Biome.BEACH], 340, world, 1.8, 14.0, Vector2(0.5, 1.3), 0.16)
 	_scatter_records(_bush_parts(), bush[0], bush[1], 0.0)
+	# crest / ledge lines on the hillsides outside the massif too (the forest gorges, the moor)
+	var lines := _scatter_slope_lists([Terrain.Biome.FOREST, Terrain.Biome.FARM, Terrain.Biome.TOWN, Terrain.Biome.MOOR, Terrain.Biome.DUNES], world, 4, 1.8, 0.4, 0.25, Vector2(0.6, 1.6), 14.0)
+	_scatter_records(_bush_parts(), lines[0], lines[1], 0.0)
+	# contact darkening under everything scattered so far (the last biome pass runs after this)
+	# (r3 item 10: smaller, weaker, warmer - the 2.6 m x 0.45 discs stacked with the trees' own
+	# shadows into navy blotches; a 1-1.5 m humus ring is what the reference shows)
+	# (r4 item 8: the warm humus under a blue cast shadow landed maroon #43292a - olive-brown
+	# #5a5238-class instead, and weaker: the villa ground has no 6 m dark rings in the reference)
+	terrain.paint_halos(_halo_trees, 1.8, Color(0.36, 0.33, 0.22), 0.2)
+	terrain.paint_halos(_halo_bushes, 1.4, Color(0.36, 0.33, 0.22), 0.22)
 	var meadows := Rect2(-450, -140, 450, 350)
 	var fl := _scatter(800, 3.0, 2.5, 30.0, 0.35, Vector2(0.6, 1.6), Color(1, 1, 1), 0.08, meadows, 0.0)
 	_scatter_records(_flower_parts(Color(0.75, 0.45, 0.70)), fl[0], fl[1], 0.0, false)
@@ -680,7 +1114,10 @@ func _build_villa_hub(hb_rec: Hub) -> void:
 	var hub := Node3D.new(); hub.name = "VillaHub"; sink.add_child(hub)
 	var cx := hb_rec.centre.x; var cz := hb_rec.centre.y
 	var g := _ground(cx, cz)
-	_flagstones(hub, cx + 1 * K, cz + 4 * K, 11.0)
+	# (r3 item 10: the pale #a3a085 disc was the brightest surface in the villa frame; a packed
+	# earth / gravel court in the reference's #a78d69 instead)
+	# (r5 item 5: the 11 m disc was the pale-grey blob of the frame - 7 m, straw-gold #a3844f)
+	_flagstones(hub, cx + 1 * K, cz + 4 * K, 7.0, Color(0.64, 0.52, 0.31))
 	var villa := _house(hub, Vector3(cx - 16 * K, g, cz - 6 * K), 32, 10.0, 8.0, 2)
 	villa.add_child(Mats.box(Vector3(5.5, 0.25, 8.0), Mats.solid(STONE_DARK, 0.9), Vector3(7.7, 3.2, 0)))
 	villa.add_child(Mats.box(Vector3(5.5, 1.0, 0.1), Mats.solid(Color(0.15, 0.15, 0.15), 0.6, 0.3), Vector3(7.7, 3.8, -3.95)))
@@ -701,6 +1138,18 @@ func _build_villa_hub(hb_rec: Hub) -> void:
 	gate.add_child(Mats.prism(Vector3(6.4, 1.3, 2.4), Mats.solid(TERRACOTTA, 0.85), Vector3(0, 5.45, 0)))
 	_stone_wall(hub, Vector2(cx - 22 * K, cz + 14 * K), Vector2(cx - 4 * K, cz + 26 * K))
 	_stone_wall(hub, Vector2(cx + 22 * K, cz + 18 * K), Vector2(cx + 36 * K, cz + 30 * K))
+	# r5 item 13: low dry-stone walls along the lane east of the square (7 m off the centreline,
+	# clear of both delivery rings) and a shed by the gate - the reference lines every lane with
+	# them. `_villa_lane_walls` is shared with `_define_villa` so gameplay sees the same walls.
+	# r6 item 7: the lane walls in the talus rock material (grain, a lit cap) at a dark warm tint
+	# instead of the flat STONE_DARK box - the reference's walls are #1f221b-#726a29 dry-stone
+	var wall_mat: Material = rock_material("rock024", Color(0.38, 0.32, 0.16), 0.0, 0.8, 0.0, true)
+	for wl in _villa_lane_walls(cx, cz):
+		_stone_wall(hub, wl[0], wl[1], 0.9, null, wall_mat)
+	var shed_p := Vector2(cx + 10 * K, cz + 20 * K)
+	if terrain.road_dist_at(shed_p.x, shed_p.y) >= 6.0:
+		var shed := _house(hub, Vector3(shed_p.x, _ground(shed_p.x, shed_p.y), shed_p.y), 12, 6.0, 4.0, 1, Color(0.74, 0.66, 0.50), Color(0.46, 0.40, 0.30))
+		shed.add_child(Mats.box(Vector3(1.6, 0.9, 1.1), Mats.solid(WOOD, 0.85), Vector3(3.9, 0.45, 0.6)))   # a crate against the wall
 	_lamp_post(hub, Vector3(cx + 11 * K, _ground(cx + 11 * K, cz + 8 * K), cz + 8 * K))
 	_lamp_post(hub, Vector3(cx - 7 * K, _ground(cx - 7 * K, cz - 12 * K), cz - 12 * K))
 	_signpost(hub, Vector3(cx + 5.5 * K, _ground(cx + 5.5 * K, cz - 6 * K), cz - 6 * K), 35, [["HILLTOP FARM", -1.0], ["HARBOUR", 1.0], ["THE DUNES", 1.0], ["CALA BLANCA", -1.0]])
@@ -726,6 +1175,15 @@ func _define_villa(hb_rec: Hub) -> void:
 	hb_rec.ring_pos = db.location_pos(&"villa_rosa_office"); hb_rec.ring_facing = Vector3(-1, 0, 0)
 	hb_rec.add_wall(Vector2(cx - 22 * K, cz + 14 * K), Vector2(cx - 4 * K, cz + 26 * K), 1.0)
 	hb_rec.add_wall(Vector2(cx + 22 * K, cz + 18 * K), Vector2(cx + 36 * K, cz + 30 * K), 1.0)
+	for wl in _villa_lane_walls(cx, cz):
+		hb_rec.add_wall(wl[0], wl[1], 0.9)
+
+
+## The lane walls of the villa (pairs of world-m endpoints): the lane runs east-west at z = cz
+## from the square to x = cx + 50; the office ring lies at (cx + 6.5 K, cz - 4 K), the square
+## ring at the centre, so the walls start 15 m east of both.
+func _villa_lane_walls(cx: float, cz: float) -> Array:
+	return [[Vector2(cx + 28.0, cz - 7.0), Vector2(cx + 48.0, cz - 7.0)], [Vector2(cx + 14.0, cz + 7.0), Vector2(cx + 44.0, cz + 7.0)]]
 
 
 func _build_farm(hb_rec: Hub) -> void:
@@ -828,8 +1286,8 @@ func _define_lookout(hb_rec: Hub) -> void:
 func _gen_highlands() -> void:
 	var heather := _scatter_biome(Terrain.Biome.MOOR, 3200, 3.5, 0.6, Vector2(0.8, 1.6), 0.14, false, 26.0, 2.0)
 	_scatter_records(_heather_parts(), heather[0], heather[1], 0.0)
-	var pines := _scatter_biome(Terrain.Biome.MOOR, 500, 6.5, 0.5, Vector2(0.5, 0.9), 0.12, true, 30.0)
-	_scatter_records(_pine_parts(), pines[0], pines[1], 0.35)
+	var pines := _scatter_biome(Terrain.Biome.MOOR, 500, 6.5, 0.5, Vector2(0.7, 1.1), 0.12, true, 44.0)
+	_scatter_trees(_conifer_variants(0.9), pines[0], pines[1], 0.35, 30, _pine_parts())
 	# drystone walls striding across the moor near the pass, and sheep behind them
 	for w in [[Vector2(-380, -372), Vector2(-350, -352)], [Vector2(-300, -370), Vector2(-262, -382)], [Vector2(-262, -382), Vector2(-250, -412)], [Vector2(-360, -420), Vector2(-338, -452)]]:
 		var a: Vector2 = w[0]; var b: Vector2 = w[1]
@@ -901,7 +1359,7 @@ func _gen_south_shore() -> void:
 	var keep_x: Array[Transform3D] = []; var keep_c: Array[Color] = []
 	for i in range(oli[0].size()):
 		if oli[0][i].origin.z > 300.0: keep_x.append(oli[0][i]); keep_c.append(oli[1][i])
-	_scatter_records(_olive_parts(), keep_x, keep_c, 0.5)
+	_scatter_trees(_olive_variants(0.36), keep_x, keep_c, 0.5, 16, _olive_parts())
 	# beach clutter on the south coast: driftwood and a few upturned boats
 	for k in range(14):
 		var x := rng.randf_range(-470, 250); var z := rng.randf_range(380, 610)

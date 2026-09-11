@@ -42,7 +42,7 @@ func setup(p_db: WorldDatabase, p_bike: Bike, p_jobs: Array[JobDefinition]) -> v
 	bike = p_bike
 	jobs = p_jobs
 	_beacon_mat = StandardMaterial3D.new()
-	_beacon_mat.albedo_color = Color(1.0, 0.80, 0.30, 0.16)
+	_beacon_mat.albedo_color = Color(1.0, 0.80, 0.30, 0.12)
 	_beacon_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_beacon_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_beacon_mat.emission_enabled = true
@@ -94,8 +94,9 @@ func _make_zone(pos: Vector3, radius: float) -> Area3D:
 	# ground ring
 	var ring := Mats.torus(radius - 0.35, radius, _beacon_mat, Vector3(0, 0.25, 0), Vector3.ZERO, Vector3(1, 0.4, 1))
 	a.add_child(ring)
-	# tall soft beacon
-	var beam := Mats.cylinder(0.7, 50.0, _beacon_mat, Vector3(0, 25.0, 0), Vector3.ZERO, 12, 0.12)
+	# a thin, short beacon post (r4 critique item 9: the 50 m x 0.7 m beam was a pole through the
+	# whole villa frame; 14 m tapering to nothing still reads over the trees at road distance)
+	var beam := Mats.cylinder(0.28, 14.0, _beacon_mat, Vector3(0, 7.0, 0), Vector3.ZERO, 10, 0.0)
 	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	a.add_child(beam)
 	# floating package icon

@@ -5,6 +5,7 @@ extends Node
 ## that grows with speed. Cheap enough to run in GDScript at 22 kHz.
 
 var bike: Bike
+var truck: Truck
 var _player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
 var _phase := 0.0
@@ -22,8 +23,12 @@ func play_shot() -> void:
 	_shot = 1.0
 
 
-func setup(p_bike: Bike) -> void:
+func setup(p_bike: Bike, p_truck: Truck = null) -> void:
 	bike = p_bike
+	truck = p_truck
+	var ambience:=Node.new()
+	ambience.set_script(preload("res://world/life/island_ambience.gd"))
+	ambience.name="IslandAmbience"; add_child(ambience)
 	var gen := AudioStreamGenerator.new()
 	gen.mix_rate = _rate
 	gen.buffer_length = 0.12
@@ -42,16 +47,19 @@ func setup(p_bike: Bike) -> void:
 func _process(delta: float) -> void:
 	if not enabled or _playback == null or bike == null:
 		return
-	var sf := clampf(absf(bike.speed) / (bike.flight_max_speed if bike.airborne else bike.max_speed), 0.0, 1.0)
-	var target_rpm := 0.16 + sf * 0.84 + bike.throttle * 0.10
-	if bike.parked:
+	var driven: Vehicle = truck if truck and not truck.parked else bike
+	var top_speed := bike.flight_max_speed if driven == bike and bike.airborne else driven.definition.max_speed
+	var sf := clampf(absf(driven.speed) / top_speed, 0.0, 1.0)
+	var driven_throttle: float = bike.throttle if driven == bike else truck.throttle
+	var target_rpm := 0.16 + sf * 0.84 + driven_throttle * 0.10
+	if driven.parked:
 		target_rpm = 0.0
 	_rpm = lerpf(_rpm, target_rpm, clampf(4.0 * delta, 0.0, 1.0))
 	var freq := 28.0 + _rpm * 95.0
-	_park_mix = move_toward(_park_mix, 0.0 if bike.parked else 1.0, delta * 2.5)   # engine fades out/in
-	var eng_gain := (0.22 + _rpm * 0.25 + bike.throttle * 0.08) * _park_mix
+	_park_mix = move_toward(_park_mix, 0.0 if driven.parked else 1.0, delta * 2.5)   # engine fades out/in
+	var eng_gain := (0.22 + _rpm * 0.25 + driven_throttle * 0.08) * _park_mix
 	var wind_gain := sf * sf * 0.35 * _park_mix
-	if bike.wings_out:
+	if driven == bike and bike.wings_out:
 		freq *= 1.6      # prop whine
 		eng_gain *= 0.8
 	var frames := _playback.get_frames_available()

@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lesson 01 — From key to motion</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead">
+  <p class="eyebrow">Lesson 01 · Desert Delivery</p>
+  <h1>From key to motion</h1>
+  <p class="standfirst">You press <b>W</b> and the bike accelerates. Five modules sit between
+  those two facts. Learn where they are and you can put your hands on almost any feature in the
+  game — because nearly everything the courier does enters through this one path.</p>
+  <div class="meta">
+    <span>~10 minutes reading</span>
+    <span>~25 minutes at the keyboard</span>
+    <span>New words: 2</span>
+    <span>Assumes: you can already write GDScript</span>
+  </div>
+</header>
+
+<p>Your mission says you want to <em>expand</em> this codebase by hand. That means the first thing
+you need is not a theory of software design — it is a <strong>map</strong>. Somewhere to put your
+hands. This lesson gives you one path through the code, learned properly, and one small feature
+you add yourself at the end.</p>
+
+<p>We start here because the control path is the spine. A new vehicle, a new button, a new thing
+the courier can do — almost all of it lands somewhere on this line.</p>
+
+<h2>Two words, and only two</h2>
+
+<p>You will meet a lot of design vocabulary eventually. Today you need exactly two, because
+without them the rest of the lesson has to keep gesturing.</p>
+
+<dl class="gloss">
+  <dt><span class="term">Interface</span></dt>
+  <dd>Everything a caller must know to use a piece of code correctly. Not just the function
+  signature — also the order you must call things in, what happens when it fails, and what it
+  quietly assumes. If you have to know it to use the thing, it is part of the interface, whether
+  or not it is written down.
+  <span class="here">In this repo: <code>GroundDrive</code>'s interface is <em>"set
+  <code>intent</code> and <code>mods</code>, then call <code>step(delta)</code>"</em>. That
+  ordering is part of it. Nothing in the type system says so.</span></dd>
+
+  <dt><span class="term">Seam</span></dt>
+  <dd>A place where you can change behaviour <em>without editing in that place</em>. The classic
+  example is a function that takes its dependency as an argument: you can hand it a different one
+  and the function never changes.
+  <span class="here">In this repo: <code>Controls.Source</code> is a seam. The bike's physics
+  cannot tell whether the intent came from your keyboard or from the autopilot, which is exactly
+  why the test suites can drive the real bike.</span></dd>
+</dl>
+
+<div class="callout">
+  <div class="h">Why this matters for hand-coding</div>
+  <p>A seam is where you are <em>allowed</em> to add something without disturbing what is already
+  working. When you know where the seams are, "where do I put this?" stops being a guess. That is
+  the whole trick.</p>
+</div>
+
+<h2>The chain</h2>
+
+<p>Read this top to bottom. The right-hand column in grey is the important half — what each
+module is <em>not allowed to know</em>. Those exclusions are what keep the path straight.</p>
+
+<div class="chain">
+  <div class="chain-row">
+    <div class="chain-who">InputMap</div>
+    <div class="chain-what">Godot's own table: the key <code>W</code> is the action
+      <code>accelerate</code>.
+      <span class="owns">Knows nothing about this game. Edited in the editor, not in code.</span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">Controls.Keyboard</div>
+    <div class="chain-what">Reads every action once a tick and produces a
+      <code>Controls.Reading</code> — axes, look, and which actions fired.
+      <span class="owns">Must not know what a wing, a cargo rack or a delivery is. It reports
+      what you <em>did</em>, never what it <em>meant</em>.</span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">a Scheme</div>
+    <div class="chain-what">Turns that Reading into a <code>Controls.Intent</code>: decides that
+      <code>brake</code> means braking on the ground and pitch in the air.
+      <span class="owns">Owned by the thing being controlled — <code>Controls.Foot</code> for the
+      boy, <code>Bike.BikeScheme</code>, <code>Truck.TruckScheme</code>. This is where meaning
+      lives.</span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">Rider</div>
+    <div class="chain-what">Holds the intent for one tick. Handles the commands that change
+      <em>state</em> — mount, dismount, wings, reset — then hands the rest down.
+      <span class="owns">The only module that reads a raw Intent. Everyone else asks it questions
+      instead: <code>courier()</code>, <code>is_stopped()</code>.</span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">GroundDrive</div>
+    <div class="chain-what">Consumes the intent as physics: throttle, drag, slope, steering,
+      wheel rays, landings. One tick in, one tick of motion out.
+      <span class="owns">Must not know about fuel, cargo or upgrades — those arrive pre-digested
+      as <code>mods</code>, so the physics never learns about the economy.</span></div>
+  </div>
+</div>
+
+<h2>Now read the real thing</h2>
+
+<p>Three short excerpts, verbatim from your repo. Read them against the chain above — you are
+looking for the handover points, not the details.</p>
+
+<p class="filepath">gameplay/controls/controls.gd — the device, and nothing but the device</p>
+<pre><code>	<span class="k">func</span> read(scheme: Scheme, delta: float) -&gt; Intent:
+		<span class="k">var</span> i := Intent.new()
+		<span class="k">if</span> blocked:
+			_mouse_delta = Vector2.ZERO
+			<span class="k">return</span> i
+		<span class="k">var</span> r := _device(delta)
+		i.run = r.run
+		i.aim = r.aim
+		<span class="c"># Two commands mean the same thing whatever you are sitting on.</span>
+		<span class="k">if</span> r.just(&amp;<span class="s">"interact"</span>): i.press(INTERACT)
+		<span class="k">if</span> r.just(&amp;<span class="s">"reset_bike"</span>): i.press(RESET)
+		<span class="k">if</span> scheme: <b>scheme.map(r, i)</b>
+		<span class="k">return</span> i</code></pre>
+
+<p>That last line is the seam. <code>Keyboard</code> hands the Reading over and lets somebody else
+say what it meant.</p>
+
+<p class="filepath">entities/vehicles/vehicle.gd — the default meaning, for anything with wheels</p>
+<pre><code><span class="k">class</span> GroundScheme:
+	<span class="k">extends</span> Controls.Scheme
+	<span class="k">var</span> vehicle: Vehicle
+	<span class="k">func</span> map(r: Controls.Reading, i: Controls.Intent) -&gt; <span class="k">void</span>:
+		i.steer = r.side
+		i.throttle = r.forward
+		i.brake = r.back
+		i.boost = r.run
+		i.handbrake = r.down(&amp;<span class="s">"handbrake"</span>)
+		<span class="k">if</span> r.just(&amp;<span class="s">"fire"</span>): i.press(Controls.FIRE)</code></pre>
+
+<p class="filepath">entities/player/rider.gd — one tick of routing</p>
+<pre><code>	<span class="k">var</span> i := controls.read(<b>_foot <span class="k">if</span> is_on_foot() <span class="k">else</span> vehicle.control_scheme()</b>, delta)
+	_last_intent = i
+	<span class="k">if</span> i.pressed(Controls.INTERACT):
+		<span class="k">if</span> is_riding(): request_dismount()
+		<span class="k">else</span>: request_mount()
+	...
+	<span class="k">if</span> is_riding():
+		...
+		vehicle.apply(i)</code></pre>
+
+<div class="callout">
+  <div class="h">The one line worth memorising</div>
+  <p><code>_foot if is_on_foot() else vehicle.control_scheme()</code> — the Rider picks the Scheme
+  each tick from whatever you are currently controlling. Everything about how the keys behave
+  follows from that choice.</p>
+</div>
+
+<h2>Check yourself</h2>
+
+<p>Close the code. Answer these from memory — the effort of retrieving is what makes it stick,
+and a wrong answer here is worth more to you than a right one.</p>
+
+<div id="quiz-chain" class="quiz"></div>
+
+<h2 id="task">Your turn</h2>
+
+<div class="task">
+  <p>You can already write GDScript, so none of this is a syntax exercise and I am not going to
+  walk you through it line by line. <strong>The exercise is the path.</strong> Part A is the
+  five-minute warm-up that proves you have it; Parts B and C are where the actual learning is, and
+  neither of them is mostly typing.</p>
+
+  <h3>Part A — give the vehicles a horn</h3>
+
+  <p>A horn is the smallest real feature this game can have: one InputMap entry and three files,
+  one line each. Put it in <code>Vehicle.GroundScheme</code>. Hold on to <em>why</em> there —
+  Part B is about that choice.</p>
+
+  <ol class="steps">
+    <li>InputMap: add an action <code>horn</code>, bind it to <b>H</b>.</li>
+    <li><code>gameplay/controls/controls.gd</code> — declare the command constant.</li>
+    <li>Same file — make <code>_device()</code> actually poll it.
+      <details class="hint"><summary>One trap here, and it is silent</summary>An action missing
+      from <code>ACTIONS</code> means <code>r.just()</code> returns <code>false</code> for it
+      forever, with no error and no warning. If your horn does nothing later, suspect this
+      first.</details></li>
+    <li><code>entities/vehicles/vehicle.gd</code> — press the command in
+      <code>GroundScheme.map()</code>. Note <code>r.just()</code> versus <code>r.down()</code>.</li>
+    <li><code>entities/player/rider.gd</code> — react in the <code>is_riding()</code> branch.
+      <code>message.emit(text, seconds)</code> is already wired to the HUD by
+      <code>setup()</code>.</li>
+    <li>Ride, press H. Then <code>godot --headless --path . -- --test=feature_tests</code> — it
+      should still say <code>PASS (0 failures)</code>.</li>
+  </ol>
+
+  <h3>Part B — now put it in the wrong place, on purpose</h3>
+
+  <p>This is the part that teaches. There were three other places that horn could have gone, and
+  every one of them would have compiled and "worked". <strong>Predict the behavioural difference
+  for each before you touch anything</strong> — write the predictions down, then move your horn
+  and find out.</p>
+
+  <ol class="steps">
+    <li><strong>Into <code>Keyboard.read()</code>, beside <code>INTERACT</code> and
+      <code>RESET</code>.</strong> What can you now honk from that you could not before? Is any of
+      it wrong?</li>
+    <li><strong>Into <code>Controls.Foot</code> as well as <code>GroundScheme</code>.</strong>
+      Same question, and a second one: what have you now duplicated, and what happens the day the
+      horn needs a cooldown?</li>
+    <li><strong>Into <code>Truck.TruckScheme</code> only.</strong> Where does the horn work now?
+      More interestingly — what did you have to know about <code>GroundScheme</code> to answer
+      that?</li>
+  </ol>
+
+  <p>Then move it back. The point is not that <code>GroundScheme</code> is the only defensible
+  answer — it is that you can now say <em>why</em> it is the one you would defend, in terms of who
+  is allowed to know what.</p>
+
+  <h3>Part C — two predictions, no typing</h3>
+
+  <p>Answer both from the code, before you test them. Both are more interesting than they look.</p>
+
+  <ol class="steps">
+    <li><strong>Does your horn work while the truck's cargo rack is open?</strong> Read
+      <code>TruckScheme.map()</code> and answer from the structure alone. Whatever you conclude,
+      the <em>reason</em> is the valuable half — it is a property of how the two Schemes compose,
+      and nobody wrote a line of code to make it true.
+      <details class="hint"><summary>Check yourself after you have committed to an answer</summary>
+      In cargo mode <code>TruckScheme.map()</code> never reaches <code>super.map(r, i)</code>. So
+      every control <code>GroundScheme</code> owns — throttle, brake, steer, fire, and now your
+      horn — is inert while packing, for free. Structure got you a feature you did not
+      implement.</details></li>
+
+    <li><strong>Make the horn work on foot, but not while swimming.</strong> Don't write it yet —
+      decide <em>where the rule lives</em>. <code>Controls.Foot</code> has no idea the boy is in
+      water. The Rider knows the Mode. The Player body knows it is swimming. Three candidates, and
+      the choice is a real design judgement rather than a syntax question. Pick one, justify it in
+      a sentence, then build it if you want it.
+      <details class="hint"><summary>What I would ask myself</summary>Which of those three would
+      still be right if you later added a fourth thing that suppresses the horn — say, sitting at
+      a courier counter? Put the rule where the <em>next</em> rule like it would also go.</details></li>
+  </ol>
+
+  <p><strong>Bring me your Part B predictions and your Part C answer to #2.</strong> Where you
+  chose to put that rule, and why, tells me far more about what to teach next than whether the
+  horn honks.</p>
+</div>
+
+<div class="source">
+  <div class="h">Read this next — primary source</div>
+  <p><a href="https://docs.godotengine.org/en/stable/tutorials/inputs/inputevent.html">Using
+  InputEvent</a> — Godot Engine documentation. Ten minutes. It covers the layer immediately
+  beneath <code>Controls.Keyboard</code>: how an action in the InputMap becomes something
+  <code>Input.is_action_pressed()</code> can answer, and the real difference between an action
+  being <em>held</em> and <em>just pressed</em>. Your repo leans on that difference in
+  <code>Reading.down()</code> versus <code>Reading.just()</code>.</p>
+  <p>Godot's <code>stable</code> docs are branch 4.7, which is what this project targets — so
+  unlike most tutorials you find, these links are the right version.</p>
+</div>
+
+<div class="callout">
+  <div class="h">Stuck, or want to go sideways?</div>
+  <p>I am your teacher here, not just the thing that wrote the code. Ask me anything from this
+  lesson — why a line is shaped that way, what happens if you move it, what would break. If a
+  step felt too easy or too hard, say so and I will re-aim the next lesson.</p>
+</div>
+
+<nav class="footnav">
+  <a href="../reference/control-path.html">Reference: the control path</a>
+  <a href="../reference/glossary.html">Reference: design vocabulary</a>
+  <a href="../MISSION.md">Mission</a>
+  <a href="../../CONTEXT.md">Repo: CONTEXT.md</a>
+  <a href="../../docs/adr/0002-control-scheme.md">ADR-0002: why the seam runs this way</a>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+Quiz.mount('#quiz-chain', {
+  title: 'Who owns what',
+  intro: 'Same four answers every time — so the wording gives nothing away. Shuffle and repeat it tomorrow.',
+  questions: [
+    { q: 'Which one reads Input, and is the only thing in the game that does?',
+      options: ['Controls.Keyboard', 'the vehicle Scheme', 'the Rider node', 'the GroundDrive'],
+      answer: 0,
+      why: 'Everything downstream consumes a Reading or an Intent. That is what lets the autopilot and the test suites drive the real bike.' },
+    { q: 'Which one decides that S pulls the nose up once the wings are out?',
+      options: ['Controls.Keyboard', 'the vehicle Scheme', 'the Rider node', 'the GroundDrive'],
+      answer: 1,
+      why: 'BikeScheme.map(). Meaning belongs to the thing being controlled — the keyboard reader has no idea wings exist.' },
+    { q: 'Which one turns a press of E into a mount or a dismount?',
+      options: ['Controls.Keyboard', 'the vehicle Scheme', 'the Rider node', 'the GroundDrive'],
+      answer: 2,
+      why: 'Commands that change state are the Rider’s: it owns the Mode and every transition between them.' },
+    { q: 'Which one applies drag, slope and the reverse latch?',
+      options: ['Controls.Keyboard', 'the vehicle Scheme', 'the Rider node', 'the GroundDrive'],
+      answer: 3,
+      why: 'One implementation, shared by bike and truck. Every number it uses comes from the vehicle’s .tres file.' },
+    { q: 'Which one would you edit to make Space place a cargo block?',
+      options: ['Controls.Keyboard', 'the vehicle Scheme', 'the Rider node', 'the GroundDrive'],
+      answer: 1,
+      why: 'TruckScheme already does exactly this: while the rack is open, the driving keys become cursor keys.' },
+    { q: 'Which one must never learn what a wing or a cargo rack is?',
+      options: ['Controls.Keyboard', 'the vehicle Scheme', 'the Rider node', 'the GroundDrive'],
+      answer: 0,
+      why: 'It used to know, via a Context object full of vehicle state. Removing that is what made a new vehicle cheap — see ADR-0002.' },
+    { q: 'Which one is handed a fresh Intent by the Rider every single tick?',
+      options: ['Controls.Keyboard', 'the vehicle Scheme', 'the Rider node', 'the GroundDrive'],
+      answer: 3,
+      why: 'vehicle.apply(i) sets drive.intent, and the drive reads it during step(). The Rider is the only module that touches a raw Intent.' }
+  ]
+});
+</script>
+
+</body>
+</html>

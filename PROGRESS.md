@@ -239,3 +239,31 @@ rendered screenshots compared against the references.
 - **Evidence:** tests pass; `--test=view --close` renders show grass, canopies and vines.
 - **Known:** `Terrain3DInstancer.add_transforms(..., update=false)` needs one `update_mmis(true)`
   afterwards or the earlier mesh ids never get their MultiMeshes. Generation is now ~12 s here.
+
+## Round — the fidelity push (six adversarial rounds against the *Into the Wind* references)
+- **Method:** `reference/` holds the three reference screenshots, `BRIEF.md`, camera `spots.json`,
+  `compare.py` (colour / texture-energy / luminance-layout similarity + side-by-sides) and, per
+  round, a critic's `ROUNDn_CRITIQUE.md` and three lane changelogs (`CHANGELOG_rN_{look,rocks,ground}.md`).
+  Each round: a critic measures the merged renders against the reference, then LOOK
+  (environment / sky / fog / sea), ROCKS (RockGen, rock shader, cliff / arch / stack builders) and
+  GROUND (Terrain3D maps and textures, foliage cards, trees, scatter, villa hub) fix their items in
+  parallel git worktrees, then merge (`git tag round0..round6`).
+- **Changed, in short:** procedural limestone (`world/kit/rock_gen.gd` + `rock.gdshader`: bedded
+  facets, soft bed bands, sun-gated cool shade fill, correct normals and colliders); sea cliffs,
+  arches, stacks and boulder aprons along the coast (`Island._gen_sea_cliffs`); a graded sky
+  (`sky.gdshader`: lilac zenith, blue horizon band, pink clouds), warm low sun ahead of the coast
+  camera, cool ambient, height fog and aerial perspective; the sea shader (`sea.gdshader`: green
+  skirt, navy open water, solid foam collars, whitecaps, horizon that meets the sky); photo ground
+  textures from ambientCG packed by `world/mapgen/textures.py` (limestone, earth, straw, scrub,
+  rubble, gravel); real-green canopies on Quaternius trees (`assets/trees/leaf.gdshader`, eroded
+  leaf atlases, baked dark interiors); straw cliff tops; the villa hub with straw fields, olive
+  vine hedges, dry-stone lane walls and a shed; a 14 m delivery post instead of a 50 m beam; a
+  camera-clear guard so no tree blocks the reference spots.
+- **Evidence:** `compare.py` on the coast shot went 0.29 (start) → 0.52 → 0.585 → 0.585 → 0.590 →
+  0.617 → 0.637 → **0.644**; villa 0.636, arch 0.607. World generation 20.5 s → ~10–14 s
+  (crest / foot cell lists from the control map, patch-masked ground cover ≈150k instances,
+  sea-floor fast path). Architecture / feature / edge tests pass; the 10-delivery autotest drives.
+- **Known:** the second coast angle (`cliff_coast_b`, sun behind the camera) scores 0.53 — the
+  environment is tuned for the primary shot. Vine rows read olive-grey under the blue fog; the
+  bench under the arch is still sand-coloured; everything is GL Compatibility, so there is no SSAO —
+  occlusion is baked into vertex colours, textures and the rock shader's crease term.

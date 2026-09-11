@@ -1,0 +1,253 @@
+{
+ "asset": {
+  "generator": "trees.py (Quaternius Stylized Nature, CC0)",
+  "version": "2.0"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "TwistedTree_1"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "TwistedTree_1",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 4,
+      "NORMAL": 5,
+      "TEXCOORD_0": 6
+     },
+     "indices": 7,
+     "material": 1
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "Bark_TwistedTree",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 1
+    },
+    "metallicFactor": 0
+   }
+  },
+  {
+   "alphaCutoff": 0.20000000298023224,
+   "alphaMode": "MASK",
+   "doubleSided": true,
+   "name": "Leaves_TwistedTree",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 2
+    },
+    "metallicFactor": 0
+   }
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  }
+ ],
+ "images": [
+  {
+   "mimeType": "image/png",
+   "name": "Bark_TwistedTree_Normal",
+   "uri": "Bark_TwistedTree_Normal.png"
+  },
+  {
+   "mimeType": "image/png",
+   "name": "Bark_TwistedTree",
+   "uri": "Bark_TwistedTree.png"
+  },
+  {
+   "mimeType": "image/png",
+   "name": "Leaves_TwistedTree_C",
+   "uri": "Leaves_TwistedTree_C.png"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 365684,
+   "uri": "TwistedTree_1.bin"
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 57108,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 57108,
+   "byteLength": 57108,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 114216,
+   "byteLength": 38072,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 152288,
+   "byteLength": 34644,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 186932,
+   "byteLength": 56448,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 243380,
+   "byteLength": 56448,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 299828,
+   "byteLength": 37632,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 337460,
+   "byteLength": 28224,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 4759,
+   "type": "VEC3",
+   "min": [
+    -1.4097375869750977,
+    -0.20147469639778137,
+    -5.117466926574707
+   ],
+   "max": [
+    9.911966323852539,
+    15.281858444213867,
+    3.4427638053894043
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 4759,
+   "type": "VEC3",
+   "min": [
+    -0.9997435808181763,
+    -0.9870427250862122,
+    -0.9999150037765503
+   ],
+   "max": [
+    0.9990997910499573,
+    0.999430775642395,
+    0.9992387890815735
+   ]
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 4759,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5125,
+   "count": 8661,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 4704,
+   "type": "VEC3",
+   "min": [
+    -2.174241065979004,
+    2.4449024200439453,
+    -6.726779460906982
+   ],
+   "max": [
+    11.341513633728027,
+    16.52402114868164,
+    4.822585105895996
+   ]
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5126,
+   "count": 4704,
+   "type": "VEC3",
+   "min": [
+    -0.9980661869049072,
+    -0.7215294241905212,
+    -0.9990111589431763
+   ],
+   "max": [
+    0.9989645481109619,
+    0.9999842643737793,
+    0.9992848634719849
+   ]
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 4704,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5125,
+   "count": 7056,
+   "type": "SCALAR"
+  }
+ ]
+}

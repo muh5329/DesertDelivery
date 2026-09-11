@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="VehicleDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://entities/vehicles/vehicle_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"vehicle.cargo_truck"
+display_name = "Little cargo truck"
+max_speed = 18.0
+reverse_speed = 4.5
+accel = 6.2
+brake_decel = 13.0
+drag = 0.7
+drag_quad = 0.016
+steer_rate_low = 1.45
+steer_rate_high = 0.58
+gravity = 24.0
+wheelbase = 2.5
+coast_drag = 1.0
+slope_gain = 4.5
+handbrake_decel = 12.0
+reverse_accel_scale = 0.45
+reverse_delay = 0.35
+steer_smooth_hold = 5.0
+steer_smooth_free = 8.0
+yaw_speed_ref = 1.4
+handbrake_yaw_gain = 1.0
+air_yaw_scale = 1.0
+ground_snap = 2.2
+drift_gain = 0.0
+drift_handbrake_gain = 0.0
+drift_scrub = 0.0
+dust_min_speed = 2.5
+scrub_factor = 0.75
+scrub_min_speed = 2.0
+crash_min_speed = 7.0
+graze_scrub = 1.0
+hard_landing_impact = 7.0
+hard_landing_scale = 1.0
+normal_ease = 9.0
+pitch_ease = 8.0
+air_pitch_gain = 0.035
+air_pitch_min = -0.35
+air_pitch_max = 0.25
+attitude_relaxes = false
+ray_ground_assist = false
+overspeed = 1.06
+can_fly = false
+body_colour = Color(0.72, 0.12, 0.1, 1)

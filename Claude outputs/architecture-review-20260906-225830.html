@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desert Delivery — architecture review</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+:root{
+  --bg:#0d0e12; --panel:#15171e; --panel2:#1b1e27; --line:#272b36;
+  --ink:#e8e9ee; --mut:#959cad; --dim:#6d7484;
+  --sand:#e0a458; --sand-d:#8a6231; --teal:#4fb3a5; --rose:#d97757; --slate:#7d8595;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px 120px}
+a{color:var(--sand)}
+code,.mono{font-family:var(--mono);font-size:.87em}
+
+/* ── masthead ─────────────────────────────────── */
+header.top{padding:72px 0 40px;border-bottom:1px solid var(--line);margin-bottom:8px;position:relative;overflow:hidden}
+header.top .dunes{position:absolute;inset:auto 0 0 0;height:120px;opacity:.16;pointer-events:none}
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--sand);margin:0 0 14px}
+h1{font-size:44px;line-height:1.05;letter-spacing:-.022em;margin:0 0 18px;font-weight:600}
+.lede{font-size:17.5px;color:var(--mut);max-width:70ch;margin:0}
+.meta{margin-top:26px;font-family:var(--mono);font-size:12px;color:var(--dim);display:flex;gap:26px;flex-wrap:wrap}
+
+/* ── section headings ─────────────────────────── */
+h2.sec{font-size:12px;font-family:var(--mono);letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dim);margin:56px 0 18px;font-weight:500}
+
+/* ── contents ─────────────────────────────────── */
+.toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;margin-bottom:12px}
+.toc a{display:flex;gap:12px;align-items:baseline;text-decoration:none;color:var(--ink);
+  padding:11px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  font-size:13.5px;transition:border-color .15s,background .15s}
+.toc a:hover{border-color:var(--sand-d);background:var(--panel2)}
+.toc .n{font-family:var(--mono);color:var(--dim);font-size:11.5px;min-width:18px}
+.toc .dot{width:7px;height:7px;border-radius:99px;flex:0 0 auto;margin-top:7px}
+
+/* ── cards ────────────────────────────────────── */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  margin:22px 0;overflow:hidden}
+.card > .head{padding:26px 28px 20px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(224,164,88,.05),transparent)}
+.card.teal > .head{background:linear-gradient(180deg,rgba(79,179,165,.05),transparent)}
+.card.grey > .head{background:none}
+.num{font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:.12em}
+h3{font-size:24px;line-height:1.25;letter-spacing:-.012em;margin:8px 0 0;font-weight:600}
+.badge{float:right;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  padding:5px 11px;border-radius:99px;white-space:nowrap;margin-left:16px}
+.b-strong{background:var(--sand);color:#221703;font-weight:600}
+.b-worth{background:rgba(79,179,165,.13);color:var(--teal);border:1px solid rgba(79,179,165,.4)}
+.b-spec{background:rgba(125,133,149,.12);color:var(--slate);border:1px solid rgba(125,133,149,.35)}
+.body{padding:24px 28px 28px}
+.body > p:first-child{margin-top:0}
+
+.files{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 0}
+.files span{font-family:var(--mono);font-size:11.5px;color:var(--mut);
+  background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 9px}
+
+.lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--sand);margin:26px 0 8px;font-weight:600}
+.lbl.t{color:var(--teal)}
+.body > .lbl:first-child{margin-top:0}
+p{margin:0 0 12px}
+ul{margin:0 0 12px;padding-left:20px}
+li{margin:0 0 7px}
+.term{color:var(--sand);font-weight:500}
+.term.t{color:var(--teal)}
+
+pre{background:#0a0b0e;border:1px solid var(--line);border-left:2px solid var(--sand-d);
+  border-radius:8px;padding:14px 16px;overflow-x:auto;margin:12px 0;
+  font-family:var(--mono);font-size:12px;line-height:1.6;color:#c8ccd6}
+pre .c{color:#5e6472}
+pre .k{color:var(--rose)}
+pre .s{color:var(--teal)}
+pre b{color:var(--sand);font-weight:600}
+
+.callout{border:1px solid rgba(217,119,87,.42);background:rgba(217,119,87,.07);
+  border-radius:9px;padding:14px 16px;margin:16px 0;font-size:14px}
+.callout .h{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--rose);margin-bottom:6px;font-weight:600}
+
+/* ── before / after frame ─────────────────────── */
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0 4px}
+@media (max-width:820px){.ba{grid-template-columns:1fr}}
+.pane{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.pane > h4{margin:0 0 14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;
+  text-transform:uppercase;font-weight:600}
+.pane.before > h4{color:var(--rose)}
+.pane.after > h4{color:var(--teal)}
+.cap{font-size:12.5px;color:var(--dim);margin:10px 0 0;line-height:1.5}
+
+/* module mass blocks */
+.stack{margin:0 auto;max-width:340px}
+.iface{background:var(--sand);color:#221703;font-family:var(--mono);font-size:10.5px;
+  text-align:center;padding:7px 4px;border-radius:6px 6px 0 0;font-weight:600;letter-spacing:.04em}
+.iface.wide{background:var(--rose);color:#25120c}
+.impl{background:#242833;border:1px solid var(--line);border-top:none;border-radius:0 0 6px 6px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:var(--mono);font-size:11px;color:var(--mut);padding:8px}
+.spread{display:flex;gap:6px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+.frag{background:#242833;border:1px solid var(--line);border-radius:6px;padding:8px 6px;
+  font-family:var(--mono);font-size:10px;color:var(--mut);text-align:center;min-width:78px}
+.frag .t2{display:block;color:var(--rose);font-size:9px;margin-top:3px}
+.frag.ok .t2{color:var(--teal)}
+
+/* mermaid */
+.mer{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto}
+.mermaid{background:transparent}
+
+/* leverage bars */
+.bars{display:flex;flex-direction:column;gap:9px;margin:4px 0}
+.bar{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;
+  font-family:var(--mono);font-size:10.5px;color:var(--mut)}
+.bar .track{height:11px;background:#22252f;border-radius:99px;overflow:hidden}
+.bar .fill{height:100%;border-radius:99px}
+
+/* ── top rec ──────────────────────────────────── */
+.top-rec{border:1px solid var(--sand-d);background:linear-gradient(160deg,rgba(224,164,88,.09),rgba(224,164,88,.02));
+  border-radius:14px;padding:30px 30px 26px;margin-top:16px}
+.top-rec h3{margin-top:6px;font-size:26px}
+.seq{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.seq .step{flex:1 1 190px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:9px;padding:13px 15px}
+.seq .step .o{font-family:var(--mono);font-size:10.5px;color:var(--sand);letter-spacing:.12em}
+.seq .step .t{font-size:13.5px;margin-top:5px;line-height:1.45}
+footer{margin-top:60px;padding-top:22px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <svg class="dunes" viewBox="0 0 1200 120" preserveAspectRatio="none">
+    <path d="M0,84 C160,52 250,96 400,74 C540,54 640,92 790,70 C930,50 1050,88 1200,66 L1200,120 L0,120 Z" fill="#e0a458"/>
+    <path d="M0,102 C180,80 300,112 460,94 C620,76 730,108 900,90 C1030,76 1120,104 1200,94 L1200,120 L0,120 Z" fill="#8a6231"/>
+  </svg>
+  <p class="kicker">Deepening opportunities</p>
+  <h1>Desert Delivery — architecture review</h1>
+  <p class="lede">Twelve places where the codebase is <em>shallow</em>: the interface costs almost as much
+  to learn as the implementation saves. Each candidate proposes a <em>deeper</em> module — more behaviour
+  behind a smaller interface, sitting at a seam something actually varies across — chosen for
+  <em>locality</em> (change lands in one file) and <em>testability</em> (the interface becomes the test surface).</p>
+  <div class="meta">
+    <span>~11 k lines GDScript · Godot 4.7</span>
+    <span>Scoped to the last fortnight's hot spots: <b>world/life</b>, <b>gameplay/journey</b>, <b>vehicles/truck</b>, <b>world/*</b></span>
+    <span>No <code>docs/adr/</code> — nothing to re-litigate</span>
+  </div>
+</header>
+
+<h2 class="sec">Contents</h2>
+<div class="toc">
+  <a href="#c1"><span class="dot" style="background:var(--sand)"></span><span class="n">01</span><span>Split <b>Terrain</b> into <b>Ground</b> and a terrain build</span></a>
+  <a href="#c2"><span class="dot" style="background:var(--sand)"></span><span class="n">02</span><span>One <b>GroundDrive</b> behind Bike and Truck</span></a>
+  <a href="#c3"><span class="dot" style="background:var(--sand)"></span><span class="n">03</span><span>Give the <b>Resident</b> a type</span></a>
+  <a href="#c4"><span class="dot" style="background:var(--sand)"></span><span class="n">04</span><span>A <b>Hub</b> declares its surfaces once</span></a>
+  <a href="#c5"><span class="dot" style="background:var(--sand)"></span><span class="n">05</span><span>A <b>Recipe</b> declares its extent</span></a>
+  <a href="#c6"><span class="dot" style="background:var(--sand)"></span><span class="n">06</span><span>A <b>Panel</b> module for the Counter and the Journal</span></a>
+  <a href="#c7"><span class="dot" style="background:var(--sand)"></span><span class="n">07</span><span>Ask the <b>Rider</b> questions, not for its Mode</span></a>
+  <a href="#c8"><span class="dot" style="background:var(--sand)"></span><span class="n">08</span><span>One <b>view pool</b> for Residents and wildlife</span></a>
+  <a href="#c9"><span class="dot" style="background:var(--sand)"></span><span class="n">09</span><span>A checked contract for the <b>Map</b></span></a>
+  <a href="#c10"><span class="dot" style="background:var(--teal)"></span><span class="n">10</span><span><b>IslandLife.advance_to()</b> instead of a fake save</span></a>
+  <a href="#c11"><span class="dot" style="background:var(--teal)"></span><span class="n">11</span><span>Make <b>Framing</b> the data table it claims to be</span></a>
+  <a href="#c12"><span class="dot" style="background:var(--teal)"></span><span class="n">12</span><span>Invert the <b>ControlIntent</b> seam</span></a>
+</div>
+
+<!-- ══════════════════════════════ 1 ══════════════════════════════ -->
+<div class="card" id="c1">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 01 · WORLD</div>
+    <h3>Split <code>Terrain</code> into <b>Ground</b> (the question) and a terrain build (the answer)</h3>
+    <div class="files">
+      <span>world/terrain/terrain.gd</span><span>world/island/island.gd:126–142, 681–702</span>
+      <span>world/life/road_navigation.gd:34–38</span><span>world/world_manager.gd:44–49</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p><code>CONTEXT.md</code> promises Ground is <em>“one question, one answer”</em>. In practice
+    <code>Terrain</code> exposes about thirty distinct members and <code>Island</code> alone touches
+    seventeen of them. Roughly half are a stable query surface (<code>height_at</code>, <code>biome_at</code>,
+    <code>probe</code>, <code>nearest_road</code>); the other half is the generator’s scratch space held public
+    because <code>Island</code> has to fill it before <code>build()</code> — <code>pads</code>,
+    <code>viaducts</code>, <code>roads</code>, <code>road_samples</code>, <code>bridges</code>,
+    <code>heights</code>, <code>mesh_instance</code>.</p>
+
+    <p>Two costs follow. First, <span class="term">bridges</span> is published as raw sample-index ranges
+    that exclude the earth ramps, so every consumer re-derives the real deck extent — the same three
+    magic numbers, copied:</p>
+<pre><span class="c">// island.gd:685–692 — _gen_aqueducts</span>
+<span class="k">while</span> k &gt; 0 <span class="k">and</span> samples[k-1].y - terrain.height_at(...) &gt; <b>0.25</b> <span class="k">and</span> b.from - k &lt; <b>80</b>: k -= 1
+k = maxi(k - <b>3</b>, 0); last_k = mini(last_k + <b>3</b>, samples.size() - 1)
+
+<span class="c">// road_navigation.gd:34–38 — RoadNavigation.build</span>
+<span class="k">while</span> first&gt;0 <span class="k">and</span> samples[first-1].y-terrain.height_at(...)&gt;<b>.25</b> <span class="k">and</span> int(bridge.from)-first&lt;<b>80</b>: first-=1
+<span class="k">for</span> i <span class="k">in</span> range(maxi(first-<b>3</b>,0), mini(last+<b>3</b>, samples.size()-1)):</pre>
+    <p>Two adapters means this is a <span class="term">real seam</span>, not a hypothetical one: the Bridge
+    should answer <em>“where does my deck begin and end”</em> itself.</p>
+
+    <p>Second, the leak runs the other way. <code>Terrain.plant_ground_cover</code> — a module whose
+    docstring says it is driven by <code>data/island_map.png</code> — hardcodes island content:</p>
+<pre><span class="c">// terrain.gd:876, 892</span>
+<span class="k">var</span> town_court := Vector2(<b>300</b>, <b>-245</b>)
+<span class="k">var</span> court_road: Vector3 = nearest_road(Vector3(300, 0, -245)).point</pre>
+    <p>That literal is the first entry of <code>Island._plan_town_courtyards</code>’s candidate list
+    (island.gd:1275). Move the Town Square courtyard and grass silently grows back through the paving.</p>
+
+    <div class="lbl">Solution</div>
+    <p>Two modules where there is one. <b>Ground</b> answers questions — height, normal, biome, density,
+    road distance, nearest Road, <code>probe</code> — and owns nothing mutable. A <b>terrain build</b>
+    consumes Roads, Viaducts and Pads and produces a Ground. <code>bridges</code> becomes a Bridge/Viaduct
+    record with a <code>deck_span()</code> that includes its ramps. Ground-cover exclusions become
+    keep-clear regions the Island hands over, not literals inside Terrain.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Leverage</span>: <code>Island</code>, <code>RoadNavigation</code>,
+      <code>Autopilot</code>, <code>GunSystem</code> and the HUD all learn one small question surface
+      instead of picking members out of a thirty-member grab-bag.</li>
+      <li><span class="term t">Locality</span>: the ramp rule (0.25 m, 80 samples, 3 of margin) lives in
+      the Bridge. Today changing it means finding both copies.</li>
+      <li><span class="term t">Tests</span>: Ground becomes testable against a synthetic 20×20 map with two
+      Roads and one Viaduct — no <code>generate()</code>, no Terrain3D, no <code>Game</code>.
+      Today <code>life_tests.gd:69–83</code> can only sample the real island and hope it is representative.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — one wide module</h4>
+        <div class="stack">
+          <div class="iface wide">height_at · normal_at · biome_at · density_at · road_dist_at · nearest_road · nearest_road_point · road_tangent_near · probe · base_height · world_to_grid · is_land · add_road · pads · viaducts · roads · road_samples · bridges · heights · mesh_instance · terrain3d · build_ms · build · plant_ground_cover · set_view_camera</div>
+          <div class="impl" style="height:74px">heightfield + roads + bridges + Terrain3D<br>+ a hardcoded Town courtyard</div>
+        </div>
+        <p class="cap">Interface nearly as complex as the implementation. Callers reach past the questions
+        into the build state; the build reaches out into island content.</p>
+      </div>
+      <div class="pane after"><h4>After — a question and a build</h4>
+        <div class="stack" style="max-width:200px;margin-bottom:12px">
+          <div class="iface">Ground · 8 queries</div>
+          <div class="impl" style="height:66px">bilinear field, Terrain3D data,<br>road grid, Bridge deck spans</div>
+        </div>
+        <div class="stack" style="max-width:230px">
+          <div class="iface">build(roads, viaducts, pads, keep_clear) → Ground</div>
+          <div class="impl" style="height:52px">nine passes, all private</div>
+        </div>
+        <p class="cap">The seam sits between “what is the ground here” and “how was it made”. Only the
+        build ever sees <code>heights</code>.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="h">Same file, second finding</div>
+      <code>height_at</code> silently changes meaning halfway through generation. <code>_t3d_data</code> is
+      assigned at terrain.gd:595, inside <code>_build_terrain3d()</code>, which <code>build()</code> calls at
+      line 423. Before that, <code>height_at</code> is the 3 m bilinear field; after, it is Terrain3D’s 1.5 m
+      cubic resample with per-biome micro relief added. Every Road, ramp and Pad was computed against the
+      first answer; every prop in <code>Island.generate()</code> is placed against the second. They agree only
+      because of a per-pixel clamp and a <code>smoothstep(3.0, 9.0, rd)</code> road mask — both invisible from
+      the caller’s side. Worth fixing as part of the same split: one name, one meaning.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 2 ══════════════════════════════ -->
+<div class="card" id="c2">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 02 · ENTITIES</div>
+    <h3>One <b>GroundDrive</b> behind the Bike and the Truck</h3>
+    <div class="files">
+      <span>entities/vehicles/vehicle.gd:1–69</span><span>entities/vehicles/bike/bike.gd:225–509</span>
+      <span>entities/vehicles/truck/truck.gd:210–325</span><span>tests/riding_feel_tests.gd</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p><code>Vehicle</code> is 69 lines, of which <code>apply</code>, <code>place</code>,
+    <code>reset_to_road</code>, <code>set_rider_visible</code> and <code>set_package_visible</code> are all
+    <code>pass</code>. The three methods with bodies — <code>flat_forward</code>, <code>heading</code>,
+    <code>speed_kmh</code> — are overridden by <em>both</em> subclasses anyway, because each tracks yaw in a
+    private <code>_yaw</code> rather than in the transform. Apply the <span class="term">deletion test</span>:
+    deleting <code>Vehicle</code> today moves almost nothing, because every caller already reaches concrete
+    state (<code>bike.airborne</code>, <code>truck.cargo_build_mode</code>, <code>bike.throttle</code>).
+    It is a type tag, not a deep module.</p>
+
+    <p>Meanwhile the module that <em>would</em> earn its keep — “given a ControlIntent and a
+    VehicleDefinition, produce speed, yaw, pitch, ground normal, grounded, dust and a sea-reset” — exists
+    twice, near-verbatim. The reverse-engagement latch:</p>
+<pre><span class="c">// bike.gd:368–379                          // truck.gd:236–241</span>
+_rev_hold += delta                         _rev_hold += delta
+<span class="k">if</span> _rev_hold &gt; <b>0.35</b> <span class="k">and</span> _brake_repressed:  <span class="k">if</span> _rev_hold &gt; <b>0.35</b> <span class="k">and</span> _brake_repressed <span class="k">and not</span> cargo_build_mode:</pre>
+    <p>…and the road recovery, copy-pasted with the comment dropped (bike.gd:498–508 / truck.gd:317–325).
+    Also duplicated: steer smoothing in <code>_read_intent</code>, drag plus the engine-brake fudge, the
+    slope term (<code>* 5.5</code> on the bike, <code>* 4.5</code> on the truck — drift, not a decision), the
+    wheel-ray → <code>ground_normal</code>/<code>_pitch</code> block, the head-on collision scrub,
+    <code>_build_dust</code>, and the <code>parked</code> early-out.</p>
+    <p><code>ARCHITECTURE.md</code> promises <em>“a car is a new <code>.tres</code> plus a
+    <code>Vehicle</code> subclass, not a fork of the bike.”</em> The Truck demonstrates that today it is a
+    fork of the bike.</p>
+
+    <div class="lbl">Solution</div>
+    <p>A <b>GroundDrive</b> module the vehicle owns: <code>step(intent, delta)</code> updates speed, yaw,
+    pitch, ground normal, grounded and slip from a <code>VehicleDefinition</code> and a ray set, and owns
+    <code>recover_to_road()</code>. <code>Bike</code> becomes wings and flight on top of it;
+    <code>Truck</code> becomes winch and cargo on top of it. Two adapters already exist, so this is a
+    <span class="term">real seam</span> — and a car really does become a <code>.tres</code>.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Locality</span>: one place decides what a brake tap does. Today the bike’s
+      tuning has drifted from the truck’s in at least three constants with no record of intent.</li>
+      <li><span class="term t">Tests</span>: <code>riding_feel_tests.gd:194–219</code> currently drives
+      privates — <code>probe._ray_front.force_raycast_update()</code>,
+      <code>probe._physics_process(DT)</code>, <code>probe._air_power = 1.0</code>. The whole
+      brake / reverse / drag / slope table becomes testable with no scene tree and no rays — <em>and the same
+      table runs against the Truck</em>, which today has zero riding-feel coverage.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — a fork with a type tag on top</h4>
+        <div class="mer"><pre class="mermaid">
+graph TD
+  V["Vehicle<br/><i>5 methods = pass</i>"]:::hollow
+  B["Bike · 512 ln"]:::heavy
+  T["Truck · 336 ln"]:::heavy
+  V --> B
+  V --> T
+  B -. "same drag, slope,<br/>reverse latch, rays,<br/>dust, road recovery" .-> T
+  classDef hollow fill:#2a2320,stroke:#d97757,color:#e8e9ee,stroke-dasharray:4 3
+  classDef heavy fill:#242833,stroke:#3a4050,color:#e8e9ee
+        </pre></div>
+        <p class="cap">The base holds nothing; the duplication is a dotted line nothing enforces.</p>
+      </div>
+      <div class="pane after"><h4>After — depth in the shared part</h4>
+        <div class="mer"><pre class="mermaid">
+graph TD
+  B2["Bike<br/><i>wings, flight</i>"]:::light
+  T2["Truck<br/><i>winch, cargo</i>"]:::light
+  G["GroundDrive<br/>step(intent, delta)<br/>recover_to_road()"]:::deep
+  D[("VehicleDefinition<br/>.tres")]:::data
+  B2 --> G
+  T2 --> G
+  D --> G
+  classDef light fill:#242833,stroke:#3a4050,color:#e8e9ee
+  classDef deep fill:#2a2a1e,stroke:#e0a458,color:#e8e9ee,stroke-width:2px
+  classDef data fill:#1e2a28,stroke:#4fb3a5,color:#e8e9ee
+        </pre></div>
+        <p class="cap">One small interface, one implementation, two adapters — and a car is a third
+        <code>.tres</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 3 ══════════════════════════════ -->
+<div class="card" id="c3">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 03 · LIFE</div>
+    <h3>Give the <b>Resident</b> a type</h3>
+    <div class="files">
+      <span>world/life/island_life.gd:54–57, 351–366</span><span>world/life/resident_actor.gd:38–93</span>
+      <span>ui/hud/resident_catalogue.gd:215–242</span><span>ui/hud/catalogue/week_grid.gd:11–37</span>
+      <span>gameplay/journey/journey_system.gd:196–199</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p>The Resident is the central concept of the newest slice of the game and it exists only as an anonymous
+    <code>Dictionary</code>. Its shape is asserted in one place and read in five:</p>
+<pre><span class="c">// island_life.gd:54–57</span>
+r.position=r.places.home; r.forward=along; r.route=PackedVector3Array(); r.cursor=0
+r.task_key=""; r.activity="sleep"; r.status="At home"; r.moving=false; r.driving=false
+r.circuit=0; r.wait=0.0; r.distance=0.0; r.sim_elapsed=0.0; r.speed=0.0
+r.surface_normal=Vector3.UP; r.work_progress=0.0; r.completed_tasks=0
+r.deliveries_completed=0; r.blocked_time=0.0; r.station_validated=false</pre>
+    <p>Three consequences visible in the code:</p>
+    <ul>
+      <li><b>The interface is discovered by defensive reads.</b> <code>resident_actor.gd</code> hedges —
+      <code>record.get("surface_normal", Vector3.UP)</code>, <code>record.get("speed", 0.0)</code> — while
+      line 74 reads <code>record.scale</code> bare. Which keys are guaranteed is stated nowhere.</li>
+      <li><b>Save and restore each list the fields by hand, and they disagree with creation.</b>
+      <code>save_state</code> persists 14 keys; <code>load_state</code> restores 12, silently dropping
+      <code>activity</code>, <code>blocked_time</code>, <code>station_validated</code> and others. Adding a
+      field to <code>_advance</code> means editing three unrelated lists; forgetting one is silent.</li>
+      <li><code>world.database.residents = by_id</code> (line 60) is written and never read anywhere in the
+      repo. A seam with zero adapters is not a seam.</li>
+    </ul>
+
+    <div class="lbl">Solution</div>
+    <p>A <b>Resident</b> class owning the record: <code>schedule_for(day)</code>,
+    <code>task_at(day, minute)</code>, <code>station(place)</code>, <code>advance(delta, ground)</code>, and
+    one <code>to_dict()</code>/<code>from_dict()</code> pair so persistence is defined once, next to the
+    fields. <code>IslandLife</code> becomes the calendar and the population — not the
+    shape-of-a-person authority.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Locality</span>: adding a field is one edit, and the save round-trip follows
+      from it rather than being maintained in parallel.</li>
+      <li><span class="term t">Tests</span>: <code>life_tests.gd:110–128</code> currently swaps the entire
+      population in and out of a live node — <code>life.residents = [crossing_a, crossing_b]</code> … then
+      restores it — to test two cars at a junction. With a Resident type, a junction test constructs two
+      Residents and steps them. No global mutation, no restore-or-corrupt-the-suite hazard.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — 25 keys, five readers, no owner</h4>
+        <div class="spread">
+          <div class="frag">IslandLife<span class="t2">writes 25</span></div>
+          <div class="frag">ResidentActor<span class="t2">.get() hedges</span></div>
+          <div class="frag">Catalogue<span class="t2">reads 9</span></div>
+          <div class="frag">WeekGrid<span class="t2">reads 4</span></div>
+          <div class="frag">JourneySystem<span class="t2">writes 3</span></div>
+        </div>
+        <svg viewBox="0 0 340 66" style="width:100%;margin-top:10px">
+          <rect x="8" y="26" width="324" height="30" rx="6" fill="#2a2320" stroke="#d97757" stroke-dasharray="4 3"/>
+          <text x="170" y="46" text-anchor="middle" fill="#d97757" font-family="ui-monospace,monospace" font-size="11">Dictionary — shape asserted in one place, assumed in five</text>
+          <path d="M40 24 L40 12 M110 24 L110 12 M170 24 L170 12 M230 24 L230 12 M300 24 L300 12" stroke="#4a4f5e"/>
+        </svg>
+        <p class="cap">Save lists 14 keys, load lists 12, creation lists 25. Nothing reconciles them.</p>
+      </div>
+      <div class="pane after"><h4>After — one small interface</h4>
+        <div class="stack" style="max-width:250px">
+          <div class="iface">Resident: schedule_for · task_at · station · advance · to_dict / from_dict</div>
+          <div class="impl" style="height:78px">25 fields, private<br>routing, work progress, lifetime totals<br>persistence beside the fields</div>
+        </div>
+        <p class="cap">Callers stop needing to know which keys are always present. Adding a lifetime counter
+        cannot silently reset on load.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 4 ══════════════════════════════ -->
+<div class="card" id="c4">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 04 · WORLD</div>
+    <h3>A <b>Hub</b> declares its surfaces once, and geometry is derived from that</h3>
+    <div class="files">
+      <span>world/island/island.gd:703–753, 755–797, 829–851, 942–1090</span>
+      <span>world/kit/world_kit.gd:525–539</span><span>world/database/hub.gd:33–56</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p>Every Hub’s walls exist as two independent literals — once in <code>_build_*</code>, once in
+    <code>_define_*</code>:</p>
+<pre><span class="c">// island.gd:743 — build side</span>
+_stone_wall(hub, Vector2(cx - <b>22</b>*K, cz + <b>14</b>*K), Vector2(cx - <b>4</b>*K, cz + <b>26</b>*K))
+<span class="c">// island.gd:752 — define side, nine lines later</span>
+hb_rec.add_wall(Vector2(cx - <b>22</b>*K, cz + <b>14</b>*K), Vector2(cx - <b>4</b>*K, cz + <b>26</b>*K), 1.0)</pre>
+    <p>The same doubling for the farm, monastery, quarry, Cala Blanca and the Salinas. The Dunes Lookout’s
+    bench is doubled with a hand-computed offset: <code>_build_lookout</code> puts a 0.1-thick plank centred
+    at <code>g + 0.5</code>, <code>_define_lookout</code> records <code>g + 0.55</code>. And
+    <code>Hub.wall_top</code> re-implements <code>_stone_wall</code>’s segment maths from the outside,
+    admitting it in the docstring: <em>“Mirrors how Level builds the wall.”</em></p>
+    <p>The telling detail — <code>WorldKit._stone_wall</code> already takes the Hub:</p>
+<pre><span class="k">func</span> _stone_wall(parent: Node3D, a: Vector2, b: Vector2, height: float = 1.0, h: <b>Hub = null</b>) -&gt; <span class="k">void</span>:
+	<span class="k">if</span> h: h.add_wall(a, b, height)</pre>
+    <p>…and none of the 18 call sites passes it. It cannot work as written: <code>_build_*</code> runs at
+    chunk-load time inside a <span class="term">Recipe</span>, while <code>_define_*</code> must run at
+    generation time — registering a wall from the builder would publish it only when the farm chunk happened
+    to be loaded, which <code>ARCHITECTURE.md</code> principle 7 forbids. So the parameter is a
+    <span class="term">hypothetical seam</span> with zero adapters, and the workaround is hand-mirrored
+    constants.</p>
+
+    <div class="lbl">Solution</div>
+    <p>Invert it. A Hub <em>declares</em> its surfaces — a list of wall, bench and pad records — at define
+    time, and <code>_build_*</code> derives geometry from that declaration:
+    <code>for w in hb_rec.walls: _stone_wall(hub, w.a, w.b, w.height)</code>. <code>wall_top</code> then reads
+    the same record the mesh came from, instead of mirroring the builder.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Locality</span>: moving a wall is one edit. Today it is two edits nine lines
+      apart, in seven Hubs.</li>
+      <li><span class="term t">Tests</span>: <code>architecture_tests.gd:40</code> can only assert
+      <code>wall_top(...) != null</code> — it cannot check a tin can actually sits on the mesh, because the
+      mesh exists only once the farm chunk loads. With a single record, drift is measurable: for every Hub,
+      sample <code>wall_top(x)</code> and raycast the built wall in a loaded chunk. A divergence becomes a
+      failing number rather than the pistol quietly missing.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — two sources, kept in sync by hand</h4>
+        <div class="mer"><pre class="mermaid">
+graph LR
+  D["_define_villa_hub<br/>add_wall(a, b, 1.0)"]:::warn
+  B["_build_villa_hub<br/>_stone_wall(a, b)"]:::warn
+  D --> H["Hub.wall_top(x)<br/><i>mirrors the builder</i>"]:::hollow
+  B --> M["mesh in the chunk"]:::plain
+  D -. "same literals,<br/>no link" .-> B
+  classDef warn fill:#2a2320,stroke:#d97757,color:#e8e9ee
+  classDef hollow fill:#242833,stroke:#d97757,color:#e8e9ee,stroke-dasharray:4 3
+  classDef plain fill:#242833,stroke:#3a4050,color:#e8e9ee
+        </pre></div>
+        <p class="cap">The Lookout bench already drifted by 5 cm.</p>
+      </div>
+      <div class="pane after"><h4>After — declare once, render from it</h4>
+        <div class="mer"><pre class="mermaid">
+graph LR
+  D2["_define_villa_hub<br/>hub.wall(a, b, 1.0)"]:::good
+  D2 --> R[("Hub surfaces<br/>walls · benches · pads")]:::data
+  R --> W["wall_top(x)"]:::plain
+  R --> B2["_build_villa_hub<br/><i>loops the records</i>"]:::plain
+  B2 --> M2["mesh in the chunk"]:::plain
+  classDef good fill:#2a2a1e,stroke:#e0a458,color:#e8e9ee,stroke-width:2px
+  classDef data fill:#1e2a28,stroke:#4fb3a5,color:#e8e9ee
+  classDef plain fill:#242833,stroke:#3a4050,color:#e8e9ee
+        </pre></div>
+        <p class="cap">The query and the mesh are now the same numbers by construction — and the Hub still
+        answers with the chunk unloaded.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 5 ══════════════════════════════ -->
+<div class="card" id="c5">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 05 · STREAMING</div>
+    <h3>A <b>Recipe</b> declares its extent</h3>
+    <div class="files">
+      <span>world/island/island.gd:65–67, 158–175, 553–560, 700, 1330–1335</span>
+      <span>world/database/world_database.gd:31–37</span><span>world/streaming/chunk.gd:12–23</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p>The whole interface is one position and one Callable:</p>
+<pre><span class="k">func</span> _at(x: float, z: float, builder: Callable) -&gt; <span class="k">void</span>:
+	db.add(x, z, builder)</pre>
+    <p>The unstated invariant is that the geometry the closure builds lies inside the 60 m Chunk containing
+    <code>(x, z)</code>. It is violated all over the generator:</p>
+    <ul>
+      <li><b>Aqueducts</b> (line 700) file an arcade spanning the whole Bridge plus both ramps — up to
+      ~160 m of Viaduct — under one Chunk.</li>
+      <li><b>Hubs</b> (158–175) file at <code>h.centre</code>, but the Villa builds houses, gates and
+      cypresses out to ±62 m: two Chunks away in every direction.</li>
+      <li><b>Harbour boats</b> (553–560) file at the pier root while the boats sit up to 24 m along it.</li>
+      <li><b>Town courtyards</b> (1330–1335) file at the centre and build a promenade to
+      <code>path[1]</code> — which <code>_plan_town_courtyards</code> guarantees is <em>at least</em> 32 m
+      away (line 1281).</li>
+    </ul>
+    <p>With <code>chunk_size = 60.0</code> and <code>stream_radius = 3</code>, the reachable consequence is an
+    aqueduct or a villa wing popping in and out as a Chunk two rings away loads. Nothing in the code — and
+    nothing in <code>architecture_tests.gd</code>, which asserts only <code>record_count &gt; 500</code> —
+    can detect it.</p>
+    <p>There is a second unstated rule in the same interface. <code>Chunk.build</code> reseeds
+    <code>kit.rng</code> from the coordinate, so a Recipe calling <code>rng.randf_range</code> inside its
+    closure draws from a different stream than the same call at generation time — deterministic per Chunk,
+    but with the added rule that <em>Recipe order within a Chunk is part of the contract</em>. And two
+    conventions for ground height coexist: <code>_gen_town</code> bakes <code>h := _ground(x, z)</code> at
+    generation and captures it; <code>_gen_limestone</code> calls <code>_ground(x, z)</code> inside the
+    closure at load time.</p>
+
+    <div class="lbl">Solution</div>
+    <p><code>_at</code> takes the Recipe’s extent — a radius or an AABB. <code>WorldDatabase.add</code> files
+    it into every Chunk it overlaps (built once, by the first Chunk to claim it) or rejects it. A caller
+    passing a centre for a 160 m arcade is forced to say so.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Locality</span>: pop-in becomes a property of the Recipe rather than an
+      emergent property of where a closure happened to be filed.</li>
+      <li><span class="term t">Tests</span>: with an extent declared, a test walks every record, builds it
+      into a throwaway node, and asserts the resulting AABB sits inside the Chunk’s bounds plus tolerance —
+      a real regression test against pop-in, impossible to write today.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — a point that lies</h4>
+        <svg viewBox="0 0 320 150" style="width:100%">
+          <defs><pattern id="g1" width="40" height="40" patternUnits="userSpaceOnUse">
+            <rect width="40" height="40" fill="none" stroke="#2c3040"/></pattern></defs>
+          <rect x="0" y="10" width="320" height="120" fill="url(#g1)"/>
+          <rect x="120" y="50" width="40" height="40" fill="rgba(224,164,88,.14)" stroke="#e0a458"/>
+          <path d="M20 78 Q 90 40 140 70 Q 200 100 300 62" stroke="#d97757" stroke-width="6" fill="none" opacity=".85"/>
+          <circle cx="140" cy="70" r="5" fill="#e0a458"/>
+          <text x="146" y="112" fill="#e0a458" font-family="ui-monospace,monospace" font-size="10">_at(mid.x, mid.z)</text>
+          <text x="8" y="142" fill="#d97757" font-family="ui-monospace,monospace" font-size="10">the arcade it builds — ~160 m across five chunks</text>
+        </svg>
+        <p class="cap">Load the middle Chunk and the whole Viaduct appears; leave it and the whole Viaduct
+        vanishes, while you are standing on it.</p>
+      </div>
+      <div class="pane after"><h4>After — an extent the database can see</h4>
+        <svg viewBox="0 0 320 150" style="width:100%">
+          <defs><pattern id="g2" width="40" height="40" patternUnits="userSpaceOnUse">
+            <rect width="40" height="40" fill="none" stroke="#2c3040"/></pattern></defs>
+          <rect x="0" y="10" width="320" height="120" fill="url(#g2)"/>
+          <rect x="20" y="50" width="280" height="40" fill="rgba(79,179,165,.10)" stroke="#4fb3a5" stroke-dasharray="4 3"/>
+          <path d="M20 78 Q 90 40 140 70 Q 200 100 300 62" stroke="#4fb3a5" stroke-width="6" fill="none" opacity=".85"/>
+          <text x="24" y="44" fill="#4fb3a5" font-family="ui-monospace,monospace" font-size="10">_at(mid, extent = AABB) → claimed by 5 chunks</text>
+          <text x="8" y="142" fill="#9aa0ad" font-family="ui-monospace,monospace" font-size="10">built once, by whichever chunk arrives first</text>
+        </svg>
+        <p class="cap">And a test can now assert that no built Recipe escapes its declared extent.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 6 ══════════════════════════════ -->
+<div class="card" id="c6">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 06 · UI / GAMEPLAY</div>
+    <h3>A <b>Panel</b> module for the Counter and the Journal</h3>
+    <div class="files">
+      <span>gameplay/journey/journey_system.gd:82–116</span><span>ui/hud/resident_catalogue.gd:152–181</span>
+      <span>core/app/game.gd:246, 254</span><span>ui/hud/hud.gd:394–397</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p>The Counter (<code>JourneySystem</code>) and the Journal (<code>ResidentCatalogue</code>) each
+    hand-roll the same five-part protocol: save <code>_old_mouse</code>, set <code>Input.mouse_mode</code>,
+    set <code>player_controls.blocked</code>, latch <code>just_closed</code> + <code>_closed_frame</code> for
+    one frame, and release on the next frame only if the mouse button is up. <code>Game</code> then
+    re-derives “is anything modal” by enumerating both:</p>
+<pre><span class="c">// game.gd:254</span>
+<span class="k">if</span> rider.is_on_foot() <span class="k">and not</span> catalogue.is_open() <span class="k">and not</span> catalogue.just_closed
+   <span class="k">and not</span> journey.is_open() <span class="k">and not</span> journey.just_closed <span class="k">and</span> ...</pre>
+    <p>That is the interface: every new panel obliges an edit here and in <code>hud.gd:397</code>. Two
+    adapters, no seam.</p>
+
+    <div class="callout">
+      <div class="h">Live bug the duplication is already producing</div>
+      Opening the Counter pauses delivery handoffs (<code>game.gm.handoffs_paused = true</code>,
+      journey_system.gd:85). Opening the Journal does not — <code>resident_catalogue.gd:152–163</code> sets
+      <code>blocked</code> and the mouse mode and never touches it. <code>DeliverySystem._process</code>
+      completes a stage after 0.5 s stopped inside a Ring, and reading the Journal is exactly “stopped”. So
+      opening the Journal while parked in a pickup Ring collects the Package behind the book.
+      <code>journey_tests.gd:20</code> guards precisely this case for the Counter; there is no equivalent for
+      the Journal. The unconditional <code>handoffs_paused = false</code> on close is a second hazard the
+      moment anything else pauses handoffs. Release is asymmetric too: the Counter unblocks only
+      <code>if not catalogue.is_open()</code>; the Journal has no matching check.
+    </div>
+
+    <div class="lbl">Solution</div>
+    <p>A small <b>Panel</b> stack owning open and close: it captures the mouse mode, blocks controls, pauses
+    handoffs, and holds the one-frame click-through latch. <code>Game</code> asks
+    <code>panels.any_open()</code> instead of naming panels. The Counter and the Journal shrink to layout
+    plus content.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Leverage</span>: a third panel — a map, a settings screen — is layout only.</li>
+      <li><span class="term t">Locality</span>: the bug above stops being possible; the pause is a property
+      of being open, not something each panel remembers to do.</li>
+      <li><span class="term t">Tests</span>: <code>journey_tests.gd:20–28</code> and
+      <code>catalogue_view.gd:16, 50–53</code> currently assert the same latch behaviour twice, once per
+      panel, through a booted Game. One Panel module gets one table-driven test of the protocol; each panel
+      only needs “it opens and shows the right rows”.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — protocol copied, then diverged</h4>
+        <div class="spread" style="align-items:stretch">
+          <div class="frag" style="min-width:112px">Counter<span class="t2">mouse ✓ blocked ✓<br>handoffs ✓ latch ✓</span></div>
+          <div class="frag" style="min-width:112px">Journal<span class="t2">mouse ✓ blocked ✓<br>handoffs ✗ latch ✓</span></div>
+        </div>
+        <div class="frag" style="margin:10px auto 0;min-width:220px">Game + HUD<span class="t2">enumerate both, by name</span></div>
+        <p class="cap">Five obligations × N panels, enforced by memory.</p>
+      </div>
+      <div class="pane after"><h4>After — one protocol, two contents</h4>
+        <div class="stack" style="max-width:250px">
+          <div class="iface">Panels: open(p) · close(p) · any_open()</div>
+          <div class="impl" style="height:62px">mouse capture · control block<br>handoff pause · click-through latch</div>
+        </div>
+        <div class="spread" style="margin-top:10px">
+          <div class="frag ok" style="min-width:100px">Counter<span class="t2">layout only</span></div>
+          <div class="frag ok" style="min-width:100px">Journal<span class="t2">layout only</span></div>
+        </div>
+        <p class="cap">Game asks one question.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 7 ══════════════════════════════ -->
+<div class="card" id="c7">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 07 · ENTITIES</div>
+    <h3>Ask the <b>Rider</b> questions, don’t read its <b>Mode</b></h3>
+    <div class="files">
+      <span>entities/player/rider.gd:16, 22, 62–67</span><span>gameplay/delivery/delivery_system.gd:188–195</span>
+      <span>gameplay/journey/journey_system.gd:50, 61–63</span><span>ui/hud/hud.gd:333–355</span>
+      <span>core/app/game.gd:161, 209, 254</span><span>world/life/island_ambience.gd:30</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p><code>CONTEXT.md</code> says everyone “reads <code>rider.mode</code> or reacts to
+    <code>mode_changed</code>” — and that is exactly what has gone wrong. Because the enum is the interface,
+    each caller re-derives the <em>policy</em> it actually wanted, differently:</p>
+<pre><span class="c">// delivery_system.gd:195 — "can a handover happen", as a mode list</span>
+<span class="k">var</span> available := rider == null <span class="k">or</span> rider.mode == Rider.Mode.RIDING <span class="k">or</span> rider.mode == Rider.Mode.DRIVING <span class="k">or</span> rider.mode == Rider.Mode.ON_FOOT
+<span class="c">// journey_system.gd:61–63 — "is the courier stopped", with its own thresholds</span>
+<span class="k">return</span> game.rider.mode <span class="k">in</span> [Rider.Mode.RIDING, Rider.Mode.DRIVING] <span class="k">and</span> game.rider.vehicle.grounded <span class="k">and</span> absf(game.rider.vehicle.speed) &lt; 2.5</pre>
+    <p>And the same question — <em>who is the courier, and where is he?</em> — is answered independently in
+    four places, two phrased with <code>is_riding()</code> and two with <code>is_on_foot()</code>:</p>
+<pre>game.gd:209             <span class="k">var</span> f: Node3D = rider.vehicle <span class="k">if</span> rider.is_riding() <span class="k">else</span> player
+delivery_system.gd:188  <span class="k">var</span> courier: Node3D = player <span class="k">if</span> rider <span class="k">and</span> rider.is_on_foot() <span class="k">else</span> vehicle
+journey_system.gd:50    <span class="k">var</span> actor: Node3D = game.player <span class="k">if</span> game.rider.is_on_foot() <span class="k">else</span> game.rider.vehicle
+ambience.gd:30          <span class="k">var</span> p := game.player.global_position <span class="k">if</span> game.rider.is_on_foot() <span class="k">else</span> ...</pre>
+    <p>These are equivalent only because <code>Mode</code> has exactly five members today. Add one —
+    <code>IN_TRUCK_BED</code>, <code>CUTSCENE</code> — and they silently split. Worse, the Rider also
+    publishes the raw intent: <code>hud.gd:338</code> reads <code>rider.last_intent.aim</code>, so a
+    <span class="term">ControlIntent</span> that was supposed to stop at the physics modules is now HUD
+    state.</p>
+
+    <div class="lbl">Solution</div>
+    <p>Keep the transitions — <code>_apply_mode_effects</code> (rider.gd:177–192) is the genuinely deep part
+    and the Rider owns it well. Replace the enum-as-interface with the questions callers ask:
+    <code>courier() -&gt; Node3D</code>, <code>active_vehicle() -&gt; Vehicle</code>,
+    <code>can_hand_over() -&gt; bool</code>, <code>is_stopped() -&gt; bool</code>,
+    <code>is_aiming() -&gt; bool</code>. <code>mode</code> stays for the debug overlay and the save file.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Leverage</span>: adding a Mode is a Rider-only change. Today it is a
+      repo-wide grep with silent failure modes.</li>
+      <li><span class="term t">Tests</span>: each predicate becomes directly assertable on a Rider with
+      stubbed bodies. Today the only coverage is <code>feature_tests.gd</code> asserting the enum value
+      after a transition — nothing tests that delivery, journey and ambience agree about who the courier
+      is.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — enum out, policy re-derived N times</h4>
+        <div class="mer"><pre class="mermaid">
+graph LR
+  R["Rider<br/><b>mode</b> · last_intent"]:::warn
+  R --> A["Delivery<br/><i>3-mode list</i>"]:::warn
+  R --> B["Journey<br/><i>2 modes + 2.5 m/s</i>"]:::warn
+  R --> C["HUD<br/><i>reads last_intent.aim</i>"]:::warn
+  R --> D["Game / Ambience<br/><i>is_riding vs is_on_foot</i>"]:::warn
+  classDef warn fill:#2a2320,stroke:#d97757,color:#e8e9ee
+        </pre></div>
+        <p class="cap">Four answers to one question, agreeing by coincidence.</p>
+      </div>
+      <div class="pane after"><h4>After — questions in, answers out</h4>
+        <div class="mer"><pre class="mermaid">
+graph LR
+  A2["Delivery"]:::plain --> R2
+  B2["Journey"]:::plain --> R2
+  C2["HUD"]:::plain --> R2
+  D2["Game / Ambience"]:::plain --> R2
+  R2["Rider<br/>courier() · active_vehicle()<br/>can_hand_over() · is_stopped()<br/>is_aiming()"]:::deep
+  classDef plain fill:#242833,stroke:#3a4050,color:#e8e9ee
+  classDef deep fill:#2a2a1e,stroke:#e0a458,color:#e8e9ee,stroke-width:2px
+        </pre></div>
+        <p class="cap">The Mode stays private to the transitions that own it.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 8 ══════════════════════════════ -->
+<div class="card" id="c8">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 08 · LIFE / ENTITIES</div>
+    <h3>One <b>view pool</b> for Residents and wildlife — and let the <b>EntityManager</b> own the distance</h3>
+    <div class="files">
+      <span>world/life/island_life.gd:320–338</span><span>world/life/island_wildlife.gd:108–122</span>
+      <span>world/life/resident_actor.gd:112–113</span><span>entities/entity_manager.gd</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p>Two modules independently implement the same pattern — hysteresis radius, <code>entities.register</code>,
+    <code>queue_free</code>, <code>unregister</code>:</p>
+<pre><span class="c">// island_life.gd:325–338</span>
+<span class="k">if</span> distance &lt; <b>105.0</b> <span class="k">and</span> r.activity != "sleep": ... entities.register(actor, StringName(r.id), &amp;"resident")
+<span class="k">elif</span> actors.has(r.id) <span class="k">and</span> (distance &gt; <b>125.0</b> <span class="k">or</span> r.activity == "sleep"): ...
+
+<span class="c">// island_wildlife.gd:112–122</span>
+<span class="k">var</span> radius := <b>210.0</b> <span class="k">if</span> r.kind == "gull" <span class="k">else</span> <b>95.0</b>
+<span class="k">if</span> distance &lt; radius <span class="k">and not</span> _views.has(r.id): ... entities.register(node, StringName(r.id), &amp;"wildlife")</pre>
+    <p>Two adapters means this is a <span class="term">real seam</span>. Meanwhile
+    <code>ARCHITECTURE.md</code> §11–12 says the <code>EntityManager</code> owns exactly this — assigning
+    FULL / REDUCED / ABSTRACT / DORMANT by distance to the focus — and <code>ResidentActor</code> explicitly
+    opts out:</p>
+<pre><span class="k">func</span> set_simulation_tier(_tier: int) -&gt; <span class="k">void</span>:
+	<span class="k">pass</span> <span class="c"># The manager owns distance-based instantiation and simulation.</span></pre>
+    <p>The comment is inverted. The manager does <em>not</em> own it; <code>IslandLife</code> does, with its
+    own radii, and it registers the actor only <em>after</em> deciding to spawn it — so the tier system never
+    sees the entity it is meant to tier. There are now three undocumented distance policies (105/125,
+    95/115, 210/230) that a maintainer of <code>EntityManager</code> cannot find.</p>
+
+    <div class="lbl">Solution</div>
+    <p>One <b>view pool</b>: <em>given records with an id and a position, plus a spawn radius and a factory,
+    keep exactly the near ones instantiated and registered.</em> Residents and wildlife each become one line
+    plus a Callable, and the radii live in one table beside <code>WorldConfig.tier_radii</code>.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Locality</span>: “why is this Resident not visible?” has one file to read.</li>
+      <li><span class="term t">Tests</span>: there is currently <em>no</em> test of spawn/despawn hysteresis
+      at all — <code>life_tests.gd:97</code> deliberately picks a Resident <em>without</em> an actor to work
+      around it. A pooled module is testable by feeding synthetic focus positions and asserting
+      register/unregister counts, with no booted island.</li>
+    </ul>
+
+    <div class="lbl">Before / after</div>
+    <div class="ba">
+      <div class="pane before"><h4>Before — three policies, one stub</h4>
+        <svg viewBox="0 0 320 140" style="width:100%">
+          <circle cx="160" cy="70" r="4" fill="#e0a458"/>
+          <circle cx="160" cy="70" r="34" fill="none" stroke="#d97757" stroke-dasharray="3 3"/>
+          <circle cx="160" cy="70" r="46" fill="none" stroke="#d97757" stroke-dasharray="3 3" opacity=".55"/>
+          <circle cx="160" cy="70" r="58" fill="none" stroke="#4fb3a5" stroke-dasharray="3 3" opacity=".7"/>
+          <text x="160" y="24" text-anchor="middle" fill="#9aa0ad" font-family="ui-monospace,monospace" font-size="10">focus</text>
+          <text x="200" y="72" fill="#d97757" font-family="ui-monospace,monospace" font-size="9">95 · IslandWildlife</text>
+          <text x="212" y="88" fill="#d97757" font-family="ui-monospace,monospace" font-size="9">105 · IslandLife</text>
+          <text x="224" y="104" fill="#4fb3a5" font-family="ui-monospace,monospace" font-size="9">tier_radii · EntityManager (unused here)</text>
+          <text x="8" y="132" fill="#6d7484" font-family="ui-monospace,monospace" font-size="9">set_simulation_tier() → pass</text>
+        </svg>
+        <p class="cap">Each life module invented its own streaming.</p>
+      </div>
+      <div class="pane after"><h4>After — one pool, one table</h4>
+        <div class="stack" style="max-width:250px">
+          <div class="iface">ViewPool: sync(records, focus)</div>
+          <div class="impl" style="height:62px">hysteresis · register / unregister<br>factory Callable · tier hand-off</div>
+        </div>
+        <div class="spread" style="margin-top:10px">
+          <div class="frag ok" style="min-width:100px">IslandLife<span class="t2">1 line</span></div>
+          <div class="frag ok" style="min-width:100px">Wildlife<span class="t2">1 line</span></div>
+        </div>
+        <p class="cap">And <code>set_simulation_tier</code> stops being a lie.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 9 ══════════════════════════════ -->
+<div class="card" id="c9">
+  <div class="head">
+    <span class="badge b-strong">Strong</span>
+    <div class="num">CANDIDATE 09 · MAPGEN</div>
+    <h3>A checked contract for the <b>Map</b> — and stop <code>extract.py</code> writing to the runtime path</h3>
+    <div class="files">
+      <span>world/mapgen/extract.py:7, 101</span><span>world/mapgen/expand.py:22–24, 32–33, 135–139</span>
+      <span>world/terrain/terrain.gd:21, 25–28, 78–89</span><span>world/island/island.gd:42–46, 144–151</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Problem</div>
+    <p>The Map contract has five parts, each restated by hand in two or three places: the grid
+    (<code>SIZE 1248 / CELL 3.0 / N 417</code>), the height encoding
+    (<code>r8 / 255 * 90 - 10</code>), the eleven-value Biome order, the painting scale, and the islets
+    format. Nothing checks any of it. The only enforcement is a width check that degrades to nothing:</p>
+<pre><span class="k">if</span> err != OK <span class="k">or</span> img.get_width() != N:
+	push_error("Terrain: could not load %s (%s); using flat sea" % [MAP_PATH, err])
+	_map_h.fill(-6.0); _map_b.fill(Biome.SEA); _map_d.fill(0.0)</pre>
+    <p>And it fires for real: <code>extract.py</code> line 101 writes its <b>241 px</b> result straight to
+    <code>data/island_map.png</code> — the path <code>Terrain.MAP_PATH</code> requires to be <b>417 px</b>.
+    Run <code>extract.py</code> alone and the entire world becomes flat sea behind a single
+    <code>push_error</code>; only a subsequent <code>expand.py</code> restores a loadable map.
+    <code>expand.py</code>’s own guard makes it worse: if <code>island_map_720.png</code> is missing it copies
+    whatever is at <code>data/island_map.png</code> and treats it as the pristine original — feeding an
+    already-expanded map back through the K-scale.</p>
+
+    <div class="lbl">Solution</div>
+    <p>One Map format description both sides read — a small JSON sidecar (grid size, cell, height range,
+    Biome name→index) that <code>expand.py</code> writes and <code>Terrain._load_map</code> validates
+    field-by-field, refusing to boot with a named mismatch instead of a silent flat sea. And
+    <code>extract.py</code> writes to <code>world/mapgen/island_map_720.png</code> — its actual product —
+    so the two stages cannot be run out of order into a broken world.</p>
+
+    <div class="lbl t">Benefits</div>
+    <ul>
+      <li><span class="term t">Locality</span>: the encoding is defined once and asserted at the seam, rather
+      than transcribed into three files that can drift silently.</li>
+      <li><span class="term t">Tests</span>: there is currently <em>no</em> test that touches the Map at all.
+      A headless test that loads <code>data/island_map.png</code> and asserts its dimensions, that every G
+      value is a valid Biome, that the decoded height range is plausible, and that every islet converts to a
+      position inside the world, turns “the island is flat sea today” from a mystery into one failing line.</li>
+    </ul>
+    <p class="cap">Python and GDScript can’t share a source of truth without a generator step, so some
+    duplication is inherent here — the <em>check</em> is the part that earns its keep, not the unification.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 10 ══════════════════════════════ -->
+<div class="card teal" id="c10">
+  <div class="head">
+    <span class="badge b-worth">Worth exploring</span>
+    <div class="num">CANDIDATE 10 · LIFE</div>
+    <h3><code>IslandLife.advance_to(minute)</code> instead of a fake save payload</h3>
+    <div class="files"><span>gameplay/journey/journey_system.gd:191–200</span><span>world/life/island_life.gd:351–366</span><span>tests/journey_tests.gd:44–47</span></div>
+  </div>
+  <div class="body">
+    <p>“Rest until morning” makes time pass by synthesising a save file, per Resident, from a
+    <code>CanvasLayer</code>:</p>
+<pre><span class="c"># Use the simulation's restore seam to place everyone at the next morning's station</span>
+<span class="k">for</span> person <span class="k">in</span> game.life.residents:
+	records[person.id] = {"completed_tasks":..., "deliveries_completed":..., "distance":...}
+game.life.load_state({"total_minutes": next_morning, "residents": records, "ambient_time":...})</pre>
+    <p>The comment is honest, which is what makes the friction visible. The interface
+    <code>JourneySystem</code> must know: the exact save schema, that <code>load_state</code> re-runs
+    <code>_assign_task(r, true)</code> and therefore teleports everyone, and — critically — that any field it
+    <em>omits</em> gets reset. That is why it hand-copies three lifetime counters back, and why
+    <code>journey_tests.gd:47</code> exists only to police that hand-copy. Add a counter to the Resident
+    (candidate 03) and this silently resets it with the test still green.</p>
+    <p><b>Solution:</b> <code>IslandLife.advance_to(absolute_minute)</code> — set the clock, reassign every
+    task at the new time, clear in-flight routes, preserve lifetime totals by construction. The Counter calls
+    one line and stops knowing the save format, which is then free to change without breaking a shop button.
+    The test moves down to <code>IslandLife</code> (“skipping 14 hours preserves lifetime totals and places
+    everyone at their 08:00 station”), leaving the journey test to check only that the button is refused away
+    from Villa Rosa.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 11 ══════════════════════════════ -->
+<div class="card teal" id="c11">
+  <div class="head">
+    <span class="badge b-worth">Worth exploring</span>
+    <div class="num">CANDIDATE 11 · CAMERA</div>
+    <h3>Make <b>Framing</b> the data table it already claims to be</h3>
+    <div class="files"><span>entities/camera/chase_camera.gd:20–29, 132–176</span><span>tests/riding_feel_tests.gd:274–296</span></div>
+  </div>
+  <div class="body">
+    <p><code>CONTEXT.md</code> calls Framing “a data table”, and the table has six columns — but
+    <code>_chase_update</code> branches on identity, not on data. Seven <code>composed</code> branches plus
+    two <code>as Bike</code> reaches:</p>
+<pre><span class="k">var</span> composed := framing == Framing.BIKE                                      <span class="c">// :144</span>
+<span class="k">var</span> dist: float = _f.distance + sf * (<b>.7</b> <span class="k">if</span> composed <span class="k">else</span> <b>1.1</b>)              <span class="c">// :148</span>
+<span class="k">var</span> position_blend := 1.0 - exp(-(<b>8.0</b> <span class="k">if</span> composed <span class="k">else</span> pos_smooth) * delta)   <span class="c">// :161</span>
+fov = lerpf(fov, _f.fov + sf * (<b>4.5</b> <span class="k">if</span> composed <span class="k">else</span> <b>7.0</b>), ...)              <span class="c">// :176</span></pre>
+    <p><code>Framing.TRUCK</code> was added at line 28 and inherited the “not BIKE” column of every one of
+    those branches by default. Nobody chose 1.1 m of pull-back for a truck; it is what falls out of
+    <code>not composed</code>. A future car or boat gets the same accidental tuning.
+    <code>_target_speed()</code> likewise duck-types (<code>target is Vehicle</code> → <code>.speed</code>,
+    else <code>has_method("speed")</code>) because <code>Player</code> exposes speed as a method and
+    <code>Vehicle</code> as a field.</p>
+    <p><b>Solution:</b> move every constant hiding in a branch into the <code>FRAMINGS</code> row —
+    <code>yaw_ease</code>, <code>pos_ease</code>, <code>height_ease</code>, <code>look_ease</code>,
+    <code>dist_gain</code>, <code>fov_gain</code>, <code>airborne_lift</code> — so adding a Framing is a table
+    edit, which the docs already promise. Have the target satisfy one tiny interface
+    (<code>speed</code>, <code>top_speed</code>) instead of the camera sniffing <code>as Bike</code>. The
+    three existing camera checks then loop over all five Framings from the public <code>follow()</code>,
+    catching the truck’s accidental tuning.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ 12 ══════════════════════════════ -->
+<div class="card teal" id="c12">
+  <div class="head">
+    <span class="badge b-worth">Worth exploring</span>
+    <div class="num">CANDIDATE 12 · CONTROLS</div>
+    <h3>Invert the <b>ControlIntent</b> seam: the controlled thing declares its actions</h3>
+    <div class="files"><span>gameplay/controls/controls.gd:16–57, 78–169</span><span>entities/player/rider.gd:71–101</span><span>entities/vehicles/truck/truck.gd:92–102</span></div>
+  </div>
+  <div class="body">
+    <p>The seam earns its keep — physics really is identical for the player, the Autopilot and the tests. But
+    the interface is nearly as complex as what sits behind it, and interpretation is smeared across four
+    modules:</p>
+    <ul>
+      <li><b>Keyboard</b> already knows vehicle internals: <code>ctx.wings_out</code>,
+      <code>ctx.airborne</code>, <code>ctx.at_takeoff_speed</code>, <code>ctx.driving_truck</code>,
+      <code>ctx.cargo_build_mode</code>. The Truck’s cargo mode reaches all the way back into the key
+      reader.</li>
+      <li><b>Rider</b> re-dispatches five edges; <b>Truck.apply</b> re-dispatches five more <em>inside
+      physics</em>, so cargo placement happens on the physics thread via the intent.</li>
+      <li><b>Scripted.read</b> copies all 21 fields by hand and <code>press()</code> is a string→field
+      switch. Adding one control means six edits at the seam that was supposed to absorb change.</li>
+    </ul>
+    <p><code>Context</code> is the tell: it exists only because a key’s <em>meaning</em> depends on vehicle
+    state, so vehicle state flows backwards through the seam every tick.</p>
+    <p><b>Solution:</b> invert the direction. The thing being controlled declares its action set —
+    <code>Bike</code> and <code>Truck</code> expose <code>control_map(state)</code>, or the Rider owns
+    per-Mode maps. <b>Keyboard</b> becomes device→action only; <b>Scripted</b> becomes a generic
+    <code>duplicate()</code> instead of 13 hand-copied lines; edge-triggered commands travel as named
+    commands rather than booleans smuggled through a physics struct. The hand-copy in
+    <code>Scripted.read</code> is exactly the kind of thing that silently drops a field, and nothing asserts
+    its completeness today — a generic copy plus one round-trip test replaces that risk.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ also ══════════════════════════════ -->
+<h2 class="sec">Also noticed, not promoted</h2>
+<div class="card grey">
+  <div class="body">
+    <ul>
+      <li><b>Save / load ordering is a real unwritten invariant.</b> <code>save_manager.gd:50</code> loads by
+      iterating the <em>file’s</em> key order while <code>save_game</code> writes in registration order
+      (delivery, gun, bike, truck, rider). <code>bike.load_state</code> calls <code>place()</code>, and
+      <code>rider.load_state</code> positions the boy relative to <code>bike.global_position</code>. Reorder
+      the <code>Saves.register</code> calls, or load a save from an older build, and the boy is placed against
+      the bike’s pre-load position — silently. The matching tree-order constraint exists only as a comment at
+      <code>game.gd:90–91</code>. A <code>Saves.register(key, provider, after: [...])</code> plus one test
+      that loads a shuffled save file would close it. Not promoted only because nothing currently reorders
+      those registrations.</li>
+      <li><b><code>Truck</code> escapes its own type.</b> <code>truck.gd:1</code> declares
+      <code>class_name Truck</code>, and every holder is untyped — <code>var truck</code> in
+      <code>game.gd</code>, <code>rider.gd</code>, <code>bike_audio.gd</code>; <code>Variant</code> in
+      <code>truck_tests.gd</code>. <code>vehicle.gd:52–53</code> records why the base grew visual hooks — a
+      cold-cache script-compile constraint — but callers still use dynamic dispatch, so we pay for both. And
+      it leaks anyway: <code>hud.gd:349</code> reads <code>truck.visual.cargo.status_text()</code>, three
+      levels into the renderer. Worth folding into candidate 02 rather than tackling alone.</li>
+      <li><b>Bike performance travels as <code>set_meta</code> strings.</b> <code>JourneySystem</code> — a UI
+      layer — owns fuel, engine level and cargo mass and publishes them by stamping three string keys on the
+      Bike node, read back in <code>bike.gd</code> and re-clamped independently in <code>hud.gd</code>. The
+      HUD reads only the Bike, so the gauges are wrong while driving the Truck. A typed loadout value would
+      fix it; <code>bike.performance_profile()</code> itself is genuinely deep and should stay.</li>
+      <li><b><code>RoadNavigation</code> passes the deletion test</b> — <code>build</code>/<code>support</code>/
+      <code>path</code> over bucketed A*, bridge-deck detection and lane offsetting. Its one wart is that
+      <code>path()</code> takes <code>lane: float</code> and infers pedestrian-vs-traffic from
+      <code>lane &gt; 2.0</code>, an unexpressed invariant shared with <code>island_life.gd:118</code>. A named
+      lane enum fixes it — a small change, not a restructure.</li>
+      <li><b>Earning their keep, leave alone:</b> <code>Hub</code> (answers with the chunk unloaded, exactly
+      as principle 7 promises), <code>IslandArt</code> (62 lines of caching plus material rewriting behind
+      <code>prop_parts</code>), <code>_scatter_biome</code> (eight tunables behind one call, used eleven
+      times), and <code>IslandLife._advance</code> — long, but genuinely dense, with no pure functions
+      extracted for testability’s sake.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ top rec ══════════════════════════════ -->
+<h2 class="sec">Top recommendation</h2>
+<div class="top-rec">
+  <div class="num">START HERE</div>
+  <h3>Candidate 02 — one <b>GroundDrive</b> behind the Bike and the Truck</h3>
+  <p style="margin-top:14px">It is the only candidate where the duplication is <em>already</em> costing you
+  on every change, and where the fix has two real adapters waiting for it rather than one hypothetical
+  one. The Truck was added recently by forking the Bike; the constants have already drifted
+  (<code>* 5.5</code> vs <code>* 4.5</code> on the slope term, <code>0.45</code> vs <code>0.5</code> on
+  reverse) with nothing recording whether that was a decision. Every further riding-feel tweak has to be
+  made twice, and the truck has no feel tests at all to catch the half you forget.</p>
+  <p>It also has the best ratio of confidence to blast radius. The shared physics is
+  self-contained — intent in, kinematics out — so the seam is easy to place and the change is verifiable
+  against the tests you already have: <code>riding_feel_tests.gd</code> should keep passing unchanged, and
+  the same table should then run green against the Truck for the first time. And it converts the promise in
+  <code>ARCHITECTURE.md</code> (“a car is a new <code>.tres</code>, not a fork of the bike”) from aspiration
+  into something the code enforces.</p>
+  <p>Runner-up: <b>candidate 06</b>, the Panel module — smaller, and it closes a live bug (the Journal
+  collecting a Package behind the book) rather than only preventing a future one.</p>
+  <div class="seq">
+    <div class="step"><div class="o">01</div><div class="t">Extract <code>GroundDrive.step()</code> from <code>Bike</code> unchanged; Bike delegates.</div></div>
+    <div class="step"><div class="o">02</div><div class="t">Run <code>riding_feel_tests</code> — it must pass with no edits.</div></div>
+    <div class="step"><div class="o">03</div><div class="t">Point <code>Truck</code> at it; reconcile the drifted constants deliberately, in the <code>.tres</code>.</div></div>
+    <div class="step"><div class="o">04</div><div class="t">Run the feel table against the Truck. Then delete the dead half of <code>Vehicle</code>.</div></div>
+  </div>
+</div>
+
+<footer>
+  Desert Delivery · architecture review · 6 September 2026 · vocabulary per <code>codebase-design</code>,
+  domain nouns per <code>CONTEXT.md</code>
+</footer>
+
+</div>
+<script>
+mermaid.initialize({
+  startOnLoad:true, theme:'base', securityLevel:'loose',
+  themeVariables:{
+    background:'#1b1e27', primaryColor:'#242833', primaryTextColor:'#e8e9ee',
+    primaryBorderColor:'#3a4050', lineColor:'#5a6273', fontSize:'12px',
+    fontFamily:'ui-monospace,SFMono-Regular,Menlo,monospace'
+  },
+  flowchart:{curve:'basis', padding:10}
+});
+</script>
+</body>
+</html>

@@ -50,6 +50,12 @@ func _physics_process(delta: float) -> void:
 				var ok: bool = rider.request_dismount()
 				_check(ok and rider.mode == Rider.Mode.ON_FOOT and pl.visible and bike.parked, "dismount at standstill")
 				_check(modes_seen.size() == 1 and modes_seen[0][1] == Rider.Mode.ON_FOOT, "mode_changed fired once (RIDING -> ON_FOOT)")
+				# Delivery, the courier counter, the camera and the ambience all used to answer
+				# "who is the courier?" for themselves, two of them via is_riding() and two via
+				# is_on_foot(). They ask the Rider now, so one answer is the only answer.
+				_check(rider.courier() == pl and rider.active_vehicle() == null,
+					"on foot, the courier is the boy and no vehicle is active")
+				_check(rider.can_hand_over(), "on foot, a parcel can still change hands")
 				mark = pl.global_position
 				sc.intent.move = Vector2(0, 1); sc.intent.run = true
 				_next()
@@ -66,8 +72,11 @@ func _physics_process(delta: float) -> void:
 				_next()
 		2:
 			if pt > 0.3:
+				_check(rider.is_stopped(), "a courier standing still reads as stopped")
 				_check(rider.request_mount() and rider.mode == Rider.Mode.RIDING and not bike.parked, "mount again next to the bike")
 				_check(not rider.request_mount(), "mount is refused while already riding")
+				_check(rider.courier() == bike and rider.active_vehicle() == bike,
+					"back on the bike, the courier is the bike")
 				# --- swimming: hop off and go into the water
 				rider.request_dismount()
 				var tr = main.level.terrain
@@ -151,6 +160,8 @@ func _physics_process(delta: float) -> void:
 				var dyaw: float = wrapf(bike.heading() - mark_yaw, -PI, PI)
 				print("[test] mode=%s speed=%.1f alt=%.1f max_alt=%.1f dyaw=%.2f roll=%.2f" % [rider.mode, bike.speed, bike.altitude, max_alt, dyaw, bike.flight_roll])
 				_check(took_off and bike.airborne and rider.mode == Rider.Mode.FLYING, "takes off with speed + pull-up; rider is FLYING")
+				_check(not rider.can_hand_over() and not rider.is_stopped(),
+					"nothing changes hands in mid-air, whatever the speed reads")
 				_check(max_alt > 6.0 and max_alt < 125.0, "gains altitude but respects the ceiling")
 				_check(dyaw < -0.3, "banking right turns right (yaw decreases)")
 				_check(bike.flight_roll < 0.0, "right wing dips when steering right")

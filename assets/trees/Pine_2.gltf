@@ -1,0 +1,255 @@
+{
+ "asset": {
+  "generator": "trees.py (Quaternius Stylized Nature, CC0)",
+  "version": "2.0"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "Pine_2"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Pine_2",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 4,
+      "NORMAL": 5,
+      "TEXCOORD_0": 6
+     },
+     "indices": 7,
+     "material": 1
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "alphaCutoff": 0.20000000298023224,
+   "alphaMode": "MASK",
+   "doubleSided": true,
+   "name": "Bark_NormalTree",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 1
+    },
+    "metallicFactor": 0
+   }
+  },
+  {
+   "alphaCutoff": 0.20000000298023224,
+   "alphaMode": "MASK",
+   "doubleSided": true,
+   "name": "Leaves_Pine",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 2
+    },
+    "metallicFactor": 0
+   }
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  }
+ ],
+ "images": [
+  {
+   "mimeType": "image/png",
+   "name": "Bark_NormalTree_Normal",
+   "uri": "Bark_NormalTree_Normal.png"
+  },
+  {
+   "mimeType": "image/png",
+   "name": "Bark_NormalTree",
+   "uri": "Bark_NormalTree.png"
+  },
+  {
+   "mimeType": "image/png",
+   "name": "Leaf_Pine_C",
+   "uri": "Leaf_Pine_C.png"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 107332,
+   "uri": "Pine_2.bin"
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 17172,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 17172,
+   "byteLength": 17172,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 34344,
+   "byteLength": 11448,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 45792,
+   "byteLength": 10380,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 56172,
+   "byteLength": 15720,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 71892,
+   "byteLength": 15720,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 87612,
+   "byteLength": 10480,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 98092,
+   "byteLength": 9240,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 1431,
+   "type": "VEC3",
+   "min": [
+    -0.8798791170120239,
+    -0.23508860170841217,
+    -1.9060800075531006
+   ],
+   "max": [
+    1.3288283348083496,
+    6.861804008483887,
+    1.4154813289642334
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 1431,
+   "type": "VEC3",
+   "min": [
+    -0.999838650226593,
+    -0.997093915939331,
+    -0.9992507100105286
+   ],
+   "max": [
+    0.9995360374450684,
+    0.9970151782035828,
+    0.9986401796340942
+   ]
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 1431,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5125,
+   "count": 2595,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 1310,
+   "type": "VEC3",
+   "min": [
+    -2.891958236694336,
+    1.1175905466079712,
+    -2.6936988830566406
+   ],
+   "max": [
+    2.8361265659332275,
+    7.141149520874023,
+    2.527508020401001
+   ]
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5126,
+   "count": 1310,
+   "type": "VEC3",
+   "min": [
+    -0.9081954956054688,
+    0.3093869388103485,
+    -0.9200522899627686
+   ],
+   "max": [
+    0.9346312284469604,
+    0.9825658798217773,
+    0.9103169441223145
+   ]
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 1310,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5125,
+   "count": 2310,
+   "type": "SCALAR"
+  }
+ ]
+}

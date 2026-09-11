@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reference — The control path</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body class="sheet">
+
+<header class="masthead">
+  <p class="eyebrow">Reference sheet · Desert Delivery</p>
+  <h1>The control path</h1>
+  <p class="standfirst">Key to motion, in five handovers. Print this. From
+  <a href="../lessons/0001-from-key-to-motion.html">Lesson 01</a>.</p>
+</header>
+
+<h2>The chain</h2>
+
+<div class="chain">
+  <div class="chain-row">
+    <div class="chain-who">InputMap</div>
+    <div class="chain-what"><code>W</code> → the action <code>accelerate</code>
+      <span class="owns">project.godot · edited in the editor · 18 actions today</span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">Controls.Keyboard</div>
+    <div class="chain-what">actions → <code>Controls.Reading</code>
+      <span class="owns">gameplay/controls/controls.gd · the only reader of <code>Input</code></span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">Scheme</div>
+    <div class="chain-what"><code>Reading</code> → <code>Controls.Intent</code>
+      <span class="owns">Controls.Foot · Vehicle.GroundScheme · Bike.BikeScheme · Truck.TruckScheme</span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">Rider</div>
+    <div class="chain-what">state commands, then <code>vehicle.apply(i)</code> or <code>player.apply(i)</code>
+      <span class="owns">entities/player/rider.gd · the only module that reads a raw Intent</span></div>
+  </div>
+  <div class="chain-row">
+    <div class="chain-who">GroundDrive</div>
+    <div class="chain-what"><code>step(delta)</code> → speed, yaw, pitch, grounded
+      <span class="owns">entities/vehicles/ground_drive.gd · tunables from data/vehicles/*.tres</span></div>
+  </div>
+</div>
+
+<h2>Where do I put it?</h2>
+
+<div class="grid2">
+<dl class="gloss">
+  <dt>A new key binding</dt>
+  <dd>InputMap only. No code.</dd>
+
+  <dt>A new command (a press)</dt>
+  <dd>Constant in <code>Controls</code>, name into <code>ACTIONS</code>, press it in a Scheme,
+  react to it in the Rider or the vehicle's <code>apply()</code>.</dd>
+
+  <dt>A key that means something new while driving X</dt>
+  <dd><code>X</code>'s Scheme. Nowhere else.</dd>
+
+  <dt>A key that works everywhere</dt>
+  <dd>The two universal commands live in <code>Keyboard.read()</code>:
+  <code>INTERACT</code>, <code>RESET</code>. Add there only if it truly has no owner.</dd>
+
+  <dt>Something that changes Mode</dt>
+  <dd>The Rider. Mount, dismount, wings, reset — transitions are its job alone.</dd>
+
+  <dt>Something that changes how it drives</dt>
+  <dd><code>data/vehicles/*.tres</code> first. Only touch <code>GroundDrive</code> if no field
+  exists for it yet — and then add the field, not a branch.</dd>
+
+  <dt>Cargo, fuel or upgrades affecting handling</dt>
+  <dd>The vehicle's <code>_drive_mods()</code>. Never inside the drive.</dd>
+</dl>
+</div>
+
+<div class="callout warn">
+  <div class="h">The step everyone forgets</div>
+  <p>If an action name is not in <code>Controls.ACTIONS</code>, then <code>r.just()</code> and
+  <code>r.down()</code> return <code>false</code> for it <strong>forever, with no error</strong>.
+  The Reading only carries what that list polls. When a new control silently does nothing, check
+  this first.</p>
+</div>
+
+<h2>Reading vs Intent</h2>
+
+<dl class="gloss">
+  <dt>Controls.Reading</dt>
+  <dd>What you <em>did</em>. <code>forward</code>, <code>back</code>, <code>side</code>,
+  <code>run</code>, <code>aim</code>, <code>look</code>, <code>look_back</code>,
+  <code>mouse_captured</code>, plus <code>held</code> / <code>pressed</code> per action.
+  <span class="here">Ask it: <code>r.just(&amp;"horn")</code> — fired this tick.
+  <code>r.down(&amp;"handbrake")</code> — being held.</span></dd>
+
+  <dt>Controls.Intent</dt>
+  <dd>What it <em>meant</em>. <code>throttle</code>, <code>brake</code>, <code>steer</code>,
+  <code>pitch</code>, <code>boost</code>, <code>handbrake</code>, <code>move</code>,
+  <code>cargo_move</code>, plus named commands.
+  <span class="here">Ask it: <code>i.pressed(Controls.WINGS)</code>. Set it:
+  <code>i.press(Controls.WINGS)</code>.</span></dd>
+</dl>
+
+<h2>The commands</h2>
+
+<p><code>JUMP</code> · <code>FIRE</code> · <code>INTERACT</code> · <code>WINGS</code> ·
+<code>RESET</code> · <code>WINCH</code> · <code>CARGO_MODE</code> · <code>CARGO_PLACE</code> ·
+<code>CARGO_ROTATE</code> · <code>CARGO_REMOVE</code></p>
+
+<p>All declared at the top of <code>gameplay/controls/controls.gd</code>. Commands are
+edge-triggered: true for exactly one tick, then cleared by <code>clear_edges()</code>.</p>
+
+<nav class="footnav">
+  <a href="../lessons/0001-from-key-to-motion.html">Lesson 01</a>
+  <a href="./glossary.html">Design vocabulary</a>
+  <a href="../../docs/adr/0002-control-scheme.md">ADR-0002</a>
+</nav>
+
+</body>
+</html>

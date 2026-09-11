@@ -8,8 +8,10 @@ extends Node3D
 ##
 ## Rendering and collision are handed to the Terrain3D plugin (`_build_terrain3d`): the heightfield
 ## is resampled to 1.5 m with a little per-biome micro relief, every cell gets a control-map entry
-## (base texture by biome, rock overlay on slopes, dirt overlay on roads) and a colour-map tint
-## (field strips, heather, depth banding), and Terrain3D draws it with PBR textures, normal maps
+## (base texture by biome, rock on slopes, slab patches on the steepest faces, rubble at cliff
+## feet, dirt + gravel shoulders on roads, soil strips in the vineyards) and a colour-map tint
+## (biome palette, field strips, tyre ruts, contact darkening under canopy and at cliff feet,
+## cavity darkening in gullies, depth banding), and Terrain3D draws it with PBR textures, normal maps
 ## and a clipmap LOD, and builds the physics collision. Ground queries (`height_at`, `normal_at`)
 ## read Terrain3D's data so gameplay stands exactly on what is drawn. If the plugin is missing the
 ## old flat-shaded facet mesh + HeightMapShape3D fallback is used (`_build_fallback_mesh`).
@@ -19,7 +21,7 @@ extends Node3D
 ## northern Highlands), SALTFLAT (the salinas).
 
 enum Biome { SEA, LIMESTONE, FOREST, FARM, BADLANDS, TOWN, BEACH, LAKE, DUNES, MOOR, SALTFLAT }
-enum Tex { GRASS, ROCK, DIRT, SAND, CLAY, SCRUB, SOIL, SALT }
+enum Tex { GRASS, ROCK, DIRT, SAND, CLAY, SCRUB, SOIL, SALT, CLIFF, RUBBLE, GRAVEL }
 
 const SIZE := 1248.0         # metres, square world (3x the area of the painted 720 m island)
 const CELL := 3.0            # metres per grid cell
@@ -40,6 +42,7 @@ var road_dist := PackedFloat32Array() # distance (m) to nearest road centreline,
 var road_h := PackedFloat32Array()    # target road height (valid where road_dist < 14)
 var roads: Array[Curve3D] = []
 var pads: Array[Vector3] = []          # (x, z, radius) flat courtyards for buildings
+var vine_fields: Array[Rect2] = []     # the vineyard parcels (world m): ploughed soil strips only inside these
 var road_samples: Array = []          # Array of PackedVector3Array (world-space samples every ~1 m)
 var bridges: Array = []               # {road, from, to, deck} sample ranges that are elevated (water or viaduct)
 var viaducts: Array = []              # {a: Vector2, b: Vector2, deck: float} road stretches carried on arches over land
@@ -58,6 +61,13 @@ var terrain3d: Terrain3D               # the Terrain3D node when the plugin is a
 var _t3d_data: Terrain3DData           # its data (height / normal queries)
 var _slope := PackedFloat32Array()     # 1 - normal.y per cell, from `heights`
 var build_ms := {}                     # timings per stage (debug overlay)
+## Slope-break cells (world xz, 1.5 m map pixels) classified while the control map is built: a
+## crest is a flat cell above a steep neighbourhood (the rock lip of a cliff top), a foot a flat
+## cell below one (the talus at its base). The island's crest / ledge bush lines are drawn from
+## these lists instead of re-walking the whole island with 9 `normal_at` samples per 3 m cell
+## (round 3: the two walks cost 2.2 s of the 18 s generation).
+var crest_cells := PackedVector2Array()
+var foot_cells := PackedVector2Array()
 
 
 func _init() -> void:
@@ -582,15 +592,28 @@ func _build_terrain3d() -> void:
 	t3d.assets = Terrain3DAssets.new()
 	_build_texture_assets(t3d.assets)
 	t3d.material.world_background = Terrain3DMaterial.NONE   # the sea plane and the abyss take over past the regions
-	t3d.material.set_shader_param(&"blend_sharpness", 0.87)
+	# a softer blend than before: the road edge and the rock line should be ragged, not a seam
+	t3d.material.set_shader_param(&"blend_sharpness", 0.72)
+	# steep faces sample the textures projected along the face (uv = along-slope, -y) instead of
+	# the planar xz uv stretched 2-3x down a 60 deg slope (r3 item 11: "vertical streaks, a wax
+	# curtain"); faces steeper than ~32 deg (normal.y <= 0.85) switch over
+	t3d.material.set_shader_param(&"enable_projection", true)
+	t3d.material.set_shader_param(&"projection_threshold", 0.85)
+	# macro variation: two broad patch noises (~80 m and ~35 m, the shader's uv is in vertices)
+	# that push the ground toward a warm shadowed tan and a cool grey; big patches read painterly
 	t3d.material.set_shader_param(&"enable_macro_variation", true)
-	t3d.material.set_shader_param(&"macro_variation1", Color(0.92, 0.90, 0.86))
-	t3d.material.set_shader_param(&"macro_variation2", Color(1.06, 1.04, 1.0))
-	t3d.material.set_shader_param(&"macro_variation_slope", 0.4)
+	# (critique r1: #c8b9a2 warm / #7f7a76 dark-grey at ~50 m so the plateau is not one flat bone)
+	t3d.material.set_shader_param(&"macro_variation1", Color("c8b9a2"))
+	# (critique r2 item 8: the dark-grey patch at 25 % not 50 % - the slopes read as mud)
+	t3d.material.set_shader_param(&"macro_variation2", Color("a29e9a"))
+	t3d.material.set_shader_param(&"noise1_scale", 0.28)
+	t3d.material.set_shader_param(&"noise2_scale", 0.55)
+	t3d.material.set_shader_param(&"macro_variation_slope", 0.5)
 	build_ms["t3d_setup"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
 	# maps
 	var maps := _build_t3d_maps()
 	build_ms["t3d_maps"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
+	build_ms["crest_n"] = crest_cells.size(); build_ms["foot_n"] = foot_cells.size()
 	t3d.data.import_images(maps, Vector3(-T3D_HALF, 0.0, -T3D_HALF), 0.0, 1.0)
 	_t3d_data = t3d.data
 	# collision: the whole world, built once (the bike, the plane and teleports go everywhere)
@@ -600,13 +623,100 @@ func _build_terrain3d() -> void:
 	build_ms["t3d_import"] = Time.get_ticks_msec() - t0
 
 
+## Contact darkening under scattered props (bushes, trees): the colour map is pulled toward `col`
+## in a disc of `radius` round every point (full `strength` at the centre, fading to the rim). The
+## scatters need the finished terrain, so this runs after `import_images`: it edits the regions'
+## colour images in place and re-uploads the colour maps once. (critique r1 item 8: "#6a5a48 at
+## 50 % under every bush/tree" - the painted canopy density only covered the forest stands.)
+func paint_halos(points: PackedVector3Array, radius: float, col: Color, strength: float) -> void:
+	if _t3d_data == null or points.is_empty(): return
+	var t0 := Time.get_ticks_msec()
+	var imgs: Dictionary = {}   # region location -> its colour Image
+	var reg_m := T3D_SPACING * T3D_REGION   # metres per region
+	for p in points:
+		var loc := Vector2i(int(floor(p.x / reg_m)), int(floor(p.z / reg_m)))
+		if not imgs.has(loc):
+			var reg: Terrain3DRegion = _t3d_data.get_region(loc)
+			if reg == null: continue
+			imgs[loc] = reg.get_color_map()
+			reg.set_modified(true)
+		var img: Image = imgs[loc]
+		# the region's colour map may be stored at a coarser resolution than the height map
+		var w := img.get_width()
+		var m_px := reg_m / w
+		var cx := int(round((p.x - loc.x * reg_m) / m_px)); var cy := int(round((p.z - loc.y * reg_m) / m_px))
+		var r_px := int(ceil(radius / m_px))
+		for dy in range(-r_px, r_px + 1):
+			var py := cy + dy
+			if py < 0 or py >= w: continue
+			for dx in range(-r_px, r_px + 1):
+				var px := cx + dx
+				if px < 0 or px >= w: continue
+				var d := sqrt(float(dx * dx + dy * dy)) * m_px
+				if d > radius: continue
+				var c := img.get_pixel(px, py)
+				var k := strength * (1.0 - smoothstep(radius * 0.35, radius, d))
+				# the sum of halo + painted-canopy darkening is capped (r3 item 10): a pixel the map
+				# already darkened toward the humus colour takes proportionally less of the halo
+				k *= clampf((c.get_luminance() - col.get_luminance()) / 0.25, 0.0, 1.0)
+				var nc := c.lerp(col, k)
+				nc.a = c.a
+				img.set_pixel(px, py, nc)
+	if not imgs.is_empty():
+		_t3d_data.update_maps(Terrain3DRegion.TYPE_COLOR, true, false)
+	build_ms["halos"] = Time.get_ticks_msec() - t0
+	build_ms["halos_n"] = points.size()
+
+
 ## The Terrain3D camera follows the active viewport camera; tools without one set it here.
 func set_view_camera(cam: Camera3D) -> void:
 	if terrain3d != null and cam != null:
 		terrain3d.set_camera(cam)
 
 
+## A 3 m grid field (N*N floats) as a T3D_W map image: padded into the sea rim like the height
+## map, blurred by a `down`x shrink (trilinear = mip averaged) and grown back bilinearly. Used for
+## the neighbourhood fields (mean height, nearby steepness) that drive the colour-map shading.
+func _grid_field_map(arr: PackedFloat32Array, fill: float, down: int) -> Image:
+	var pad := int((T3D_HALF - SIZE * 0.5) / CELL)
+	var grid := Image.create_from_data(N, N, false, Image.FORMAT_RF, arr.to_byte_array())
+	var big := Image.create_empty(T3D_W / 2, T3D_W / 2, false, Image.FORMAT_RF)
+	big.fill(Color(fill, 0, 0, 1))
+	big.blit_rect(grid, Rect2i(0, 0, N, N), Vector2i(pad, pad))
+	big.resize(T3D_W / 2 / down, T3D_W / 2 / down, Image.INTERPOLATE_TRILINEAR)
+	big.resize(T3D_W, T3D_W, Image.INTERPOLATE_BILINEAR)
+	return big
+
+
+## Exact distance (m) from every map pixel to the nearest road sample, 40 beyond 7.5 m. The 3 m
+## `road_dist` grid is too coarse for a 4.5 m road (bilinear across the V of the centreline smears
+## it), so the road, its shoulders and the ruts are drawn from this field instead.
+func _fine_road_dist() -> PackedFloat32Array:
+	var out := PackedFloat32Array(); out.resize(T3D_W * T3D_W); out.fill(40.0)
+	var r_px := 5
+	var inv := 1.0 / T3D_SPACING
+	for r in range(road_samples.size()):
+		var pts: PackedVector3Array = road_samples[r]
+		for kk in range(pts.size()):
+			var p := pts[kk]
+			var cx := int(round((p.x + T3D_HALF) * inv)); var cy := int(round((p.z + T3D_HALF) * inv))
+			for dy in range(-r_px, r_px + 1):
+				var py := cy + dy
+				if py < 0 or py >= T3D_W: continue
+				var wz := py * T3D_SPACING - T3D_HALF
+				var row := py * T3D_W
+				for dx in range(-r_px, r_px + 1):
+					var px := cx + dx
+					if px < 0 or px >= T3D_W: continue
+					var wx := px * T3D_SPACING - T3D_HALF
+					var d := sqrt((wx - p.x) * (wx - p.x) + (wz - p.z) * (wz - p.z))
+					if d < out[row + px]: out[row + px] = d
+	return out
+
+
 ## Height (RF), control (RF, packed uint32) and colour (RGBA8) maps at 1.5 m over -768..768.
+## Everything is written into packed arrays and turned into images at the end: per-pixel
+## `set_pixel` was the bulk of the old loop's time.
 func _build_t3d_maps() -> Array:
 	# height: the 3 m grid padded into a 512 grid (-768..768 at 3 m), cubic-resampled to 1024
 	var pad := int((T3D_HALF - SIZE * 0.5) / CELL)   # 48 cells of sea rim each side: world -624..624 inside -768..768
@@ -615,16 +725,27 @@ func _build_t3d_maps() -> Array:
 	big.fill(Color(-10.5, 0, 0, 1))
 	big.blit_rect(grid, Rect2i(0, 0, N, N), Vector2i(pad, pad))
 	big.resize(T3D_W, T3D_W, Image.INTERPOLATE_CUBIC)
-	var hmap := big
-	var ctrl := Image.create_empty(T3D_W, T3D_W, false, Image.FORMAT_RF)
-	var col := Image.create_empty(T3D_W, T3D_W, false, Image.FORMAT_RGBA8)
-	# micro relief and tint noise come from seamless noise images (native), sampled per pixel
+	var hdata := big.get_data().to_float32_array()
+	var cdata := PackedFloat32Array(); cdata.resize(T3D_W * T3D_W)
+	var col := PackedByteArray(); col.resize(T3D_W * T3D_W * 4)
+	# neighbourhood fields for the shading: mean height over ~15 m (cavities are below it) and
+	# mean slope over ~9 m (a flat cell next to steep ones is a cliff foot or crest)
+	var mean_h := _grid_field_map(heights, -10.5, 5).get_data().to_float32_array()
+	var near_sl := _grid_field_map(_slope, 0.0, 3).get_data().to_float32_array()
+	var fine_rd := _fine_road_dist()
+	# micro relief, edge dither and tint noise come from noise images (native), sampled per pixel
 	var dn := FastNoiseLite.new(); dn.seed = 31; dn.noise_type = FastNoiseLite.TYPE_SIMPLEX; dn.frequency = 0.9; dn.fractal_octaves = 3
-	var detail := dn.get_seamless_image(256, 256)
+	var detail := dn.get_seamless_image(256, 256).get_data()          # L8, per pixel
+	var en := FastNoiseLite.new(); en.seed = 53; en.noise_type = FastNoiseLite.TYPE_SIMPLEX; en.frequency = 0.3; en.fractal_octaves = 2
+	var edge := en.get_seamless_image(256, 256).get_data()            # L8, ~5 m: ragged road edges and rock lines
 	var tn := FastNoiseLite.new(); tn.seed = 77; tn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH; tn.frequency = 0.012; tn.fractal_octaves = 3
-	var tint_noise := tn.get_image(T3D_W, T3D_W)   # large patches, in map pixels directly
+	var tint_noise := tn.get_image(T3D_W, T3D_W).get_data()           # L8, large patches in map pixels directly
 	var rock_ov: int = Terrain3DUtil.enc_overlay(Tex.ROCK)
 	var dirt_ov: int = Terrain3DUtil.enc_overlay(Tex.DIRT)
+	var cliff_ov: int = Terrain3DUtil.enc_overlay(Tex.CLIFF)
+	var rubble_ov: int = Terrain3DUtil.enc_overlay(Tex.RUBBLE)
+	var gravel_ov: int = Terrain3DUtil.enc_overlay(Tex.GRAVEL)
+	var soil_ov: int = Terrain3DUtil.enc_overlay(Tex.SOIL)
 	var base_enc := PackedInt32Array(); base_enc.resize(Tex.size())
 	for t in range(Tex.size()): base_enc[t] = Terrain3DUtil.enc_base(t)
 	var blend_enc := PackedInt32Array(); blend_enc.resize(256)
@@ -633,119 +754,259 @@ func _build_t3d_maps() -> Array:
 	var biome_det := PackedFloat32Array(); biome_det.resize(Biome.size())
 	for b in range(Biome.size()):
 		biome_tex[b] = BIOME_TEX[b]; biome_det[b] = BIOME_DETAIL[b]
+	var sea_ctrl: float = Terrain3DUtil.as_float(base_enc[Tex.SAND])
 	var half := SIZE * 0.5
 	var inv_cell := 1.0 / CELL
 	var nm1 := N - 1
+	# the palette: desaturated, warm, nothing neon (the reference lives in a narrow band of dry
+	# olive, straw, bone and tan). Tints multiply the texture's `albedo_color`, which is set to
+	# each texture's brightest use, so every value here is <= 1.
+	# (critique r1: the ground read chalk-white, #bbaa9b on the headland; target <= #a08a74, warm,
+	# with the road a visibly darker, redder band: crown #c9a77a, ruts #8f7658, margin #7a6a55)
+	# band 0 is the ploughed soil strip under the vine rows: dark earth (r2 item 9), not straw
+	# (r4 item 8: bands 1 and 2 warm brown-straw too, the vineyard region is H46 S0.51 in the reference)
+	# (r5 item 5: the strips ran over every FARM slope, vines or not, and the villa foreground was
+	# orange soil (8.3 % of the lower frame, ref 1.3 %). Soil only inside `vine_fields`, one narrow
+	# band per period, and the band tints are straw everywhere except under the soil: the
+	# reference's vineyard is straw-gold ground (H30-60 S0.3-0.7, 39 % of the frame) with brown
+	# strips, its brightest ground saturated straw, never grey-white)
+	var farm_strips: Array[Color] = [Color(0.94, 0.84, 0.60), Color(0.92, 0.86, 0.52), Color(0.86, 0.82, 0.48), Color(0.92, 0.88, 0.56)]
+	var meadow_a := Color(0.96, 0.88, 0.54); var meadow_b := Color(0.84, 0.80, 0.48)   # FARM outside the parcels: dry straw with broad patches
+	# the parcel mask on the 3 m grid: a cell is "in a field" when a vine rect covers it
+	var field := PackedByteArray(); field.resize(N * N)
+	for fr in vine_fields:
+		var i0 := clampi(int((fr.position.x + half) * inv_cell), 0, nm1); var i1 := clampi(int(ceil((fr.end.x + half) * inv_cell)), 0, nm1)
+		var j0f := clampi(int((fr.position.y + half) * inv_cell), 0, nm1); var j1 := clampi(int(ceil((fr.end.y + half) * inv_cell)), 0, nm1)
+		for jj in range(j0f, j1 + 1):
+			for ii in range(i0, i1 + 1): field[jj * N + ii] = 1
+	var road_col := Color(1.0, 0.93, 0.76)     # pale dusty crown, #c2ae8c-class after the grade (both references have the road lighter than the ground; r5: yellower, the villa lane is S0.55 in the reference)
+	var rut_col := Color(0.82, 0.68, 0.44)      # compacted ruts, ~0.15 V under the crown (r6 item 7: (0.62,0.52,0.40) made the 3 m-grid lane dark mud, V0.46-0.56 under the straw beside it; ref lane #a47b49 V0.64 is the brightest ground)
+	var bone := Color(0.94, 0.89, 0.80)         # sea-cliff faces above the water line: pale warm limestone, not brown
+	var bench_col := Color(0.88, 0.82, 0.62)    # r6 item 11: H40 in (was (0.90,0.80,0.64) H30 - the bench rendered H20 pink-brown, ref H51 straw sand). The bench at the cliff foot: sand / earth (#b09776), lighter and warmer than the rock
+	var margin_col := Color(0.62, 0.52, 0.32)   # r6 item 7: straw-gold, was (0.42,0.37,0.29) dark. Trodden margin that bleeds 1.5 m into the scrub
+	# the sea-cliff tops (r4 item 7): dry straw between the scrub (#b8a878 / #b4986d in the reference,
+	# H36 S0.38), not the bone of the faces and not a green lawn - the Grass texture under a
+	# warm straw tint on every flat cell of the coast above the bench
+	var straw_a := Color(0.90, 0.78, 0.58); var straw_b := Color(0.76, 0.66, 0.48)
 	for py in range(T3D_W):
 		var wz := py * T3D_SPACING - T3D_HALF
 		var gz := (wz + half) * inv_cell
 		var jn := int(round(gz))
+		var row := py * T3D_W
 		if jn < 0 or jn > nm1:
 			# open sea beyond the world: sand, deep-blue tint
 			for px in range(T3D_W):
-				ctrl.set_pixel(px, py, Color(Terrain3DUtil.as_float(base_enc[Tex.SAND]), 0, 0, 1))
-				col.set_pixel(px, py, Color(0.45, 0.62, 0.72, 0.5))
+				cdata[row + px] = sea_ctrl
+				var o := (row + px) * 4
+				col[o] = 115; col[o + 1] = 158; col[o + 2] = 184; col[o + 3] = 128
 			continue
 		var j0 := clampi(int(gz), 0, nm1 - 1); var fz := clampf(gz - j0, 0.0, 1.0)
+		var ny := (py & 255) << 8
 		for px in range(T3D_W):
+			var pid := row + px
 			var wx := px * T3D_SPACING - T3D_HALF
 			var gx := (wx + half) * inv_cell
 			var i_n := int(round(gx))
 			if i_n < 0 or i_n > nm1:
-				ctrl.set_pixel(px, py, Color(Terrain3DUtil.as_float(base_enc[Tex.SAND]), 0, 0, 1))
-				col.set_pixel(px, py, Color(0.45, 0.62, 0.72, 0.5))
+				cdata[pid] = sea_ctrl
+				var o := pid * 4
+				col[o] = 115; col[o + 1] = 158; col[o + 2] = 184; col[o + 3] = 128
 				continue
 			var i0 := clampi(int(gx), 0, nm1 - 1); var fx := clampf(gx - i0, 0.0, 1.0)
 			var id00 := j0 * N + i0
 			var biome := _map_b[jn * N + i_n]
-			# bilinear road distance and slope
-			var rd := lerpf(lerpf(road_dist[id00], road_dist[id00 + 1], fx), lerpf(road_dist[id00 + N], road_dist[id00 + N + 1], fx), fz)
-			var sl := lerpf(lerpf(_slope[id00], _slope[id00 + 1], fx), lerpf(_slope[id00 + N], _slope[id00 + N + 1], fx), fz)
-			var h := hmap.get_pixel(px, py).r
+			var h := hdata[pid]
 			# cubic resampling overshoots at cliffs, bridgeheads and pad edges: clamp every pixel to the
 			# range of the four grid cells round it so nothing pokes above a deck or below a shore
 			var h00 := heights[id00]; var h10 := heights[id00 + 1]; var h01 := heights[id00 + N]; var h11 := heights[id00 + N + 1]
-			var hc := clampf(h, minf(minf(h00, h10), minf(h01, h11)), maxf(maxf(h00, h10), maxf(h01, h11)))
+			var hmax := maxf(maxf(h00, h10), maxf(h01, h11))
+			var hc := clampf(h, minf(minf(h00, h10), minf(h01, h11)), hmax)
+			if biome == Biome.SEA and hmax < -1.2 and road_dist[id00] > 8.0:
+				# open sea floor, well under the water line and away from any bridge: sand with the
+				# depth tint, none of the slope / road / shading work below (round 3: ~30 % of the
+				# land rows are sea floor, and the full per-pixel pass on them cost ~1 s)
+				hdata[pid] = hc
+				cdata[pid] = sea_ctrl
+				var st := Color(0.72, 0.86, 0.80).lerp(Color(0.30, 0.42, 0.58), smoothstep(-2.0, -8.0, hc))
+				var so := pid * 4
+				col[so] = int(st.r * 255.0); col[so + 1] = int(st.g * 255.0); col[so + 2] = int(st.b * 255.0); col[so + 3] = 128
+				continue
+			# bilinear road distance (grid: includes pads), slope and canopy density
+			var rd := lerpf(lerpf(road_dist[id00], road_dist[id00 + 1], fx), lerpf(road_dist[id00 + N], road_dist[id00 + N + 1], fx), fz)
+			var sl := lerpf(lerpf(_slope[id00], _slope[id00 + 1], fx), lerpf(_slope[id00 + N], _slope[id00 + N + 1], fx), fz)
+			var rdf := fine_rd[pid]
+			var nx := ny | (px & 255)
 			# --- micro relief (never on roads, pads or salt)
-			var amp := biome_det[biome] * smoothstep(3.0, 9.0, rd)
+			var amp := biome_det[biome] * smoothstep(3.0, 9.0, minf(rd, rdf))
 			if amp > 0.0:
-				var dv := detail.get_pixel(px & 255, py & 255).r - 0.5
-				hc += amp * dv * 2.0
-			if hc != h: hmap.set_pixel(px, py, Color(hc, 0, 0, 1))
+				hc += amp * (detail[nx] * (2.0 / 255.0) - 1.0)
+			hdata[pid] = hc
 			h = hc
 			# --- control: base by biome, rock on slopes, dirt on roads
 			var base := biome_tex[biome]
 			var overlay := rock_ov
-			var blend := smoothstep(0.22, 0.5, sl)
-			if biome == Biome.BADLANDS: blend = smoothstep(0.3, 0.6, sl)
-			elif biome == Biome.MOOR or biome == Biome.LIMESTONE: blend = maxf(smoothstep(0.16, 0.42, sl), 0.12 * clampf(sl * 6.0, 0.0, 1.0))
+			# the coast cliffs are painted as sea; their flat tops (and the limestone behind them)
+			# are straw ground, the rock lip / faces come from the slope overlays below
+			var coast_top := (biome == Biome.SEA and h > 1.5) or (biome == Biome.LIMESTONE and wx < -440.0 and wz > -350.0 and wz < -100.0)
+			if coast_top and sl < 0.4: base = Tex.GRASS
+			var ej := edge[nx] * (1.0 / 255.0) - 0.5          # -0.5..0.5, ~5 m: ragged edges everywhere
+			var slj := sl + ej * 0.06
+			# rock: a sharper line than before, stronger on steep faces (the old 0.22..0.5 ramp left
+			# the slopes half-grassed); karst and moor keep a little bare stone on any slope
+			var blend := smoothstep(0.24, 0.40, slj)
+			if biome == Biome.BADLANDS: blend = smoothstep(0.3, 0.5, slj)
+			elif biome == Biome.MOOR or biome == Biome.LIMESTONE: blend = maxf(smoothstep(0.17, 0.34, slj), 0.12 * clampf(slj * 6.0, 0.0, 1.0))
 			elif biome == Biome.SALTFLAT or biome == Biome.LAKE: blend = 0.0
-			if rd < 7.0:
+			var m := tint_noise[pid] * (1.0 / 255.0) - 0.5    # -0.5..0.5 broad patches
+			var nsl := near_sl[pid]
+			var cav := mean_h[pid] - h                        # > 0: below the neighbourhood (gully, cliff foot)
+			var dry_land := biome != Biome.LAKE and biome != Biome.SALTFLAT and biome != Biome.BADLANDS and (biome != Biome.SEA or h > 0.5)
+			if sl > 0.45:
+				# the steepest faces are all rock: the coarse bedded limestone with the same set tiled
+				# 2.6x finer in ~50 % patches (r2 item 8: one 20 m tiling read as smeared mud)
+				base = Tex.ROCK
+				overlay = cliff_ov
+				# (r3 item 11: a 1.5 m map texel spans 3-4 m down a 60 deg face, so any 5 m variation
+				# in the patch blend stretches into vertical streaks - broad 80 m patches only)
+				blend = smoothstep(-0.2, 0.2, m + ej * 0.1)
+			elif dry_land and sl < 0.4 and nsl > 0.18 and cav > 0.1:
+				# talus: a flat-ish cell below a steep neighbourhood gets rubble at the cliff's feet
+				var tb := smoothstep(0.18, 0.34, nsl) * smoothstep(0.1, 2.0, cav) * (0.85 + ej * 0.5)
+				if tb > blend: overlay = rubble_ov; blend = clampf(tb, 0.0, 1.0)
+				# a ledge foot for the bush lines: clearly below the neighbourhood, next to steep ground
+				if nsl > 0.2 and cav > 0.5 and h > 1.2 and rd > 4.0 and ((px + py) & 1) == 0: foot_cells.append(Vector2(wx, wz))
+			elif dry_land and sl < 0.3 and nsl > 0.2 and cav < -0.3:
+				# crest: a flat cell above a steep neighbourhood is the bare limestone lip of the
+				# cliff top, so the crest bushes sit on rock, not on grass (r2 item 12)
+				var cb := smoothstep(0.2, 0.36, nsl) * smoothstep(-0.3, -2.0, cav) * (0.8 + ej * 0.6)
+				if cb > blend: overlay = rock_ov; blend = clampf(cb, 0.0, 1.0)
+				if nsl > 0.22 and cav < -0.6 and h > 1.2 and rd > 4.0 and ((px + py) & 1) == 0: crest_cells.append(Vector2(wx, wz))
+			# road: 4.5 m of trodden dirt with a ragged edge, a gravel shoulder to ~4.5 m out
+			var rdr := rdf + ej * 1.3
+			# the sea-cliff bench (coast road on painted-sea ground, 0-9 m up): sand / earth to
+			# ~10 m out, so the bench reads as pale ground under the wall, not as cliff (r2 item 4)
+			var bench := (biome == Biome.SEA or (biome == Biome.LIMESTONE and wx < -440.0 and wz > -350.0 and wz < -100.0)) and h > 0.3 and h < 12.0 and rdf < 12.0
+			if rdr < 2.25:
+				overlay = dirt_ov; blend = 1.0
+			elif rdr < 4.6:
+				overlay = gravel_ov; blend = 1.0 - smoothstep(2.9, 4.6, rdr)
+			elif bench and sl < 0.35:
+				var bb := 1.0 - smoothstep(6.0, 11.0, rdr)
+				if bb > blend: overlay = dirt_ov; blend = bb
+			elif rd < 7.0 and rdf > 6.0:
+				# a courtyard pad (the grid distance is lowered round pads): packed dirt fading out
 				var rb := 1.0 - smoothstep(2.4, 6.5, rd)
-				if rb > blend * 0.6:
-					overlay = dirt_ov; blend = rb
-			if biome == Biome.FARM and rd >= 7.0:
-				# ploughed strips between the vine rows read as bare soil
+				if rb > blend * 0.6: overlay = dirt_ov; blend = rb
+			var in_field := biome == Biome.FARM and field[jn * N + i_n] == 1
+			if in_field and rdf >= 7.0 and rd >= 7.0:
+				# ploughed strips between the vine rows read as bare soil (r5: a third of the
+				# period, and only inside the parcels)
 				var strip := fmod(absf(wx * 0.7 + wz * 0.35), 24.0)
-				if strip < 6.0 and sl < 0.2: overlay = Terrain3DUtil.enc_overlay(Tex.SOIL); blend = 0.85
-			var c: int = base_enc[base] | overlay | blend_enc[int(blend * 255.0)]
-			ctrl.set_pixel(px, py, Color(Terrain3DUtil.as_float(c), 0, 0, 1))
+				if strip < 8.0 and sl < 0.2: overlay = soil_ov; blend = 0.85
+			cdata[pid] = Terrain3DUtil.as_float(base_enc[base] | overlay | blend_enc[int(blend * 255.0)])
 			# --- colour tint
-			var m := tint_noise.get_pixel(px, py).r - 0.5    # -0.5..0.5 broad patches
 			var tint: Color
 			match biome:
 				Biome.SEA:
-					# turquoise shelf, darker blue in the deep (seen through the shallows)
+					# turquoise shelf, darker blue in the deep (seen through the shallows); the map paints
+					# the coast cliffs as sea, so above the water line it is bone-pale stone instead
 					tint = Color(0.72, 0.86, 0.80).lerp(Color(0.30, 0.42, 0.58), smoothstep(-2.0, -8.0, h))
+					tint = tint.lerp(bone, smoothstep(-0.4, 0.6, h))
 				Biome.LIMESTONE:
-					tint = Color(1.0, 0.97, 0.90).lerp(Color(0.84, 0.86, 0.72), clampf(m + 0.5, 0.0, 1.0))
+					# pale bone plateau, a greyer patch here and there; olive only under the painted canopy
+					tint = Color(0.88, 0.80, 0.66).lerp(Color(0.72, 0.66, 0.56), clampf(m + 0.5, 0.0, 1.0))
 				Biome.FOREST:
-					tint = Color(0.86, 0.94, 0.72).lerp(Color(1.0, 0.98, 0.84), clampf(m + 0.5, 0.0, 1.0))
+					# dry olive meadow (#8f8f57 .. #b3a468 over the straw texture), never yellow-green
+					tint = Color(0.82, 0.80, 0.54).lerp(Color(0.96, 0.90, 0.62), clampf(m + 0.5, 0.0, 1.0))
 				Biome.FARM:
-					var strip := fmod(absf(wx * 0.7 + wz * 0.35), 24.0)
-					var band: int = int(floor(strip / 6.0))
-					var strips: Array = [Color(1.0, 0.92, 0.62), Color(0.86, 0.96, 0.70), Color(1.0, 0.96, 0.72), Color(0.78, 0.94, 0.66)]
-					tint = strips[band]
-					var pxm := fmod(absf(wx + 1000.0), 26.0); var pzm := fmod(absf(wz + 1000.0), 22.0)
-					if pxm < 1.5 or pzm < 1.5: tint = tint.darkened(0.3)
+					if in_field:
+						var strip := fmod(absf(wx * 0.7 + wz * 0.35), 24.0)
+						var band: int = int(floor(strip / 6.0))
+						tint = farm_strips[band]
+						var pxm := fmod(absf(wx + 1000.0), 26.0); var pzm := fmod(absf(wz + 1000.0), 22.0)
+						if pxm < 1.5 or pzm < 1.5: tint = tint.darkened(0.3)
+					else:
+						tint = meadow_a.lerp(meadow_b, clampf(m + 0.5, 0.0, 1.0))
 				Biome.BADLANDS:
-					tint = Color(0.94, 0.82, 0.70).lerp(Color(0.84, 0.62, 0.48), clampf(m + 0.5, 0.0, 1.0))
+					tint = Color(0.94, 0.84, 0.74).lerp(Color(0.82, 0.64, 0.50), clampf(m + 0.5, 0.0, 1.0))
 				Biome.TOWN:
-					tint = Color(1.0, 0.96, 0.84).lerp(Color(0.88, 0.92, 0.72), clampf(m + 0.5, 0.0, 1.0))
+					tint = Color(0.92, 0.86, 0.72).lerp(Color(0.80, 0.78, 0.64), clampf(m + 0.5, 0.0, 1.0))
 				Biome.BEACH:
-					tint = Color(1.02, 0.98, 0.88)
+					tint = Color(1.0, 0.97, 0.90)
 				Biome.LAKE:
 					tint = Color(0.86, 0.80, 0.60).lerp(Color(0.55, 0.70, 0.66), smoothstep(-0.3, -3.0, h))
 				Biome.DUNES:
-					tint = Color(1.0, 0.96, 0.84).lerp(Color(0.94, 0.86, 0.70), clampf(m + 0.5, 0.0, 1.0))
+					tint = Color(1.0, 0.96, 0.86).lerp(Color(0.92, 0.86, 0.72), clampf(m + 0.5, 0.0, 1.0))
 				Biome.MOOR:
-					# heather and peat: mauve-brown patches over the grass, greyer on the rock
-					tint = Color(0.86, 0.76, 0.80).lerp(Color(0.80, 0.78, 0.62), clampf(m + 0.5, 0.0, 1.0))
+					# heather and peat: muted mauve-brown patches over the grass, greyer on the rock
+					tint = Color(0.86, 0.78, 0.78).lerp(Color(0.84, 0.82, 0.66), clampf(m + 0.5, 0.0, 1.0))
 				Biome.SALTFLAT:
-					tint = Color(0.90, 0.90, 0.88)
+					tint = Color(0.92, 0.92, 0.90)
 				_:
 					tint = Color(1, 1, 1)
-			# roads keep their warm dirt colour whatever the biome
-			if rd < 6.5: tint = tint.lerp(Color(1.0, 0.94, 0.86), 1.0 - smoothstep(2.4, 6.5, rd))
-			tint.a = 0.5
-			col.set_pixel(px, py, tint)
-	return [hmap, ctrl, col]
+			if coast_top:
+				tint = tint.lerp(straw_a.lerp(straw_b, clampf(m + 0.5, 0.0, 1.0)), 1.0 - smoothstep(0.28, 0.42, sl))
+			if (biome != Biome.SEA or h > -0.4) and biome != Biome.LAKE:
+				# steep faces: cooler, and the streak patches a touch darker; the shader's macro
+				# variation is halved on slopes so this is where their variety comes from
+				# (r2 item 8: lighter, toward #c9bfae - the slopes are pale limestone, not mud)
+				# (r3 item 11: nearly one flat tint on the steepest faces - per-texel tint variation
+				# reads as vertical streaks down a slope, see the control blend above)
+				if sl > 0.3:
+					tint = tint.lerp(Color(0.92, 0.88, 0.82), smoothstep(0.3, 0.5, sl) * 0.9)
+				# contact darkening, the AO the renderer cannot do: cliff feet and the ground under
+				# the painted canopy get a dark halo, gullies sink into shadow
+				var dens := lerpf(lerpf(_map_d[id00], _map_d[id00 + 1], fx), lerpf(_map_d[id00 + N], _map_d[id00 + N + 1], fx), fz)
+				# (r3 item 10: the painted-canopy darkening halved - stacked with the trees' own
+				# shadows and the per-tree halos it made 10-20 m chocolate-navy blotches under every
+				# stand; the whole ground darkening is capped at 40 % and pulled toward a warm humus)
+				var halo := smoothstep(0.3, 0.8, dens + ej * 0.3) * 0.14
+				var foot := clampf((nsl - sl) * 4.0, 0.0, 1.0) * smoothstep(0.0, 2.0, cav) * 0.35
+				var gully := smoothstep(0.6, 4.0, cav) * 0.25
+				var dark := clampf(maxf(maxf(halo, foot), gully) + minf(halo, foot) * 0.5, 0.0, 0.3)   # r4 item 8: cap 0.4 -> 0.3
+				# never on the road or its shoulders: the bench road at a cliff foot is exactly a
+				# "flat cell below steep neighbours" and went the colour of the rock (r2 item 4)
+				dark *= smoothstep(3.5, 7.5, rdf)
+				if dark > 0.0: tint = tint.lerp(Color(0.42, 0.38, 0.26), dark)   # olive humus, never mauve under a blue shadow
+				if bench: tint = tint.lerp(bench_col, (1.0 - smoothstep(5.0, 12.0, rdf)) * 0.8)
+			# road: two darker compacted ruts at ~1 m either side of a lighter crown, a dusty margin
+			if rdf < 5.0:
+				var road_t := 1.0 - smoothstep(2.0, 3.0, rdr)
+				var rut := smoothstep(0.45, 0.7, rdf) * (1.0 - smoothstep(1.2, 1.6, rdf))
+				var rc := road_col.lerp(rut_col, rut * 0.9)
+				tint = tint.lerp(rc, road_t)
+				# a dark trodden margin just outside the crown: this is what makes the road read at 150 m
+				tint = tint.lerp(margin_col, (1.0 - smoothstep(2.4, 4.2, rdr)) * (1.0 - road_t) * 0.7)
+			elif rd < 7.0:
+				tint = tint.lerp(road_col, 1.0 - smoothstep(2.4, 7.0, rd))   # pads
+			var o := pid * 4
+			col[o] = int(clampf(tint.r, 0.0, 1.0) * 255.0); col[o + 1] = int(clampf(tint.g, 0.0, 1.0) * 255.0)
+			col[o + 2] = int(clampf(tint.b, 0.0, 1.0) * 255.0); col[o + 3] = 128
+	var hmap := Image.create_from_data(T3D_W, T3D_W, false, Image.FORMAT_RF, hdata.to_byte_array())
+	var ctrl := Image.create_from_data(T3D_W, T3D_W, false, Image.FORMAT_RF, cdata.to_byte_array())
+	var cmap := Image.create_from_data(T3D_W, T3D_W, false, Image.FORMAT_RGBA8, col)
+	return [hmap, ctrl, cmap]
 
 
-## Texture assets, all in assets/terrain: two CC0 photo sets (ambientCG Ground037 / Rock030) and
-## five baked by world/mapgen/textures.py (dirt, sand, clay, soil, salt). Terrain3D packs them into
-## one texture array, so every one is 512 px RGBA8 with mipmaps.
+## Texture assets, all in assets/terrain, packed / baked by world/mapgen/textures.py: seven CC0
+## ambientCG photo sets (see assets/CREDITS.md) and four procedural ones (sand, clay, soil, salt).
+## Terrain3D packs them into one texture array, so every one is 512 px RGBA8 with mipmaps.
+## `albedo_color` brings each texture to its brightest use (the reference's sunlit local colour);
+## the colour map only ever darkens or shifts from there, since it is RGBA8 and cannot exceed 1.
 func _build_texture_assets(assets: Terrain3DAssets) -> void:
 	var specs := [
 		# Tex order: name, file base, tint, uv_scale, normal depth, ao
-		["Grass", "ground037", Color(0.92, 0.92, 0.78), 0.18, 0.5, 0.5],
-		["Rock", "rock023", Color(1.0, 0.94, 0.82), 0.07, 0.8, 0.7],
-		["Dirt", "dirt", Color(1, 1, 1), 0.25, 0.5, 0.4],
-		["Sand", "sand", Color(1, 1, 1), 0.22, 0.35, 0.3],
+		["Grass", "ground015", Color(1.10, 1.00, 0.58), 0.17, 0.45, 0.5],     # dry straw, golden (the villa reference is S 0.35)
+		["Rock", "rock019", Color(1.0, 0.95, 0.86), 0.05, 0.9, 0.7],         # bedded limestone: pale (#bfb09a-class after the colour map), critique r2 item 8
+		["Dirt", "ground004", Color(0.98, 0.86, 0.62), 0.20, 0.5, 0.45],     # trodden earth: a pale dusty #c2ae8c crown between dark margins (r5 item 5: S >= 0.4, the lanes were grey-cream)
+		["Sand", "sand", Color(1.0, 0.98, 0.94), 0.22, 0.35, 0.3],
 		["Clay", "clay", Color(1, 1, 1), 0.12, 0.7, 0.5],
-		["Scrub", "ground037", Color(1.0, 0.88, 0.58), 0.16, 0.5, 0.5],
-		["Soil", "soil", Color(1, 1, 1), 0.22, 0.6, 0.5],
-		["Salt", "salt", Color(0.74, 0.75, 0.73), 0.15, 0.3, 0.2],
+		["Scrub", "ground024", Color(1.08, 0.98, 0.84), 0.12, 0.5, 0.55],    # stony plateau: warm dry earth, no longer bone-white
+		["Soil", "soil", Color(0.88, 0.70, 0.40), 0.22, 0.6, 0.5],           # vineyard earth: warm brown (#795730 H30 S0.6 V0.47 in the villa reference; r5: the r4 x band tint landed H8 V0.33, red mud - less red, brighter, the rows must be darker than it)
+		["Salt", "salt", Color(0.82, 0.83, 0.82), 0.15, 0.3, 0.2],
+		["Cliff", "rock019", Color(1.0, 0.97, 0.90), 0.13, 0.9, 0.7],        # the same pale limestone tiled 2.6x finer: patches of it on steep faces kill the stretched-streak look (r2 item 8)
+		["Rubble", "rocks002", Color(1.0, 0.96, 0.88), 0.18, 0.8, 0.8],      # talus at cliff feet
+		["Gravel", "gravel009", Color(0.86, 0.74, 0.50), 0.24, 0.5, 0.4],    # road shoulders, a shade darker than the crown (r5: straw-gold, not grey)
 	]
 	var cache: Dictionary = {}
 	for i in range(specs.size()):
@@ -860,17 +1121,25 @@ const COVER := [
 	["FlowerYellow", "flower_card_yellow", Vector2(0.9, 0.7), 70.0],
 	["FlowerWhite", "flower_card_white", Vector2(0.9, 0.7), 70.0],
 ]
-## biome -> [mesh id, plants per 3 m cell, tint]
+## biome -> [mesh id, plants per 3 m cell, tint]. Meadows (forest floor, farmland) are dense with
+## a darker base tint; the limestone coast and the dunes are sparse tufts on bare ground, the way
+## the reference's cliff-top benches read (dry grass in patches, not a carpet).
 const COVER_BY_BIOME := {
-	Biome.FOREST: [0, 5.0, Color(0.95, 1.0, 0.85)],
-	Biome.FARM: [0, 4.0, Color(1.0, 1.0, 0.8)],
-	Biome.TOWN: [1, 3.0, Color(1.0, 0.98, 0.85)],
-	Biome.MOOR: [1, 4.2, Color(0.9, 0.86, 0.9)],
-	Biome.LIMESTONE: [1, 2.6, Color(1.0, 0.95, 0.8)],
-	Biome.DUNES: [2, 1.2, Color(1, 1, 1)],
-	Biome.BEACH: [2, 0.35, Color(1, 1, 1)],
-	Biome.BADLANDS: [1, 0.5, Color(0.9, 0.8, 0.7)],
+	Biome.FOREST: [0, 6.5, Color(0.76, 0.78, 0.60)],
+	Biome.FARM: [0, 6.0, Color(0.82, 0.80, 0.60)],
+	Biome.TOWN: [1, 2.2, Color(0.86, 0.80, 0.64)],
+	Biome.MOOR: [1, 4.2, Color(0.80, 0.74, 0.74)],
+	Biome.LIMESTONE: [1, 1.6, Color(0.80, 0.72, 0.56)],
+	Biome.DUNES: [2, 0.8, Color(0.92, 0.92, 0.88)],
+	Biome.BEACH: [2, 0.3, Color(0.92, 0.92, 0.88)],
+	Biome.BADLANDS: [1, 0.4, Color(0.84, 0.74, 0.64)],
+	Biome.SEA: [1, 1.2, Color(0.84, 0.74, 0.54)],   # the coast cliffs are painted as sea: sparse straw tufts on the tops (r4 item 7), crest tufts
 }
+## Patch mask threshold on the L8 noise (128 = zero, ~Gaussian): 126 keeps ~55 % of the cells, thinned at the patch edges.
+const COVER_MASK_THR := 126
+## Where the reference views are framed (the coast bench under the sea cliffs, the villa lanes):
+## the patch mask is relaxed round these so the foreground keeps its tufts.
+const COVER_HERO: Array[Vector2] = [Vector2(-522, -200), Vector2(-500, -250), Vector2(-326, 3)]
 
 
 func plant_ground_cover(seed_v: int) -> void:
@@ -905,6 +1174,12 @@ func plant_ground_cover(seed_v: int) -> void:
 		xf.append([] as Array[Transform3D]); cols.append([] as Array[Color])
 	var half := SIZE * 0.5
 	var flower_ids := [3, 4, 5]
+	# patch mask (r3, RESEARCH §3.4: dry grass grows in patches at ~45 % coverage, never a lawn):
+	# a ~15 m noise per 3 m cell, sampled as one native image; cells under the threshold stay bare
+	# ground. The mask relaxes near the hero patches so the framed benches keep their tufts.
+	# It is also the cheapest speed-up there is: 317 k -> ~180 k instances (r3 timing table).
+	var mn := FastNoiseLite.new(); mn.seed = seed_v & 0xffff; mn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH; mn.frequency = 0.2; mn.fractal_octaves = 2
+	var mask := mn.get_image(N, N).get_data()   # L8, 128 = zero noise
 	for j in range(1, N - 1):
 		for i in range(1, N - 1):
 			var id := _idx(i, j)
@@ -917,6 +1192,25 @@ func plant_ground_cover(seed_v: int) -> void:
 			var tint: Color = spec[2]
 			var cx := i * CELL - half; var cz := j * CELL - half
 			if b == Biome.FARM and fmod(absf(cx * 0.7 + cz * 0.35), 24.0) < 6.0: continue   # the ploughed strips
+			var crest := false
+			# crest lines: a flat cell whose neighbour drops away steeply gets a band of dry tufts
+			# (with the crest bushes of the island scatter, the vegetation line the reference has
+			# along every cliff lip and ledge)
+			if _slope[id] < 0.3:
+				var hh := heights[id]
+				for nid in [id - 1, id + 1, id - N, id + N]:
+					if _slope[nid] > 0.5 and heights[nid] < hh - 1.5:
+						want += 3.0; mesh_id = 1; crest = true
+						break
+			if want <= 0.0: continue
+			if not crest:
+				var thr := COVER_MASK_THR
+				for hp in COVER_HERO:
+					if absf(hp.x - cx) < 110.0 and absf(hp.y - cz) < 110.0: thr = COVER_MASK_THR - 34; break
+				var mv := mask[id]
+				if mv < thr: continue
+				# the patch edge thins out instead of stopping dead
+				want *= clampf(float(mv - thr) / 14.0, 0.55, 1.0)
 			var n := int(want) + (1 if rng.randf() < want - int(want) else 0)
 			for k in range(n):
 				var x := cx + rng.randf_range(-1.5, 1.5); var z := cz + rng.randf_range(-1.5, 1.5)

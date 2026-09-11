@@ -9,9 +9,9 @@ extends Node3D
 ##   ├── WorldManager      terrain / sea / sky resident, everything else streamed by chunk
 ##   ├── EntityManager     registry + simulation tiers (bike, player body, pickups, targets, NPCs...)
 ##   ├── GameplayManager   DeliverySystem, GunSystem, (Autopilot)
-##   ├── Rider             the player's controller: mode + ControlIntent routing
+##   ├── Rider             switches bike / truck / on-foot and routes ControlIntents
 ##   ├── ChaseCamera
-##   ├── BikeAudio
+##   ├── BikeAudio         procedural engine shared by the active vehicle
 ##   ├── UI                HUD
 ##   └── Debug             DebugOverlay (F3)
 ##
@@ -28,11 +28,16 @@ var entities: EntityManager
 var gameplay: GameplayManager
 var rider: Rider
 var bike: Bike
+var truck: Truck
 var player: Player
 var cam: ChaseCamera
 var audio: BikeAudio
 var hud: HUD
 var debug: DebugOverlay
+var life: IslandLife
+var panels: PanelStack
+var catalogue: ResidentCatalogue
+var journey: JourneySystem
 var player_controls: Controls.Keyboard
 var scripted_controls: Controls.Scripted
 
@@ -58,6 +63,8 @@ func _ready() -> void:
 	_boot_world()
 	_boot_entities()
 	_boot_gameplay()
+	life = IslandLife.new(); life.name = "IslandLife"; world.add_child(life)
+	life.setup(world, entities)
 	_boot_ui()
 	_wire()
 	_start()
@@ -92,6 +99,16 @@ func _boot_entities() -> void:
 	var spawn := world.road_spawn(world.database.location_pos(&"villa_square") + Vector3(46, 0, 0), world.database.location_pos(&"villa_rosa_office"))   # the straight lane east of the villa, facing the office
 	bike.place(spawn.pos, spawn.forward)
 
+	truck = Truck.new(); truck.name = "CargoTruck"
+	truck.apply_definition(load("res://data/vehicles/truck.tres"))
+	truck.terrain = world.terrain
+	truck.set_meta("always_full", true)
+	entities.register(truck, &"vehicle.truck", &"vehicle")
+	# Park it a short walk behind the starting bike, directly on the same lane.
+	var truck_spawn := world.road_spawn(spawn.pos - spawn.forward * 10.0, spawn.pos)
+	truck.place(truck_spawn.pos, truck_spawn.forward)
+	truck.set_parked(true)
+
 	player = Player.new(); player.name = "Player"
 	player.terrain = world.terrain
 	player.set_meta("always_full", true)
@@ -111,8 +128,10 @@ func _boot_entities() -> void:
 func _boot_gameplay() -> void:
 	gameplay = GameplayManager.new(); gameplay.name = "GameplayManager"; add_child(gameplay)
 	gameplay.setup(world, entities, bike, player, cam, GameplayManager.load_jobs())
+	gameplay.delivery.player = player
+	gameplay.delivery.rider = rider
 	audio = BikeAudio.new(); audio.name = "BikeAudio"; add_child(audio)
-	audio.setup(bike)
+	audio.setup(bike, truck)
 	gameplay.gun.audio = audio
 
 
@@ -122,6 +141,11 @@ func _boot_ui() -> void:
 	hud.setup(bike, gameplay.delivery, cam)
 	hud.player = player
 	hud.rider = rider
+	panels = PanelStack.new(self)
+	catalogue = ResidentCatalogue.new(); catalogue.name = "ResidentCatalogue"; ui.add_child(catalogue)
+	catalogue.setup(life, self)
+	journey = JourneySystem.new(); journey.name = "JourneySystem"; ui.add_child(journey)
+	journey.setup(self)
 	var dbg := Node.new(); dbg.name = "Debug"; add_child(dbg)
 	debug = DebugOverlay.new(); debug.name = "DebugOverlay"; dbg.add_child(debug)
 	debug.setup(self)
@@ -132,19 +156,27 @@ func _wire() -> void:
 	bike.landed.connect(func(impact: float):
 		if impact > 6.0: cam.shake(impact * 0.08)
 		Events.vehicle_landed.emit(&"vehicle.bike", impact))
+	truck.crashed.connect(func(): cam.shake(0.8); Events.vehicle_crashed.emit(&"vehicle.truck"))
+	rider.vehicle_changed.connect(func(_from, to):
+		gameplay.delivery.set_vehicle(to)
+		_refocus(rider.mode))
 	Events.package_collected.connect(func(_id): print("[game] package collected at t=%.1f" % state.time))
 	Events.delivery_completed.connect(_on_delivery)
 	Saves.register("delivery", gameplay.delivery)
 	Saves.register("gun", gameplay.gun)
 	Saves.register("bike", bike)
+	Saves.register("truck", truck)
 	Saves.register("rider", rider)
+	Saves.register("island_life", life)
+	Saves.register("catalogue", catalogue)
+	Saves.register("journey", journey)
 
 
 func _start() -> void:
 	player_controls = Controls.Keyboard.new()
 	scripted_controls = Controls.Scripted.new()
 	var use_scripted := state.autotest or state.shots_dir != ""
-	rider.setup(bike, player, cam, gameplay.gun, world, scripted_controls if use_scripted else player_controls)
+	rider.setup(bike, truck, player, cam, gameplay.gun, world, scripted_controls if use_scripted else player_controls)
 	if use_scripted:
 		gameplay.enable_autopilot(bike, world.terrain, scripted_controls)
 		print("[game] autopilot enabled (autotest=%s shots=%s)" % [state.autotest, state.shots_dir])
@@ -175,7 +207,7 @@ func _run_test(name: String) -> void:
 
 ## The streamer and the tiers follow whoever the player is right now.
 func _refocus(mode: int) -> void:
-	var f: Node3D = bike if (mode == Rider.Mode.RIDING or mode == Rider.Mode.FLYING) else player
+	var f: Node3D = rider.courier()
 	world.set_focus(f)
 	entities.focus = f
 
@@ -199,7 +231,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_delivery(_job_id: StringName, total: int) -> void:
-	print("[game] DELIVERY COMPLETED #%d at t=%.1f (odometer %.0f m)" % [total, state.time, bike.odometer])
+	print("[game] DELIVERY COMPLETED #%d at t=%.1f (odometer %.0f m)" % [total, state.time, rider.vehicle.odometer])
 	if state.autotest and total >= state.need_deliveries:
 		print("AUTOTEST PASS: %d deliveries in %.1fs, avg fps %.1f" % [total, state.time, state.avg_fps()])
 		get_tree().quit(0)
@@ -212,7 +244,8 @@ func _process(delta: float) -> void:
 	# Esc: first press arms (and frees the mouse), second within 3 s quits; a click re-captures
 	if _quit_armed > 0.0:
 		_quit_armed -= delta
-	if Input.is_action_just_pressed("quit_game"):
+	panels.process()
+	if Input.is_action_just_pressed("quit_game") and not panels.any_open() and not panels.just_closed():
 		if _quit_armed > 0.0:
 			get_tree().quit()
 		else:
@@ -220,7 +253,7 @@ func _process(delta: float) -> void:
 			if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			Events.message.emit("Press Esc again within 3 s to quit.", 3.0)
-	if rider.is_on_foot() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and Input.is_action_just_pressed("fire"):
+	if rider.is_on_foot() and not panels.any_open() and not panels.just_closed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and Input.is_action_just_pressed("fire"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	hud.set_mode(bike, player, gameplay.gun)
 	if state.shots_dir != "":

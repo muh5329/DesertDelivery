@@ -1,0 +1,48 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:79)
+         [1] _init (res://world/terrain/terrain.gd:69)
+         [2] build_terrain (res://world/island/island.gd:129)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:579)
+         [1] build (res://world/terrain/terrain.gd:426)
+         [2] build_terrain (res://world/island/island.gd:139)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 969, "t3d_setup": 152, "t3d_maps": 740, "t3d_import": 31, "ground_cover": 1054, "ground_cover_n": 271298 }
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3421 road nodes, seven-day routines
+[game] world generated in 4080 ms (4585 recipes in 385 chunks); tree 7684 nodes
+[ride] 3s empty={ "distance": 37.6270980834961, "speed": 23.5477830198952 } heavy={ "distance": 24.7747764587402, "speed": 16.0335234951746 } heavy+engine3={ "distance": 33.0731391906738, "speed": 20.9505546852514 }
+  PASS responsive unloaded launch covers 37.6m in3s at 23.5m/s
+  PASS 80kg cargo measurably slows acceleration (24.8m vs 37.6m)
+  PASS engine upgrades restore loaded acceleration (33.1m vs 24.8m)
+  PASS empty tank still travels at push pace (2.20m/s, 10.8m)
+  PASS braking stops from20m/s in 10.9m without reversing
+  PASS cargo increases turning effort (0.47rad vs 0.67rad in1s)
+  PASS rider lean remains bounded under sustained turning
+  PASS steering recentres cleanly after release
+  PASS unladen wings lift off at16m/s
+  PASS 80kg cargo requires more runway speed than16m/s
+  PASS loaded bike still takes off after reaching19m/s
+  PASS fuel depletion preserves continuous airborne motion
+  PASS empty tank settles into a controllable descending glide
+  PASS performance metadata is clamped safely
+  PASS camera eases into turns instead of snapping to rider yaw
+  PASS camera yaw and FOV smoothing are stable across60/120Hz
+  PASS camera retracts in front of a newly encountered wall immediately
+RIDING FEEL TESTS: PASS (0 failures)
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

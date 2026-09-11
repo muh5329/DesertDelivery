@@ -1,0 +1,92 @@
+exec(open('/Users/mun/Documents/Projects/DesertDelivery/tools/blender/common.py').read())
+asset=start('CourierCharacter')
+skin=material('Skin warm peach',(.84,.57,.32),.78)
+hair=material('Hair copper',(.48,.205,.048),.58)
+hair_hi=material('Hair golden strands',(.61,.285,.067),.62)
+shirt=material('Shirt cornflower',(.235,.33,.54),.87)
+seam=material('Shirt seams',(.15,.23,.40),.87)
+scarf=material('Neckerchief coral',(.73,.20,.11),.8)
+pants=material('Trousers ochre',(.72,.53,.235),.88)
+strap=material('Suspenders flax',(.89,.70,.32),.8)
+boot=material('Leather walnut',(.125,.069,.039),.74)
+sole=material('Soles',(.058,.039,.027),.9)
+brass=material('Buckles antique brass',(.44,.34,.16),.36,.65)
+white=material('Eye ivory',(.97,.94,.83),.3)
+iris=material('Eyes hazel',(.28,.12,.025),.27)
+pupil=material('Pupils',(.018,.013,.009),.23)
+lip=material('Lips',(.52,.25,.12),.8)
+root=empty('Root',asset,(0,.82,0))
+loft('Tailored hips',[(-.09,0,0,.16,.10),(0,0,0,.165,.105),(.08,0,0,.153,.098),(.13,0,0,.145,.096)],pants,root)
+loft('Waistband',[(.10,0,0,.154,.106),(.145,0,0,.154,.106)],strap,root)
+torso=empty('Torso',root,(0,.08,0))
+loft('Shirt tailored body',[(.06,0,0,.142,.094),(.12,0,0,.157,.104),(.26,0,0,.162,.102),(.40,0,0,.191,.095),(.48,0,0,.20,.088),(.53,0,0,.132,.076),(.545,0,0,.058,.05)],shirt,torso)
+# Central placket and tiny mother-of-pearl buttons.
+tube('Button placket',[(0,.10,-.106),(0,.30,-.108),(0,.49,-.094)],.004,seam,torso)
+for y in [.17,.27,.37,.46]: ell('Shirt button',(0,y,-.11),(.007,.007,.003),white,torso,12)
+for s in [-1,1]:
+    mesh('Pointed collar',[(s*.045,.55,-.056),(s*.12,.505,-.092),(s*.078,.442,-.108),(s*.022,.509,-.094)],[(0,1,2,3)],shirt,torso)
+    tube('Front suspender',[(s*.115,.07,-.101),(s*.126,.27,-.112),(s*.145,.45,-.092),(s*.13,.527,-.054)],.014,strap,torso,6)
+    tube('Y suspender',[(s*.135,.52,.065),(s*.07,.34,.106),(0,.25,.113),(0,.065,.11)],.014,strap,torso,6)
+    box('Suspender clip',(s*.115,.075,-.119),(.031,.038,.012),brass,torso,.005)
+tube('Neck',[(0,.51,0),(0,.64,0)],.052,skin,torso,20)
+torus('Scarf collar',(0,.565,0),.062,.016,scarf,torso,'y',32)
+ell('Scarf knot',(0,.535,-.074),(.035,.040,.030),scarf,torso)
+mesh('Scarf hanging triangle',[(-.039,.54,-.09),(.039,.54,-.09),(.026,.46,-.114),(0,.411,-.10),(-.026,.46,-.114),(0,.51,-.129)],[(0,5,4),(4,5,3),(3,5,2),(2,5,1),(1,5,0)],scarf,torso)
+head=empty('Head',torso,(0,.74,0))
+# Chin, jaw, cheeks and brow have separate cross sections, not a spherical face.
+loft('Face',[(-.16,0,-.015,.045,.048),(-.14,0,-.013,.078,.071),(-.105,0,-.006,.108,.089),(-.055,0,0,.125,.105),(.01,0,.004,.132,.115),(.065,0,.013,.129,.111),(.115,0,.018,.113,.096),(.151,0,.023,.074,.071),(.16,0,.022,.014,.017)],skin,head)
+for s in [-1,1]:
+    ell('Ear',(s*.134,-.028,.012),(.025,.042,.025),skin,head)
+    ell('Ear fold',(s*.151,-.027,-.002),(.007,.025,.013),lip,head,16)
+    ell('Eye white',(s*.052,.005,-.101),(.037,.024,.013),white,head)
+    ell('Hazel iris',(s*.052,.005,-.113),(.016,.019,.004),iris,head)
+    ell('Pupil',(s*.052,.005,-.117),(.008,.012,.0025),pupil,head,16)
+    ell('Catchlight',(s*.047,.013,-.120),(.004,.004,.0015),white,head,12)
+    tube('Upper eyelid',[(s*.019,.012,-.112),(s*.040,.030,-.114),(s*.065,.029,-.106),(s*.084,.015,-.098)],.0035,boot,head,6)
+    tube('Eyebrow',[(s*.022,.051,-.110),(s*.050,.057,-.110),(s*.080,.049,-.103)],.0055,hair,head,6)
+ell('Nose bridge',(0,-.027,-.108),(.015,.030,.024),skin,head)
+ell('Nose tip',(0,-.05,-.125),(.022,.014,.014),skin,head)
+tube('Mouth',[(-.031,-.091,-.090),(-.013,-.094,-.102),(0,-.092,-.104),(.014,-.094,-.102),(.031,-.091,-.090)],.0028,lip,head,6)
+ell('Lower lip',(0,-.101,-.097),(.020,.005,.003),skin,head,16)
+# Crown and flowing tapered locks: grooves are real silhouette detail.
+ell('Hair cap',(0,.079,.037),(.140,.111,.113),hair,head)
+def lock(name,pts,width,mat=hair):
+    return tube(name,pts,width,mat,head,10,[.65,1,.86,.53,.02])
+for i in range(9):
+    a=math.tau*i/9
+    x=math.cos(a)*.118; z=.038+math.sin(a)*.092
+    if z<-.024: continue
+    lock('Layered nape',[(x*.5,.148,z*.6),(x*.88,.105,z),(x,.03,z+.01),(x*1.06,-.075,z+.025),(x*1.22,-.105,z+.02)],.032)
+for i in range(6):
+    x=-.108+i*.041
+    lock('Swept fringe',[(x-.01,.152,.03),(x+.024,.171,-.026),(x+.051,.139,-.089),(x+.060,.099,-.116),(x+.039,.038,-.117)],.040 if i<4 else .032)
+for i in range(3):
+    lock('Windswept quiff',[(-.10+i*.035,.136,-.019),(-.11+i*.035,.196,-.032),(-.075+i*.041,.215,-.047),(-.015+i*.047,.214,-.053),(.035+i*.05,.243,-.056)],.035,hair_hi)
+for s in [-1,1]:
+    arm=empty('ArmL' if s<0 else 'ArmR',torso,(s*.20,.50,0))
+    loft('Loose sleeve',[(.035,0,0,.052,.061),(0,0,0,.074,.072),(-.09,s*.01,0,.073,.066),(-.17,s*.012,0,.062,.058),(-.205,s*.008,0,.059,.055)],shirt,arm)
+    loft('Rolled cuff',[(-.175,s*.008,0,.065,.061),(-.195,s*.008,0,.070,.064),(-.222,s*.008,0,.064,.060)],shirt,arm)
+    tube('Cuff seam',[(s*.01,-.192,-.061),(s*.04,-.192,-.046)],.003,seam,arm)
+    ell('Elbow skin',(0,-.239,0),(.043,.040,.045),skin,arm)
+    elbow=empty('Elbow',arm,(0,-.26,0))
+    loft('Forearm',[(.012,0,0,.043,.045),(-.06,0,0,.045,.042),(-.16,0,-.002,.032,.032),(-.235,0,-.005,.026,.027)],skin,elbow,24)
+    hand=empty('Hand',elbow,(0,-.27,0))
+    box('Fingerless glove',(0,0,-.004),(.078,.088,.044),boot,hand,.016)
+    box('Glove cuff',(0,.052,0),(.071,.022,.055),boot,hand,.008)
+    for i in range(4):
+        x=-.025+i*.016
+        tube('Fingers',[(x,-.027,-.01),(x,-.071,-.008),(x,-.086,-.022)],.008,skin,hand,8,[1,.9,.6])
+    tube('Thumb',[(s*.036,.003,0),(s*.047,-.025,-.019),(s*.044,-.043,-.026)],.012,skin,hand,8,[1,.9,.6])
+    leg=empty('LegL' if s<0 else 'LegR',root,(s*.09,0,0))
+    loft('Wide trouser leg',[(.04,0,0,.076,.10),(-.07,s*.014,0,.093,.102),(-.21,s*.018,0,.094,.096),(-.36,s*.017,0,.089,.086),(-.42,s*.015,0,.080,.080)],pants,leg)
+    tube('Trouser outside seam',[(s*.078,0,0),(s*.108,-.21,0),(s*.091,-.40,0)],.0026,strap,leg,5)
+    knee=empty('Knee',leg,(0,-.42,0))
+    loft('Gathered breeches',[(.012,s*.014,0,.080,.080),(-.045,s*.014,0,.083,.079),(-.105,s*.014,0,.068,.064),(-.127,s*.014,0,.042,.044)],pants,knee)
+    loft('Gathered cuff',[(-.116,s*.014,0,.05,.048),(-.144,s*.014,0,.05,.048)],strap,knee)
+    tube('Long sock',[(s*.014,-.14,0),(s*.014,-.31,0)],.039,pants,knee,16)
+    box('Boot sole',(s*.014,-.363,-.036),(.129,.034,.233),sole,knee,.018)
+    ell('Laced shoe',(s*.014,-.335,-.047),(.064,.048,.113),boot,knee)
+    loft('Boot ankle',[(-.34,s*.014,.012,.054,.060),(-.29,s*.014,.012,.050,.051),(-.265,s*.014,.008,.044,.045)],boot,knee,24)
+    for i in range(4):
+        tube('Boot lace',[(s*.014-.029,-.286-i*.011,-.038-i*.013),(s*.014+.027,-.297-i*.009,-.045-i*.014)],.0028,stitch if 'stitch' in globals() else brass,knee,5)
+export(asset,'courier_character')

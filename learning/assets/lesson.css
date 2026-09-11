@@ -1,0 +1,178 @@
+/* Desert Delivery — shared lesson stylesheet.
+   Every lesson and reference document links this. Change it here, not in a lesson. */
+
+:root {
+  --ink:      #16150f;
+  --ink-soft: #55524a;
+  --ink-faint:#8a867c;
+  --paper:    #fffdf8;
+  --rule:     #ded9cc;
+  --accent:   #9a5b1e;   /* terracotta — the island */
+  --accent-bg:#f6ecdf;
+  --sea:      #2c5f70;
+  --good:     #3f6b45;
+  --bad:      #9d3a2c;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Charter, Georgia, serif;
+  --sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono:  ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 17px; }
+
+body {
+  margin: 0 auto;
+  padding: 0 2rem 8rem;
+  max-width: 46rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── masthead ───────────────────────────────────────────── */
+.masthead { padding: 4rem 0 1.6rem; border-bottom: 1px solid var(--rule); margin-bottom: 2.4rem; }
+.eyebrow {
+  font-family: var(--sans); font-size: .70rem; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--accent); margin: 0 0 .9rem; font-weight: 600;
+}
+h1 { font-size: 2.3rem; line-height: 1.14; letter-spacing: -.015em; margin: 0 0 .8rem; font-weight: 600; }
+.standfirst { font-size: 1.12rem; color: var(--ink-soft); margin: 0; }
+.meta {
+  font-family: var(--sans); font-size: .76rem; color: var(--ink-faint);
+  margin-top: 1.4rem; display: flex; gap: 1.4rem; flex-wrap: wrap;
+}
+
+/* ── prose ──────────────────────────────────────────────── */
+h2 {
+  font-size: 1.35rem; margin: 3rem 0 .8rem; font-weight: 600; letter-spacing: -.01em;
+  padding-bottom: .35rem; border-bottom: 1px solid var(--rule);
+}
+h3 { font-size: 1.05rem; margin: 2rem 0 .5rem; font-weight: 600; }
+p  { margin: 0 0 1.05rem; }
+ul, ol { margin: 0 0 1.05rem; padding-left: 1.4rem; }
+li { margin-bottom: .45rem; }
+a  { color: var(--accent); text-underline-offset: 2px; }
+a:hover { background: var(--accent-bg); }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+.term {
+  font-weight: 600; color: var(--sea);
+  border-bottom: 2px solid #bcd3da; padding-bottom: 1px;
+}
+
+/* ── code ───────────────────────────────────────────────── */
+code {
+  font-family: var(--mono); font-size: .84em;
+  background: #f2eee4; padding: .1em .34em; border-radius: 3px;
+}
+pre {
+  font-family: var(--mono); font-size: .78rem; line-height: 1.55;
+  background: #faf7f0; border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+  border-radius: 3px; padding: .9rem 1rem; overflow-x: auto; margin: 0 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: #8a867c; font-style: italic; }
+pre .k { color: #9d3a2c; }
+pre .s { color: #3f6b45; }
+pre b  { color: var(--accent); font-weight: 600; }
+
+.filepath {
+  font-family: var(--mono); font-size: .70rem; color: var(--ink-faint);
+  letter-spacing: .02em; margin: 0 0 .3rem;
+}
+
+/* ── figures: the module chain ──────────────────────────── */
+.chain { margin: 1.6rem 0 2rem; }
+.chain-row {
+  display: grid; grid-template-columns: 8.5rem 1fr; gap: 1rem;
+  padding: .75rem 0; border-top: 1px solid var(--rule); align-items: baseline;
+}
+.chain-row:last-child { border-bottom: 1px solid var(--rule); }
+.chain-who { font-family: var(--mono); font-size: .76rem; color: var(--sea); font-weight: 600; }
+.chain-what { font-size: .95rem; }
+.chain-what .owns { display: block; font-size: .8rem; color: var(--ink-faint); margin-top: .2rem; }
+
+/* ── callouts ───────────────────────────────────────────── */
+.callout {
+  border: 1px solid var(--rule); border-left: 3px solid var(--sea);
+  background: #f6f8f8; padding: .9rem 1.1rem; margin: 1.5rem 0; font-size: .95rem;
+}
+.callout.warn { border-left-color: var(--bad); background: #fbf3f1; }
+.callout .h {
+  font-family: var(--sans); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--sea); font-weight: 700; margin-bottom: .4rem;
+}
+.callout.warn .h { color: var(--bad); }
+.callout p:last-child { margin-bottom: 0; }
+
+/* ── hand task ──────────────────────────────────────────── */
+.task { border: 1px solid var(--rule); border-radius: 4px; padding: 1.4rem 1.6rem; margin: 1.8rem 0; background: #fffefb; }
+.task h3 { margin-top: 0; }
+ol.steps { counter-reset: step; list-style: none; padding-left: 0; margin-top: 1.2rem; }
+ol.steps > li {
+  counter-increment: step; position: relative; padding-left: 2.4rem; margin-bottom: 1.3rem;
+}
+ol.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: .05rem;
+  width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-family: var(--sans); font-size: .78rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.hint {
+  font-size: .86rem; color: var(--ink-soft); border-left: 2px solid var(--rule);
+  padding-left: .8rem; margin-top: .5rem;
+}
+.hint summary { cursor: pointer; font-family: var(--sans); font-size: .78rem; color: var(--accent); }
+.hint[open] summary { margin-bottom: .5rem; }
+
+/* ── source recommendation ──────────────────────────────── */
+.source {
+  border-top: 2px solid var(--ink); padding-top: 1rem; margin: 3rem 0 0;
+}
+.source .h {
+  font-family: var(--sans); font-size: .68rem; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-faint); font-weight: 700; margin-bottom: .5rem;
+}
+
+/* ── footer nav ─────────────────────────────────────────── */
+.footnav {
+  margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: .82rem; color: var(--ink-faint);
+  display: flex; gap: 1.5rem; flex-wrap: wrap;
+}
+
+/* ── reference-sheet variant ────────────────────────────── */
+body.sheet { max-width: 52rem; font-family: var(--sans); line-height: 1.5; }
+body.sheet h1 { font-family: var(--sans); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; }
+dl.gloss { margin: 0; }
+dl.gloss dt { font-weight: 700; color: var(--sea); margin-top: 1.1rem; font-size: .95rem; }
+dl.gloss dd { margin: .2rem 0 0; font-size: .9rem; color: var(--ink); }
+dl.gloss dd .avoid { display: block; color: var(--bad); font-size: .82rem; margin-top: .25rem; }
+dl.gloss dd .here  { display: block; color: var(--ink-soft); font-size: .82rem; margin-top: .25rem; }
+
+/* ── print ──────────────────────────────────────────────── */
+@media print {
+  html { font-size: 11.5pt; }
+  body { max-width: none; padding: 0; background: #fff; }
+  .masthead { padding-top: 0; }
+  .quiz, .footnav, .hint summary { display: none !important; }
+  .hint { display: block !important; }
+  .hint[open] > *, .hint > * { display: block !important; }
+  pre, .task, .callout, .chain-row { break-inside: avoid; }
+  a { color: var(--ink); text-decoration: none; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .75em; color: #666; }
+  .grid2 { display: block; }
+}
+
+@media (max-width: 40rem) {
+  html { font-size: 16px; }
+  body { padding: 0 1.2rem 5rem; }
+  .chain-row { grid-template-columns: 1fr; gap: .2rem; }
+  .grid2 { grid-template-columns: 1fr; }
+}

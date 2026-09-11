@@ -33,8 +33,13 @@ var _cans_hit := 0
 var _cans_total := 0
 var _has_gun := false
 var _title_t := 5.0
+var _font: SystemFont
+var _service_hint: Label
+var _fuel_gauge: Control
+var _engine_gauge: Control
+var _cargo_label: Label
 
-const PANEL := Color(0.97, 0.94, 0.86, 0.92)
+const PANEL := Color(0.94, 0.89, 0.76, 0.95)
 const INK := Color(0.16, 0.13, 0.10)
 const GREEN := Color(0.36, 0.62, 0.30)
 
@@ -49,6 +54,7 @@ func setup(p_bike: Bike, p_gm: DeliverySystem, p_cam: Camera3D) -> void:
 	Events.gun_picked_up.connect(func(): set_gun(true))
 	Events.can_hit.connect(func(_id, h, t): set_cans(h, t))
 	_build()
+	_on_job_changed(gm.current_job(), &"dropoff" if gm.stage==DeliverySystem.Stage.TO_DROPOFF else &"pickup")
 
 
 func _panel(pos: Vector2, size: Vector2, radius: float = 10.0) -> Panel:
@@ -56,8 +62,8 @@ func _panel(pos: Vector2, size: Vector2, radius: float = 10.0) -> Panel:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = PANEL
 	sb.set_corner_radius_all(int(radius))
-	sb.border_color = INK
-	sb.set_border_width_all(3)
+	sb.border_color = Color("877356")
+	sb.set_border_width_all(1)
 	sb.shadow_color = Color(0, 0, 0, 0.25)
 	sb.shadow_size = 6
 	p.add_theme_stylebox_override("panel", sb)
@@ -69,58 +75,60 @@ func _panel(pos: Vector2, size: Vector2, radius: float = 10.0) -> Panel:
 func _label(text: String, size: int, col: Color = INK) -> Label:
 	var l := Label.new()
 	l.text = text
+	if _font: l.add_theme_font_override("font", _font)
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", col)
 	return l
 
 
 func _build() -> void:
+	_font=SystemFont.new(); _font.font_names=PackedStringArray(["Georgia","Noto Serif","DejaVu Serif"])
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
 	# --- top-left: package / compass badge
-	_package_badge = _panel(Vector2(28, 26), Vector2(120, 120), 60)
+	_package_badge = _panel(Vector2(26, 26), Vector2(88, 88), 44)
 	root.add_child(_package_badge)
 	_compass = Control.new()
-	_compass.position = Vector2(60, 60)
+	_compass.position = Vector2(44, 44)
+	_compass.scale = Vector2.ONE * .72
 	_compass.size = Vector2.ZERO
 	_package_badge.add_child(_compass)
 	_compass.draw.connect(_draw_compass)
 	_distance = _label("", 20)
-	_distance.position = Vector2(30, 150)
-	_distance.size = Vector2(120, 30)
+	_distance.position = Vector2(14, 116)
+	_distance.size = Vector2(112, 26)
+	_distance.add_theme_color_override("font_color",Color("f4e9cf"))
+	_distance.add_theme_color_override("font_outline_color",INK)
+	_distance.add_theme_constant_override("outline_size",3)
 	_distance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(_distance)
 
-	# --- top-right: day card + deliveries
-	var day := _panel(Vector2(-250, 26), Vector2(220, 78), 6)
-	day.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	day.position = Vector2(-250, 26)
-	root.add_child(day)
-	var d1 := _label("Fri.", 34); d1.position = Vector2(16, 6); day.add_child(d1)
-	var d2 := _label("Morning", 14); d2.position = Vector2(18, 48); day.add_child(d2)
-	var d3 := _label("SPRING", 12); d3.position = Vector2(140, 8); day.add_child(d3)
-	var d4 := _label("5", 40); d4.position = Vector2(155, 22); day.add_child(d4)
-	_deliveries = _label("Deliveries 0/4", 18)
+	# Live calendar and resident catalogue are provided by ResidentCatalogue.
+	_deliveries = _label("", 16, Color("f4e9cf"))
+	_deliveries.add_theme_color_override("font_outline_color",INK)
+	_deliveries.add_theme_constant_override("outline_size",3)
 	_deliveries.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_deliveries.position = Vector2(-250, 112)
+	_deliveries.position = Vector2(-390, 76)
 	root.add_child(_deliveries)
-	_timer_label = _label("0:00", 18)
+	_timer_label = _label("", 18)
+	_timer_label.visible=false
 	_timer_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_timer_label.position = Vector2(-90, 112)
+	_timer_label.position = Vector2(-80, 76)
 	root.add_child(_timer_label)
 
 	# --- objective banner (top centre)
-	_objective = _label("", 22)
-	_objective.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_objective.position = Vector2(-300, 30)
-	_objective.size = Vector2(600, 40)
+	_objective = _label("", 18)
+	_objective.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_objective.offset_left=134; _objective.offset_right=-475
+	_objective.offset_top=30; _objective.offset_bottom=94
+	_objective.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_objective.add_theme_color_override("font_color", Color(0.98, 0.96, 0.9))
 	_objective.add_theme_color_override("font_outline_color", INK)
-	_objective.add_theme_constant_override("outline_size", 6)
+	_objective.add_theme_constant_override("outline_size", 3)
 	root.add_child(_objective)
 
 	# --- message toast (centre)
@@ -141,16 +149,20 @@ func _build() -> void:
 	root.add_child(strip)
 	_speed_group.append(strip)
 	for i in range(7):
-		var t := _label(str(i * 50), 18)
+		var t := _label(str(i * 30), 18)
 		t.position = Vector2(26 + i * 70 - 12, 8)
 		t.size = Vector2(48, 30)
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		strip.add_child(t)
 	var bar := ColorRect.new()
-	bar.color = GREEN
+	bar.color = Color("887858")
 	bar.position = Vector2(20, 44)
-	bar.size = Vector2(480, 6)
+	bar.size = Vector2(480, 1)
 	strip.add_child(bar)
+	for tick in range(37):
+		var mark:=ColorRect.new(); mark.color=Color("a39578")
+		mark.position=Vector2(26+tick*420.0/36.0,35)
+		mark.size=Vector2(1,9 if tick%6==0 else 4); strip.add_child(mark)
 	_needle = Control.new()
 	_needle.position = Vector2(26, 28)
 	strip.add_child(_needle)
@@ -166,7 +178,7 @@ func _build() -> void:
 	_speed_label.add_theme_constant_override("outline_size", 5)
 	root.add_child(_speed_label)
 	_speed_group.append(_speed_label)
-	# round gauges either side (fuel / engine) like the reference
+	# Live fuel and workshop gauges share the actual journey state.
 	for sx in [-320.0, 268.0]:
 		var g := _panel(Vector2(sx, -90), Vector2(52, 52), 26)
 		g.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
@@ -174,7 +186,19 @@ func _build() -> void:
 		root.add_child(g)
 		_speed_group.append(g)
 		var ring := Control.new(); ring.position = Vector2(26, 26); g.add_child(ring)
-		ring.draw.connect(func(): ring.draw_arc(Vector2.ZERO, 16, PI * 0.75, PI * 2.25, 24, GREEN, 5.0, true))
+		if sx < 0:
+			_fuel_gauge=ring; ring.draw.connect(_draw_fuel)
+		else:
+			_engine_gauge=ring; ring.draw.connect(_draw_engine)
+	_cargo_label=_label("",14,Color("f4e9cf"))
+	_cargo_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); _cargo_label.position=Vector2(-230,-24)
+	_cargo_label.size=Vector2(460,20); _cargo_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_cargo_label.add_theme_color_override("font_outline_color",INK); _cargo_label.add_theme_constant_override("outline_size",3)
+	root.add_child(_cargo_label); _speed_group.append(_cargo_label)
+	_service_hint=_label("",18,Color("f4e9cf")); root.add_child(_service_hint)
+	_service_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); _service_hint.position=Vector2(-380,-152)
+	_service_hint.size=Vector2(760,28); _service_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_service_hint.add_theme_color_override("font_outline_color",INK); _service_hint.add_theme_constant_override("outline_size",4)
 
 	# --- crosshair (only with the pistol, on foot)
 	_crosshair = Control.new()
@@ -215,7 +239,7 @@ func _build() -> void:
 	_title.add_theme_color_override("font_outline_color", INK)
 	_title.add_theme_constant_override("outline_size", 10)
 	root.add_child(_title)
-	var sub := _label("Ride. Collect. Deliver.", 24, Color(0.98, 0.95, 0.86))
+	var sub := _label("The long way home.", 24, Color(0.98, 0.95, 0.86))
 	sub.position = Vector2(0, 80)
 	sub.size = Vector2(800, 30)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -224,11 +248,11 @@ func _build() -> void:
 	_title.add_child(sub)
 
 	# --- controls hint (bottom left, fades out)
-	_prompt_bg = _panel(Vector2(28, -150), Vector2(330, 118), 8)
+	_prompt_bg = _panel(Vector2(28, -174), Vector2(400, 140), 8)
 	_prompt_bg.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_prompt_bg.position = Vector2(28, -150)
+	_prompt_bg.position = Vector2(28, -174)
 	root.add_child(_prompt_bg)
-	_controls = _label("W/S ride · A/D steer · Space handbrake · R reset\nE hop off / on the bike · T wings (plane mode)\nOn foot: WASD walk · Shift run · Space jump · F fire\nStop inside a glowing ring to collect / deliver.", 15)
+	_controls = _label("W/S ride  ·  A/D steer  ·  Space brake\nE hop off  ·  T unfold wings  ·  R recover\nJ courier counter  ·  N island journal\nTruck: Q winch  ·  G packing (while stopped)\nF5 save  ·  F9 load", 15)
 	_controls.position = Vector2(14, 10)
 	_prompt_bg.add_child(_controls)
 
@@ -265,13 +289,35 @@ func _target_angle() -> float:
 
 
 func _draw_needle() -> void:
-	var kmh := bike.speed_kmh() if bike else 0.0
-	var x := clampf(kmh / 300.0, 0.0, 1.0) * 420.0
+	var vehicle := _active_vehicle()
+	var kmh := vehicle.speed_kmh() if vehicle else 0.0
+	var x := clampf(kmh / 180.0, 0.0, 1.0) * 420.0
 	_needle.draw_colored_polygon(PackedVector2Array([Vector2(x - 5, 22), Vector2(x + 5, 22), Vector2(x, -6)]), Color(0.86, 0.22, 0.16))
 
 
+func _draw_fuel() -> void:
+	var value:=clampf(float(bike.get_meta("fuel_ratio",1.0)),0,1)
+	_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*2.25,40,Color("b3a483"),4,true)
+	if value>.001:
+		_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*.75+PI*1.5*value,40,Color("a3442f") if value<.2 else GREEN,4,true)
+	_fuel_gauge.draw_string(_font,Vector2(-5,5),"F",HORIZONTAL_ALIGNMENT_LEFT,-1,15,INK)
+
+
+func _draw_engine() -> void:
+	var level:=clampi(int(bike.get_meta("engine_level",0)),0,3)
+	for i in range(4):
+		var a:=PI*.75+i*PI*.375
+		_engine_gauge.draw_arc(Vector2.ZERO,19,a,a+PI*.30,12,GREEN if i<=level else Color("b3a483"),4,true)
+	_engine_gauge.draw_string(_font,Vector2(-5,5),str(level),HORIZONTAL_ALIGNMENT_LEFT,-1,15,INK)
+
+
 func _actor_pos() -> Vector3:
-	return player.global_position if (_on_foot and player) else bike.global_position
+	var vehicle := _active_vehicle()
+	return player.global_position if (_on_foot and player) else vehicle.global_position
+
+
+func _active_vehicle() -> Vehicle:
+	return rider.vehicle if rider and rider.vehicle else bike
 
 
 func set_gun(v: bool) -> void:
@@ -285,17 +331,26 @@ func set_cans(h: int, t: int) -> void:
 
 func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	var on_foot := rider.is_on_foot() if rider else false
+	var vehicle := _active_vehicle()
 	_on_foot = on_foot
 	for n in _speed_group:
 		n.visible = not on_foot
-	_crosshair.visible = on_foot and _has_gun and not pl.swimming and ((rider.last_intent.aim if rider else false) or gn.is_recently_fired())
+	_crosshair.visible = on_foot and _has_gun and not pl.swimming and ((rider.is_aiming() if rider else false) or gn.is_recently_fired())
 	_crosshair.queue_redraw()
 	if _has_gun:
 		_gun_label.text = "Pistol  %d/%d   Cans %d/%d%s" % [gn.ammo, gn.max_ammo, gn.targets_hit, gn.targets_total, "   (hold RMB to aim)" if on_foot else ""]
 	else:
 		_gun_label.text = ""
 	if on_foot:
-		_mode_label.text = "Swimming" if pl.swimming else "On foot  —  E near the bike to ride"
+		_mode_label.text = "Swimming" if pl.swimming else "On foot  —  E near the bike or truck to drive"
+	elif rider and vehicle == rider.truck:
+		var truck: Truck = rider.truck
+		if truck.cargo_build_mode:
+			_mode_label.text = "PACKING  —  WASD move · Z rotate · Space place · X undo · G finish  —  %s" % truck.cargo_status()
+		elif truck.winch_attached:
+			_mode_label.text = "TRUCK  —  winch pulling %.0f m · Q release  —  %s" % [truck.winch_distance, truck.cargo_status()]
+		else:
+			_mode_label.text = "TRUCK  —  Q winch · stop + G pack cargo · E exit  —  %s" % truck.cargo_status()
 	elif bk.airborne:
 		_mode_label.text = "Flying  —  S up · W down · Shift boost  —  altitude %d m" % int(bk.altitude)
 	elif bk.wings_out:
@@ -314,7 +369,7 @@ func show_message(text: String, duration: float) -> void:
 
 
 func _on_job_changed(job: JobDefinition, st: StringName) -> void:
-	_deliveries.text = "Deliveries %d/%d" % [gm.deliveries, gm.jobs.size()]
+	_deliveries.text = "Deliveries %d/%d  ·  %d coins" % [gm.deliveries, gm.jobs.size(), gm.coins]
 	if job == null:
 		_objective.text = "All packages delivered — nice riding!"
 		return
@@ -326,9 +381,20 @@ func _on_job_changed(job: JobDefinition, st: StringName) -> void:
 
 func _process(delta: float) -> void:
 	if not bike: return
+	var vehicle := _active_vehicle()
 	_needle.queue_redraw()
 	_compass.queue_redraw()
-	_speed_label.text = "%d km/h" % int(bike.speed_kmh())
+	_speed_label.text = "%d km/h" % int(vehicle.speed_kmh())
+	_deliveries.text="%d delivered   ·   %d coins" % [gm.deliveries,gm.coins]
+	_fuel_gauge.queue_redraw(); _engine_gauge.queue_redraw()
+	_cargo_label.text="%.0f kg cargo   ·   Engine +%d   ·   Fuel %d%%" % [float(bike.get_meta("cargo_mass_kg",0.0)),int(bike.get_meta("engine_level",0)),int(float(bike.get_meta("fuel_ratio",1.0))*100)]
+	if gm.carrying and gm.current_job() and gm.current_job().cargo_kind=="fragile":
+		_cargo_label.text+="   ·   Intact %d%%" % roundi(gm.parcel_condition*100)
+	if rider and vehicle==rider.truck: _cargo_label.text="Cargo truck  ·  Stop to arrange your load"
+	var game:=Game.current
+	if game and game.get("journey"):
+		_service_hint.text=game.journey.interaction_hint()
+		if game.journey.is_open() or game.catalogue.is_open(): _service_hint.text=""
 	if gm and gm.stage != DeliverySystem.Stage.DONE:
 		var d := (gm.target_position() - _actor_pos()).length()
 		_distance.text = "%d m" % int(d)

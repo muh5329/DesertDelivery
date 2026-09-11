@@ -5,6 +5,7 @@ extends Node
 var out := "/tmp/view"
 var frame := 0
 var cams := []
+var spot_names := []
 var cam: Camera3D
 var idx := 0
 
@@ -24,13 +25,12 @@ func _ready() -> void:
 	if "--nofog" in args:
 		for c in lvl.environment.get_children():
 			if c is WorldEnvironment: c.environment.fog_enabled = false
-	if "--debugsea" in args:
+	var dbg_sea := game.cli.get_int("debugsea", 0)   # 1 = vertical depth/10, 2 = screen texture, 3 = depth-buffer depth, 4 = fallback weight
+	if dbg_sea > 0:
 		for c in lvl.environment.get_children():
 			if c is MeshInstance3D and c.name == "Sea":
 				var m: ShaderMaterial = c.material_override
-				var code: String = m.shader.code
-				code = code.replace("ROUGHNESS = 0.18;", "ROUGHNESS = 1.0; SPECULAR = 0.0;").replace("METALLIC = 0.15;", "METALLIC = 0.0;").replace("ALPHA = mix(0.42, 1.0, smoothstep(0.8, 6.5, d));", "ALPHA = 1.0;")
-				var sh2 := Shader.new(); sh2.code = code; m.shader = sh2
+				m.set_shader_parameter("debug_depth", dbg_sea)
 	if "--noterrain" in args:
 		if lvl.terrain.mesh_instance: lvl.terrain.mesh_instance.visible = false
 		if lvl.terrain.terrain3d: lvl.terrain.terrain3d.visible = false
@@ -50,8 +50,13 @@ func _ready() -> void:
 		lvl.terrain.mesh_instance.material_override = m
 		for c in lvl.environment.get_children():
 			if c is WorldEnvironment:
-				c.environment.sky.sky_material.ground_bottom_color = Color(1, 0, 1)
-				c.environment.sky.sky_material.ground_horizon_color = Color(1, 0, 1)
+				var skm: Material = c.environment.sky.sky_material
+				if skm is ShaderMaterial:   # world_kit's sky.gdshader
+					skm.set_shader_parameter("ground_bottom_color", Color(1, 0, 1))
+					skm.set_shader_parameter("ground_horizon_color", Color(1, 0, 1))
+				else:
+					skm.ground_bottom_color = Color(1, 0, 1)
+					skm.ground_horizon_color = Color(1, 0, 1)
 				c.environment.fog_enabled = false
 	if "--nocolor" in args or "--small" in args or "--tangents" in args or "--flat" in args:
 		var m0: ArrayMesh = lvl.terrain.mesh_instance.mesh
@@ -112,6 +117,21 @@ func _ready() -> void:
 		var from: Vector3 = p + f * 45.0 + Vector3(0, 22, 0)
 		from.y = maxf(from.y, t.height_at(from.x, from.z) + 12.0)
 		cams.append([from, p + Vector3(0, 3, 0)])
+	var spots_arg := game.cli.get_string("spots", "")
+	if spots_arg != "":
+		# named spots from reference/spots.json: {"name": {"from": [x,y,z], "at": [x,y,z]}}
+		cams = []
+		spot_names = []
+		var f := FileAccess.open("res://reference/spots.json", FileAccess.READ)
+		var table: Dictionary = JSON.parse_string(f.get_as_text()) if f else {}
+		for nm in spots_arg.split(","):
+			if not table.has(nm):
+				push_error("no such spot: " + nm); continue
+			var sp: Dictionary = table[nm]
+			var from := Vector3(sp.from[0], sp.from[1], sp.from[2]); var at := Vector3(sp.at[0], sp.at[1], sp.at[2])
+			if sp.get("ground_relative", false):
+				from.y += t.height_at(from.x, from.z); at.y += t.height_at(at.x, at.z)
+			cams.append([from, at]); spot_names.append(nm)
 	if "--close" in args:
 		# rider's-eye views: 2.2 m above the road, looking 35 m along it
 		cams = []
@@ -144,7 +164,7 @@ func _process(_d: float) -> void:
 	frame += 1
 	if frame % 5 == 0:
 		var img := get_tree().root.get_texture().get_image()
-		var p := "%s/view_%d.png" % [out, idx]
+		var p := "%s/%s.png" % [out, spot_names[idx] if idx < spot_names.size() else "view_%d" % idx]
 		img.save_png(p)
 		print("saved ", p)
 		idx += 1

@@ -8,7 +8,7 @@ extends RefCounted
 ## Gameplay systems read this database; they never have to know whether a chunk is loaded.
 
 var chunk_size := 120.0
-var records: Dictionary = {}       # Vector2i -> Array[Callable]
+var records: Dictionary = {}       # Vector2i -> Array[Recipe]
 var locations: Dictionary = {}     # StringName -> {pos: Vector3, facing: Vector3, name: String}
 var hubs: Dictionary = {}          # StringName -> Hub
 var record_count := 0
@@ -28,12 +28,28 @@ func chunk_origin(c: Vector2i) -> Vector3:
 
 ## Add a build recipe at world XZ. The Callable takes no arguments; the chunk sets the kit's
 ## `sink` before running it, so builders just build.
-func add(x: float, z: float, builder: Callable) -> void:
-	var c := chunk_of(x, z)
-	if not records.has(c):
-		records[c] = []
-	records[c].append(builder)
+##
+## `radius` is how far the geometry reaches from (x, z). Leave it at 0 for anything that fits
+## inside its own chunk; give it a real number for a hub, an arcade or a promenade, and the
+## recipe is filed into every chunk it touches and built by whichever loads first.
+func add(x: float, z: float, builder: Callable, radius: float = 0.0) -> void:
+	var recipe := Recipe.new(builder, Vector2(x, z), radius)
+	for c in (recipe.chunks(chunk_size) if radius > 0.0 else [chunk_of(x, z)] as Array[Vector2i]):
+		if not records.has(c): records[c] = []
+		records[c].append(recipe)
 	record_count += 1
+
+
+## Every recipe that reaches beyond the chunk it was filed at.
+func oversize() -> Array[Recipe]:
+	var seen: Dictionary = {}
+	var out: Array[Recipe] = []
+	for c in records:
+		for r in records[c]:
+			if r.radius > 0.0 and not seen.has(r):
+				seen[r] = true
+				out.append(r)
+	return out
 
 
 func records_in(c: Vector2i) -> Array:

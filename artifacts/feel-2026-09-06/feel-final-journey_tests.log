@@ -1,0 +1,75 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:79)
+         [1] _init (res://world/terrain/terrain.gd:69)
+         [2] build_terrain (res://world/island/island.gd:129)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:579)
+         [1] build (res://world/terrain/terrain.gd:426)
+         [2] build_terrain (res://world/island/island.gd:139)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 971, "t3d_setup": 151, "t3d_maps": 740, "t3d_import": 31, "ground_cover": 1055, "ground_cover_n": 271298 }
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3421 road nodes, seven-day routines
+[game] world generated in 4081 ms (4585 recipes in 385 chunks); tree 7684 nodes
+PASS stopped courier opens a local counter
+PASS counter blocks controls and pauses automatic handoff
+PASS browsing at pickup does not collect a parcel behind the panel
+PASS journal cannot steal an open counter's input
+PASS local board has three distinct load/reward choices
+PASS heavy offer selects existing local route
+PASS offer closes board and configures its advertised load/reward
+[game] package collected at t=1.5
+PASS collecting selected parcel changes real bike payload metadata
+PASS a carried parcel cannot be replaced at the board
+PASS load restores chosen parcel without transactions or duplicated collection
+PASS courier can rest at Villa Rosa
+PASS rest advances calendar to next day at08:00
+PASS rest preserves the parcel and does not invent completed resident work
+PASS fuel uses actual travel distance and cargo weight
+PASS waiting at a counter does not consume fuel
+[game] DELIVERY COMPLETED #1 at t=2.3 (odometer 1000 m)
+PASS selected heavy route pays its advertised reward once
+PASS default chain continues and original job resource remains unchanged
+PASS next village offers workshop services
+PASS rest is only available at the courier's home
+PASS full refill charges exact missing fuel cost
+PASS a full tank cannot charge coins again
+PASS first engine upgrade spends earned coins and updates level
+PASS second engine upgrade uses its own price
+PASS unaffordable upgrade is an atomic no-op
+PASS third engine upgrade applies once
+PASS maximum engine level cannot charge again
+PASS empty broke courier gets20percent station reserve
+PASS reserve fuel cannot refill beyond its limit
+PASS fuel and engine save/load restore real bike metadata
+PASS journey is registered with the game save provider
+PASS Escape closes counter without immediate gameplay click-through
+PASS controls and handoffs resume after closing
+PASS fragile offer is selectable before collection
+[game] package collected at t=2.6
+PASS unrelated vehicle crash cannot damage carried cargo
+PASS courier crash reduces fragile condition and the real payout
+PASS one collision cannot repeatedly damage a parcel in consecutive frames
+PASS save/load preserves fragile condition and payout
+PASS gentle landings preserve fragile cargo
+PASS hard landing damages fragile cargo
+[game] DELIVERY COMPLETED #2 at t=2.6 (odometer 1000 m)
+PASS handoff pays adjusted fragile value exactly once
+PASS remote actions cannot spend money or select local jobs
+JOURNEY_TESTS_PASS
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

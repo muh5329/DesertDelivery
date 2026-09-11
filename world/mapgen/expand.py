@@ -19,8 +19,12 @@ from scipy import ndimage
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA = os.path.join(ROOT, "data")
 SRC = os.path.join(ROOT, "world", "mapgen", "island_map_720.png")
+SRC_META = os.path.join(ROOT, "world", "mapgen", "island_meta_720.json")
 if not os.path.exists(SRC):
-    shutil.copy(os.path.join(DATA, "island_map.png"), SRC)
+    raise SystemExit(
+        "world/mapgen/island_map_720.png is missing. Run extract.py first.\n"
+        "(It used to fall back to copying data/island_map.png, which fed the already-expanded "
+        "417 px map back through the K scale and produced a wrong world.)")
 
 SIZE0, N0 = 720.0, 241
 SIZE, N = 1248.0, 417
@@ -154,7 +158,7 @@ Image.fromarray(np.stack([sea_map] * 3, -1)).save(os.path.join(DATA, "sea_depth.
 
 # ---------------------------------------------------------------- meta
 meta_path = os.path.join(DATA, "island_meta.json")
-meta = json.load(open(meta_path))
+meta = json.load(open(SRC_META if os.path.exists(SRC_META) else meta_path))
 ppm = meta["img_w"] / SIZE
 def to_px(x, z): return [(x + SIZE / 2) * ppm, z * ppm + meta["img_h"] / 2]
 old_islets = [i for i in meta["islets"] if i[2] > 1.0]
@@ -168,6 +172,22 @@ for x, z, r in extra:
         new_islets.append(to_px(x, z) + [r * ppm])
 meta.update({"islets": old_islets + new_islets, "px_per_m": ppm, "size": SIZE, "sea_size": SEA_SIZE})
 json.dump(meta, open(meta_path, "w"))
+
+# ---------------------------------------------------------------- the map contract
+# Both sides of this pipeline restate the grid, the height encoding and the biome order. Python
+# and GDScript cannot share a source of truth without a generator step, so what earns its keep
+# is the *check*: this sidecar is what the map claims to be, and Terrain._load_map refuses to
+# boot on a mismatch instead of silently filling the world with sea.
+BIOME_NAMES = ["SEA", "LIMESTONE", "FOREST", "FARM", "BADLANDS", "TOWN", "BEACH", "LAKE",
+               "DUNES", "MOOR", "SALTFLAT"]
+json.dump({
+    "size": SIZE,
+    "cell": CELL,
+    "grid": N,
+    "height_min": -10.0,
+    "height_range": 90.0,
+    "biomes": {name: index for index, name in enumerate(BIOME_NAMES)},
+}, open(os.path.join(DATA, "island_map.json"), "w"), indent=1)
 
 # preview
 pal = {0: (20, 60, 140), 1: (230, 225, 210), 2: (40, 90, 40), 3: (170, 170, 60), 4: (200, 110, 60), 5: (190, 80, 60),

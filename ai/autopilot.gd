@@ -18,6 +18,9 @@ var _pin_pos := Vector3.ZERO
 var _reverse_t := 0.0
 var log_enabled := true
 var _log_t := 0.0
+var _progress_index := -1
+var _best_waypoint_distance := INF
+var _no_progress_time := 0.0
 
 
 func setup(p_bike: Bike, p_gm: DeliverySystem, p_terrain: Terrain, p_controls: Controls.Scripted) -> void:
@@ -93,6 +96,7 @@ func _plan(from: Vector3, to: Vector3) -> void:
 	path.reverse()
 	path.append(to)
 	path_i = 0
+	_progress_index=-1; _best_waypoint_distance=INF; _no_progress_time=0
 
 
 func _physics_process(delta: float) -> void:
@@ -152,6 +156,16 @@ func _physics_process(delta: float) -> void:
 			_pinned_t = 0.0
 			controls.press("reset")
 			if log_enabled: print("[autopilot] wedged at %s -> reset to road" % str(pos))
+	# Driving circles or bouncing down a bank is motion, but not route progress.
+	# Keep the existing recovery available in those cases too.
+	var waypoint_distance:=Vector2(look.x-pos.x,look.z-pos.z).length()
+	if path_i!=_progress_index or waypoint_distance<_best_waypoint_distance-1.0:
+		_progress_index=path_i; _best_waypoint_distance=waypoint_distance; _no_progress_time=0
+	else: _no_progress_time+=delta
+	if _no_progress_time>18.0 and to_target>6.0:
+		controls.press("reset")
+		_plan(pos,target)
+		if log_enabled: print("[autopilot] no route progress at %s -> reset and replan"%pos)
 	controls.intent.throttle = throttle
 	controls.intent.brake = brake
 	controls.intent.steer = steer

@@ -30,7 +30,7 @@ const SWIM_DEPTH := 0.6           # how far the capsule origin sits below the su
 
 func _ready() -> void:
 	collision_layer = 4
-	collision_mask = 1 | 2
+	collision_mask = 1 | 2 | 16
 	var cs := CollisionShape3D.new()
 	var sh := CapsuleShape3D.new()
 	sh.radius = 0.28
@@ -135,7 +135,7 @@ func _physics_process(delta: float) -> void:
 	vel.z = horiz.z
 	if is_on_floor():
 		vel.y = -1.0
-		if _intent.jump_pressed:
+		if _intent.pressed(Controls.JUMP):
 			vel.y = jump_speed
 	else:
 		vel.y -= gravity * delta
@@ -151,6 +151,14 @@ func _physics_process(delta: float) -> void:
 	if _speed_now > 0.3:
 		mode = "run" if running else "walk"
 	model.animate(mode, _speed_now / walk_speed, delta, aiming, 1.0, aim_pitch)
+
+
+func camera_speed() -> float:
+	return speed()
+
+
+func camera_top_speed() -> float:
+	return run_speed
 
 
 func speed() -> float:

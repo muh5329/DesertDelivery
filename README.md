@@ -67,7 +67,10 @@ xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --out=/tmp/vie
 xvfb-run godot --path . --rendering-driver opengl3 -- --shots=/tmp/shots --autotest   # + screenshots
 python3 world/mapgen/extract.py [painting.png]   # painting -> world/mapgen/island_map_720.png (the 720 m map)
 python3 world/mapgen/expand.py                   # 720 m map -> data/ (1248 m world with the new land)
-python3 world/mapgen/textures.py                 # bake the procedural ground textures in assets/terrain
+python3 world/mapgen/textures.py                 # pack / bake the ground textures in assets/terrain
+python3 world/mapgen/foliage.py                  # bake the leaf / grass cards in assets/foliage
+xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast --out=/tmp/x
+python3 reference/compare.py /tmp/x/cliff_coast.png reference/ref_cliff_coast.png   # similarity vs the reference
 ```
 
 Debug keys in game: **F3** overlay (fps, chunk, loaded chunks, entities per tier, draw calls...),
@@ -79,7 +82,9 @@ See `ARCHITECTURE.md` for the full picture; `CONTEXT.md` for the domain vocabula
 
 - `core/` – `Game` root (boot + wiring), `Events` bus, `Saves`, definitions, utils
 - `world/` – `WorldManager`, `WorldDatabase` (recipes per chunk, locations, hubs), `WorldStreamer` + `Chunk`, `Terrain` (heightfield → Terrain3D), `WorldKit` builders, the `Island` generator, `mapgen/` (extract, expand, textures)
-- `assets/terrain/` – ground textures (two CC0 ambientCG sets + five baked ones)
+- `assets/terrain/` – ground textures (seven packed CC0 ambientCG sets + four baked ones; see `assets/CREDITS.md`)
+- `assets/rock/`, `assets/trees/` – rock textures and the Quaternius CC0 trees with `leaf.gdshader`
+- `reference/` – reference screenshots, brief, camera spots, `compare.py`, per-round critiques and changelogs
 - `assets/foliage/` – grass / flower / leaf-clump cards (baked by `world/mapgen/foliage.py`) for the tree canopies and Terrain3D's instancer grass
 - `addons/terrain_3d/` – the Terrain3D plugin
 - `entities/` – `EntityManager` (ids + simulation tiers), player (`Player`, `Rider`, `RiderModel`), vehicles (`Vehicle` base, `Bike`), camera

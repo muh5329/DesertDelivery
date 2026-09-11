@@ -58,6 +58,7 @@ func load_game(slot: String = "quick") -> bool:
 # JSON has no Vector3: encode as {"__v3": [x, y, z]} recursively.
 func _encode(v: Variant) -> Variant:
 	if v is Vector3: return {"__v3": [v.x, v.y, v.z]}
+	if v is Vector2i: return {"__v2i": [v.x, v.y]}
 	if v is Dictionary:
 		var out := {}
 		for k in v.keys(): out[String(k)] = _encode(v[k])
@@ -75,6 +76,9 @@ func _decode(v: Variant) -> Variant:
 		if v.has("__v3"):
 			var a: Array = v["__v3"]
 			return Vector3(a[0], a[1], a[2])
+		if v.has("__v2i"):
+			var a: Array = v["__v2i"]
+			return Vector2i(int(a[0]), int(a[1]))
 		var out := {}
 		for k in v.keys(): out[k] = _decode(v[k])
 		return out

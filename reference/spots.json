@@ -1,0 +1,145 @@
+{
+ "cliff_coast": {
+  "from": [
+   -598,
+   38,
+   -326
+  ],
+  "at": [
+   -522,
+   5,
+   -200
+  ],
+  "ground_relative": false
+ },
+ "cliff_coast_b": {
+  "from": [
+   -560,
+   30,
+   -80
+  ],
+  "at": [
+   -500,
+   20,
+   -250
+  ],
+  "ground_relative": false
+ },
+ "cliff_arch": {
+  "from": [
+   -604,
+   15,
+   -322
+  ],
+  "at": [
+   -549,
+   12,
+   -250
+  ],
+  "ground_relative": false
+ },
+ "arch_close": {
+  "from": [
+   -556,
+   16,
+   -296
+  ],
+  "at": [
+   -548,
+   14,
+   -236
+  ],
+  "ground_relative": false
+ },
+ "villa": {
+  "from": [
+   -290,
+   40,
+   60
+  ],
+  "at": [
+   -326,
+   6,
+   3
+  ],
+  "ground_relative": false
+ },
+ "harbour": {
+  "from": [
+   104,
+   24,
+   -69
+  ],
+  "at": [
+   260,
+   10,
+   -190
+  ],
+  "ground_relative": false
+ },
+ "lake": {
+  "from": [
+   100,
+   30,
+   150
+  ],
+  "at": [
+   167,
+   -2,
+   205
+  ],
+  "ground_relative": false
+ },
+ "tree_close": {
+  "from": [
+   -369,
+   1.6,
+   30
+  ],
+  "at": [
+   -378,
+   3.5,
+   24
+  ],
+  "ground_relative": true
+ },
+ "plateau": {
+  "from": [
+   -462,
+   44,
+   -130
+  ],
+  "at": [
+   -520,
+   8,
+   -300
+  ],
+  "ground_relative": false
+ },
+ "apron_close": {
+  "from": [
+   -575,
+   9,
+   -262
+  ],
+  "at": [
+   -560,
+   2,
+   -236
+  ],
+  "ground_relative": false
+ },
+ "islet_far": {
+  "from": [
+   -598,
+   38,
+   -326
+  ],
+  "at": [
+   -640,
+   20,
+   60
+  ],
+  "ground_relative": false
+ }
+}

@@ -1,0 +1,47 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+OpenGL API 4.1 Metal - 90.5 - Compatibility - Using Device: Apple - Apple M4 Pro
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:79)
+         [1] _init (res://world/terrain/terrain.gd:69)
+         [2] build_terrain (res://world/island/island.gd:108)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:579)
+         [1] build (res://world/terrain/terrain.gd:426)
+         [2] build_terrain (res://world/island/island.gd:118)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+[terrain] build stages ms: { "heightfield": 975, "t3d_setup": 197, "t3d_maps": 729, "t3d_import": 34, "ground_cover": 1086, "ground_cover_n": 280684 }
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3421 road nodes, seven-day routines
+[game] world generated in 4169 ms (4593 recipes in 385 chunks); tree 7423 nodes
+PASS Journal opens
+PASS Journal opens with selected resident focused
+PASS Keyboard focus scrolls distant residents into view
+PASS Journal blocks player controls
+PASS Journal clicks cannot fire or move
+PASS Portraits render from character model
+PASS Search finds resident
+PASS Search updates selected page
+PASS Editing notes updates saved record
+PASS Notes survive save/load
+PASS Empty search has clean state
+PASS Compressed overnight band preserves exact schedule boundaries
+PASS Compressed chart tooltip resolves actual task times
+PASS Monday itinerary includes weekly override
+CATALOGUE_SCREENSHOT /tmp/catalogue_final.png
+CATALOGUE_SMALL_SCREENSHOT /tmp/catalogue_final_1280.png
+PASS Escape closes and guards game quit
+PASS Closing frame still blocks gameplay
+PASS Gameplay resumes after closing input clears
+CATALOGUE_TESTS_PASS

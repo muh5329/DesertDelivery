@@ -1,0 +1,20 @@
+{
+ "size": 1248.0,
+ "cell": 3.0,
+ "grid": 417,
+ "height_min": -10.0,
+ "height_range": 90.0,
+ "biomes": {
+  "SEA": 0,
+  "LIMESTONE": 1,
+  "FOREST": 2,
+  "FARM": 3,
+  "BADLANDS": 4,
+  "TOWN": 5,
+  "BEACH": 6,
+  "LAKE": 7,
+  "DUNES": 8,
+  "MOOR": 9,
+  "SALTFLAT": 10
+ }
+}

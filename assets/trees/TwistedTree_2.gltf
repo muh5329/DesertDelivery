@@ -1,0 +1,253 @@
+{
+ "asset": {
+  "generator": "trees.py (Quaternius Stylized Nature, CC0)",
+  "version": "2.0"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "TwistedTree_2"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "TwistedTree_2",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 4,
+      "NORMAL": 5,
+      "TEXCOORD_0": 6
+     },
+     "indices": 7,
+     "material": 1
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "Bark_TwistedTree",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 1
+    },
+    "metallicFactor": 0
+   }
+  },
+  {
+   "alphaCutoff": 0.20000000298023224,
+   "alphaMode": "MASK",
+   "doubleSided": true,
+   "name": "Leaves_TwistedTree",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 2
+    },
+    "metallicFactor": 0
+   }
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  }
+ ],
+ "images": [
+  {
+   "mimeType": "image/png",
+   "name": "Bark_TwistedTree_Normal",
+   "uri": "Bark_TwistedTree_Normal.png"
+  },
+  {
+   "mimeType": "image/png",
+   "name": "Bark_TwistedTree",
+   "uri": "Bark_TwistedTree.png"
+  },
+  {
+   "mimeType": "image/png",
+   "name": "Leaves_TwistedTree_C",
+   "uri": "Leaves_TwistedTree_C.png"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 363068,
+   "uri": "TwistedTree_2.bin"
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 56328,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 56328,
+   "byteLength": 56328,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 112656,
+   "byteLength": 37552,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 150208,
+   "byteLength": 34716,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 184924,
+   "byteLength": 56256,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 241180,
+   "byteLength": 56256,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 297436,
+   "byteLength": 37504,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 334940,
+   "byteLength": 28128,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 4694,
+   "type": "VEC3",
+   "min": [
+    -5.446475505828857,
+    -0.20147468149662018,
+    -4.334892272949219
+   ],
+   "max": [
+    3.0595297813415527,
+    17.562589645385742,
+    2.152212142944336
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 4694,
+   "type": "VEC3",
+   "min": [
+    -0.9995394945144653,
+    -0.9961986541748047,
+    -0.9997455477714539
+   ],
+   "max": [
+    0.9990911483764648,
+    0.9976463317871094,
+    0.9999789595603943
+   ]
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 4694,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5125,
+   "count": 8679,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 4688,
+   "type": "VEC3",
+   "min": [
+    -6.619970321655273,
+    4.4927978515625,
+    -5.540718078613281
+   ],
+   "max": [
+    3.942902088165283,
+    18.74772834777832,
+    3.661869764328003
+   ]
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5126,
+   "count": 4688,
+   "type": "VEC3",
+   "min": [
+    -0.999617338180542,
+    -0.42917805910110474,
+    -0.9981458783149719
+   ],
+   "max": [
+    0.9943201541900635,
+    0.9999916553497314,
+    0.9455768465995789
+   ]
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 4688,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5125,
+   "count": 7032,
+   "type": "SCALAR"
+  }
+ ]
+}

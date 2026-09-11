@@ -1,0 +1,83 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:79)
+         [1] _init (res://world/terrain/terrain.gd:69)
+         [2] build_terrain (res://world/island/island.gd:109)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:579)
+         [1] build (res://world/terrain/terrain.gd:426)
+         [2] build_terrain (res://world/island/island.gd:119)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+[terrain] build stages ms: { "heightfield": 995, "t3d_setup": 147, "t3d_maps": 729, "t3d_import": 32, "ground_cover": 1074, "ground_cover_n": 280684 }
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3421 road nodes, seven-day routines
+[game] world generated in 4106 ms (4568 recipes in 385 chunks); tree 7379 nodes
+PASS aircraft above ring cannot hand off
+[game] package collected at t=0.5
+PASS bike loads the first parcel
+PASS loading an in-progress parcel is silent and preserves stage
+PASS repeated load creates no duplicate collection or reward
+PASS can dismount for a walking delivery
+PASS unattended vehicle in dropoff ring cannot deliver remotely
+PASS jumping resets the handoff timer and cannot deliver
+[game] DELIVERY COMPLETED #1 at t=2.9 (odometer 0 m)
+PASS on-foot handoff pays exactly one actual reward
+PASS return to bike after handoff
+[game] package collected at t=3.6
+PASS job 1 pickup
+[game] DELIVERY COMPLETED #2 at t=4.4 (odometer 0 m)
+PASS job 1 dropoff
+[game] package collected at t=5.2
+PASS job 2 pickup
+[game] DELIVERY COMPLETED #3 at t=6.0 (odometer 0 m)
+PASS job 2 dropoff
+[game] package collected at t=6.8
+PASS job 3 pickup
+[game] DELIVERY COMPLETED #4 at t=7.6 (odometer 0 m)
+PASS job 3 dropoff
+[game] package collected at t=8.4
+PASS job 4 pickup
+[game] DELIVERY COMPLETED #5 at t=9.2 (odometer 0 m)
+PASS job 4 dropoff
+[game] package collected at t=10.0
+PASS job 5 pickup
+[game] DELIVERY COMPLETED #6 at t=10.8 (odometer 0 m)
+PASS job 5 dropoff
+[game] package collected at t=11.6
+PASS job 6 pickup
+[game] DELIVERY COMPLETED #7 at t=12.5 (odometer 0 m)
+PASS job 6 dropoff
+[game] package collected at t=13.3
+PASS job 7 pickup
+[game] DELIVERY COMPLETED #8 at t=14.1 (odometer 0 m)
+PASS job 7 dropoff
+[game] package collected at t=14.9
+PASS job 8 pickup
+[game] DELIVERY COMPLETED #9 at t=15.7 (odometer 0 m)
+PASS job 8 dropoff
+[game] package collected at t=16.5
+PASS job 9 pickup
+[game] DELIVERY COMPLETED #10 at t=17.3 (odometer 0 m)
+PASS job 9 dropoff
+PASS all ten deliveries finish and rewards balance
+PASS completed job set reloads without a phantom target
+PASS completed job cannot pay twice
+PASS carried job follows a switch to the truck
+[game] DELIVERY COMPLETED #1 at t=18.1 (odometer 0 m)
+PASS truck handoff completes through real overlap and stop
+DELIVERY TESTS: PASS (0 failures)
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

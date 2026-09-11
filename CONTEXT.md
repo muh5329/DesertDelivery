@@ -63,6 +63,12 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   **colour map** (tints: field strips, heather, seabed depth), and imports all three. `height_at` /
   `normal_at` read Terrain3D's data afterwards, so gameplay stands on exactly what is drawn.
 - **WorldKit** — the builders every level shares (houses, kits, arcades, sea); `Level` is the island.
+- **RockGen** — `world/kit/rock_gen.gd` builds every rock mesh (boulders, cliff walls, arches,
+  stacks, talus) as bedded limestone with baked crease occlusion; `rock.gdshader` lights it with a
+  warm sun term, a sun-gated cool shade fill and a sky fill on the tops.
+- **Atmosphere** — the one dict in `WorldKit` that sets the sun (yaw/elevation/colour), ambient,
+  fog, sky shader stops, clouds and sea colours; the reference look lives there, and
+  `reference/` holds the targets it is measured against (`BRIEF.md`, `compare.py`, spots).
 
 ## Architecture (see ARCHITECTURE.md)
 

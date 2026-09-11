@@ -139,6 +139,7 @@ xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --nostream --n
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=feature_shots --out=/tmp/fshots
 ROAD=3 godot --headless --path . -- --test=road_dump            # road profiles / bridges
 PX=.. PY=.. PZ=.. godot --headless --path . -- --test=near_probe --nostream
+xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast,villa --out=DIR   # reference spots (reference/spots.json)
 ```
 
 ## Adding an NPC or a car (the point of all this)

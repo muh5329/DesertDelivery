@@ -28,90 +28,55 @@ const THIGH := 0.42
 const SHIN := 0.40
 
 
+const MODEL = preload("res://assets/models/courier_character.glb")
+
 func _ready() -> void:
-	var skin := Mats.solid(SKIN, 0.8)
-	var hair := Mats.solid(HAIR, 0.75)
-	var shirt := Mats.solid(SHIRT, 0.85)
-	var scarf := Mats.solid(SCARF, 0.8)
-	var trouser := Mats.solid(TROUSER, 0.9)
-	var boot := Mats.solid(BOOT, 0.8)
-	var strap := Mats.solid(STRAP, 0.9)
-
-	root = Node3D.new()
-	root.name = "Root"
-	root.position = Vector3(0, HIP_H, 0)
-	add_child(root)
-	# pelvis
-	root.add_child(Mats.sphere(0.15, trouser, Vector3(0, 0.02, 0), Vector3(1.2, 0.7, 1.0)))
-	# legs
-	leg_l = _leg(root, -0.09, trouser, boot)
-	leg_r = _leg(root, 0.09, trouser, boot)
-	# torso
-	torso = Node3D.new()
-	torso.position = Vector3(0, 0.08, 0)
-	root.add_child(torso)
-	torso.add_child(Mats.capsule(0.15, 0.40, shirt, Vector3(0, 0.30, 0), Vector3.ZERO, Vector3(1.15, 1.0, 0.75)))
-	for sx in [-0.07, 0.07]:
-		torso.add_child(Mats.box(Vector3(0.035, 0.42, 0.012), strap, Vector3(sx, 0.30, -0.125)))
-		# Y-back: two straps meeting between the shoulder blades
-		torso.add_child(Mats.box(Vector3(0.035, 0.26, 0.012), strap, Vector3(sx * 0.5, 0.40, 0.125), Vector3(0, 0, sx * -2.4)))
-	torso.add_child(Mats.box(Vector3(0.035, 0.22, 0.012), strap, Vector3(0, 0.16, 0.125)))
-	torso.add_child(Mats.cylinder(0.05, 0.1, skin, Vector3(0, 0.56, 0)))
-	torso.add_child(Mats.sphere(0.09, scarf, Vector3(0, 0.54, 0), Vector3(1.4, 0.55, 1.2)))
-	# head
-	head = Node3D.new()
-	head.position = Vector3(0, 0.74, 0)
-	torso.add_child(head)
-	head.add_child(Mats.sphere(0.155, skin, Vector3.ZERO, Vector3(0.95, 1.05, 0.95)))
-	head.add_child(Mats.sphere(0.17, hair, Vector3(0, 0.055, 0.02), Vector3(1.0, 0.85, 1.0)))
-	head.add_child(Mats.sphere(0.09, hair, Vector3(0.0, 0.15, -0.02), Vector3(1.4, 0.7, 1.2)))
-	head.add_child(Mats.sphere(0.06, hair, Vector3(0.09, 0.14, -0.05), Vector3(1.0, 1.3, 1.0)))
-	head.add_child(Mats.sphere(0.06, hair, Vector3(-0.08, 0.15, -0.03), Vector3(1.0, 1.3, 1.0)))
-	var eye := Mats.solid(Color(0.25, 0.16, 0.1), 0.4)
-	head.add_child(Mats.sphere(0.018, eye, Vector3(0.05, 0.01, -0.14)))
-	head.add_child(Mats.sphere(0.018, eye, Vector3(-0.05, 0.01, -0.14)))
-	# arms
-	arm_l = _arm(torso, -0.20, shirt, skin, boot)
-	arm_r = _arm(torso, 0.20, shirt, skin, boot)
+	var model: Node3D = MODEL.instantiate()
+	add_child(model)
+	root = model.find_child("Root", true, false)
+	torso = model.find_child("Torso", true, false)
+	head = model.find_child("Head", true, false)
+	arm_l = model.find_child("ArmL", true, false)
+	arm_r = model.find_child("ArmR", true, false)
+	leg_l = model.find_child("LegL", true, false)
+	leg_r = model.find_child("LegR", true, false)
+	for arm in [arm_l, arm_r]:
+		var elbow: Node3D = arm.find_child("Elbow*", true, false)
+		elbow.name = "Elbow"
+		var hand: Node3D = elbow.find_child("Hand*", true, false)
+		hand.name = "Hand"
+		if arm == arm_r: hand_r = hand
+	for leg in [leg_l, leg_r]:
+		leg.find_child("Knee*", true, false).name = "Knee"
 
 
-func _leg(parent: Node3D, sx: float, trouser: Material, boot: Material) -> Node3D:
-	var piv := Node3D.new()
-	piv.position = Vector3(sx, 0, 0)
-	parent.add_child(piv)
-	# wide breeches on the thigh, gathered just below the knee, then a sock/shin and a boot
-	piv.add_child(Mats.limb(Vector3.ZERO, Vector3(0, -THIGH, 0), 0.10, trouser))
-	var knee := Node3D.new()
-	knee.name = "Knee"
-	knee.position = Vector3(0, -THIGH, 0)
-	piv.add_child(knee)
-	knee.add_child(Mats.limb(Vector3.ZERO, Vector3(0, -0.12, 0), 0.095, trouser))
-	knee.add_child(Mats.limb(Vector3(0, -0.10, 0), Vector3(0, -SHIN, 0), 0.055, Mats.solid(Color(0.62, 0.52, 0.32), 0.9)))
-	knee.add_child(Mats.box(Vector3(0.13, 0.11, 0.27), boot, Vector3(0, -SHIN - 0.02, -0.04)))
-	return piv
+func pose_riding() -> void:
+	root.position = Vector3(0, 1.10, 0.25)
+	torso.rotation.x = -0.28
+	for side in [-1.0, 1.0]:
+		var leg := leg_l if side < 0 else leg_r
+		leg.rotation = Vector3(1.20, side * -0.25, side * 0.30)
+		leg.get_node("Knee").rotation.x = -1.53
+		var arm := arm_l if side < 0 else arm_r
+		arm.rotation = Vector3(0.85, 0, side * 0.13)
+		arm.scale.y = 1.35
+		arm.get_node("Elbow").rotation.x = 0.35
 
 
-func _arm(parent: Node3D, sx: float, shirt: Material, skin: Material, glove: Material) -> Node3D:
-	var piv := Node3D.new()
-	piv.position = Vector3(sx, 0.50, 0)
-	parent.add_child(piv)
-	piv.add_child(Mats.sphere(0.07, shirt, Vector3.ZERO))
-	piv.add_child(Mats.limb(Vector3.ZERO, Vector3(0, -0.18, 0), 0.058, shirt))         # rolled sleeve
-	piv.add_child(Mats.cylinder(0.066, 0.06, shirt, Vector3(0, -0.19, 0), Vector3.ZERO, 10))  # sleeve roll
-	piv.add_child(Mats.limb(Vector3(0, -0.2, 0), Vector3(0, -0.26, 0), 0.045, skin))
-	var elbow := Node3D.new()
-	elbow.name = "Elbow"
-	elbow.position = Vector3(0, -0.26, 0)
-	piv.add_child(elbow)
-	elbow.add_child(Mats.limb(Vector3.ZERO, Vector3(0, -0.24, 0), 0.045, skin))
-	var hand := Node3D.new()
-	hand.name = "Hand"
-	hand.position = Vector3(0, -0.27, 0)
-	elbow.add_child(hand)
-	hand.add_child(Mats.sphere(0.055, glove, Vector3.ZERO, Vector3(1, 0.8, 1.2)))
-	if sx > 0.0:
-		hand_r = hand
-	return piv
+func set_palette(shirt_color: Color, trouser_color: Color, hair_color: Color, skin_color: Color) -> void:
+	for node in find_children("*", "MeshInstance3D", true, false):
+		for index in range(node.mesh.get_surface_count()):
+			var original: Material = node.mesh.surface_get_material(index)
+			if not original is StandardMaterial3D: continue
+			var tint := Color.TRANSPARENT
+			if original.resource_name.begins_with("Shirt"): tint = shirt_color
+			elif original.resource_name.begins_with("Trousers"): tint = trouser_color
+			elif original.resource_name.begins_with("Hair"): tint = hair_color
+			elif original.resource_name.begins_with("Skin"): tint = skin_color
+			if tint.a > 0:
+				var mat: StandardMaterial3D = original.duplicate()
+				mat.albedo_color = tint
+				node.set_surface_override_material(index, mat)
 
 
 ## Conventions (model faces -Z): a POSITIVE rotation.x on a limb pivot swings the limb FORWARD.

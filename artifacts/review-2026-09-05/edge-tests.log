@@ -1,0 +1,46 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:79)
+         [1] _init (res://world/terrain/terrain.gd:69)
+         [2] build_terrain (res://world/island/island.gd:108)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:579)
+         [1] build (res://world/terrain/terrain.gd:426)
+         [2] build_terrain (res://world/island/island.gd:118)
+         [3] generate (res://world/island/island.gd:87)
+         [4] setup (res://world/world_manager.gd:31)
+         [5] _boot_world (res://core/app/game.gd:83)
+         [6] _ready (res://core/app/game.gd:62)
+[terrain] build stages ms: { "heightfield": 991, "t3d_setup": 160, "t3d_maps": 748, "t3d_import": 32, "ground_cover": 1118, "ground_cover_n": 281360 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:144)
+         [1] generate (res://world/island/island.gd:88)
+         [2] setup (res://world/world_manager.gd:31)
+         [3] _boot_world (res://core/app/game.gd:83)
+         [4] _ready (res://core/app/game.gd:62)
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3421 road nodes, seven-day routines
+[game] world generated in 4182 ms (4585 recipes in 385 chunks); tree 7411 nodes
+[test] speed after 3 s throttle: 23.4 m/s
+  PASS bike accelerates
+[test] min speed while holding the brake after stopping: 0.00, speed after re-press: -3.18
+  PASS holding the brake to a stop never rolls into reverse
+  PASS reverse engages after releasing and re-pressing the brake
+  PASS camera stays behind the bike while reversing
+[test] sea resets: 1, bike y now: 8.02
+  PASS bike auto-resets after falling into the sea
+  PASS bike is back on land
+EDGE TESTS: PASS (0 failures)
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

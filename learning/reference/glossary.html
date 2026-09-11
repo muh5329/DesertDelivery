@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reference — Design vocabulary</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body class="sheet">
+
+<header class="masthead">
+  <p class="eyebrow">Reference sheet · Desert Delivery</p>
+  <h1>Design vocabulary</h1>
+  <p class="standfirst">The words used to talk about the <em>shape</em> of this code. Grows by at
+  most two per lesson. For what the words in the <em>game</em> mean — Rider, Hub, Ring, Recipe —
+  see <a href="../../CONTEXT.md">CONTEXT.md</a> in the repo.</p>
+</header>
+
+<h2>Introduced so far</h2>
+
+<dl class="gloss">
+  <dt>Interface <span style="font-weight:400;color:#8a867c;font-size:.8rem">— lesson 01</span></dt>
+  <dd>Everything a caller must know to use a module correctly: the signature, but also ordering
+  constraints, invariants, error modes, required configuration and performance characteristics.
+  <span class="here">Here: <code>GroundDrive</code>'s interface includes "set <code>intent</code>
+  and <code>mods</code> before calling <code>step()</code>" — an ordering rule no type enforces.</span>
+  <span class="avoid">Don't say: API, signature. Both are narrower — they mean only the
+  type-level surface, and the expensive part of an interface is never the types.</span></dd>
+
+  <dt>Seam <span style="font-weight:400;color:#8a867c;font-size:.8rem">— lesson 01</span></dt>
+  <dd>A place where you can alter behaviour without editing in that place. <em>(Michael
+  Feathers.)</em>
+  <span class="here">Here: <code>Controls.Source</code>. Swap Keyboard for Scripted and the bike's
+  physics is unchanged and unaware — which is why the test suites drive the real bike rather than
+  a copy of it.</span>
+  <span class="avoid">Don't say: boundary. It is overloaded with DDD's "bounded context" and will
+  send a reader somewhere else.</span></dd>
+</dl>
+
+<h2>Not yet introduced</h2>
+
+<p>Listed so you know the shape of what is coming, and so you can ask for one early if you hit
+something it would explain. Do not try to learn these from this list — they need a lesson each.</p>
+
+<dl class="gloss">
+  <dt>Module</dt><dd>Anything with an interface and an implementation, at any scale.</dd>
+  <dt>Depth</dt><dd>Leverage at the interface: how much behaviour you get per unit of interface
+  you must learn.</dd>
+  <dt>Adapter</dt><dd>A concrete thing that satisfies an interface at a seam.</dd>
+  <dt>Leverage</dt><dd>What callers get from depth.</dd>
+  <dt>Locality</dt><dd>What maintainers get from depth: change concentrating in one place.</dd>
+  <dt>The deletion test</dt><dd>Imagine deleting the module. Does complexity vanish, or reappear
+  in five callers?</dd>
+</dl>
+
+<div class="callout warn">
+  <div class="h">One inherited definition we reject</div>
+  <p>Ousterhout's <em>A Philosophy of Software Design</em> is where "deep module" comes from, and
+  it is worth reading — but it measures depth as the <strong>ratio of implementation lines to
+  interface lines</strong>. That rewards padding the implementation. Here, depth means
+  <strong>leverage</strong>: behaviour gained per unit of interface learned. Same word, different
+  measure. If you read the book, do not import the ratio.</p>
+</div>
+
+<nav class="footnav">
+  <a href="../lessons/0001-from-key-to-motion.html">Lesson 01</a>
+  <a href="./control-path.html">The control path</a>
+  <a href="../RESOURCES.md">Resources</a>
+</nav>
+
+</body>
+</html>

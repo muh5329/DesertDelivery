@@ -7,3 +7,7 @@ extends Definition
 @export var to_location: StringName
 @export var item := ""
 @export var reward := 0
+
+## Optional board consignment; default route resources retain the original chain.
+@export var cargo_mass_kg := 0.0
+@export var cargo_kind := "standard"

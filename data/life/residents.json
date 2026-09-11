@@ -1,0 +1,6661 @@
+{
+  "version": 1,
+  "residents": [
+    {
+      "id": "resident.00.00",
+      "name": "Mara Bellini",
+      "occupation": "Gardener",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 1",
+      "location": "villa_rosa_office",
+      "transport": "walk",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "garden",
+          "task": "Tend the herb beds",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "garden",
+          "task": "Water and prune the flowers",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.00.01",
+      "name": "Luca Voss",
+      "occupation": "Baker",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 2",
+      "location": "villa_rosa_office",
+      "transport": "walk",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.00.02",
+      "name": "Ines Duarte",
+      "occupation": "Mechanic",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 3",
+      "location": "villa_rosa_office",
+      "transport": "walk",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.00.03",
+      "name": "Theo Moreau",
+      "occupation": "Shopkeeper",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 4",
+      "location": "villa_rosa_office",
+      "transport": "walk",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.00.04",
+      "name": "Rosa Silva",
+      "occupation": "Shepherd",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 5",
+      "location": "villa_rosa_office",
+      "transport": "walk",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "garden",
+          "task": "Check pasture and feed the flock",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "garden",
+          "task": "Maintain pasture fences",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.00.05",
+      "name": "Emil Costa",
+      "occupation": "Teacher",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 6",
+      "location": "villa_rosa_office",
+      "transport": "walk",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.00.06",
+      "name": "Nora Vale",
+      "occupation": "Produce driver",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 7",
+      "location": "villa_rosa_office",
+      "transport": "car",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.00.07",
+      "name": "Pietro Alba",
+      "occupation": "Courier",
+      "district": "Villa Rosa",
+      "home": "Villa Rosa, Cottage 8",
+      "location": "villa_rosa_office",
+      "transport": "car",
+      "route_locations": [
+        "villa_rosa_office",
+        "hilltop_farm"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.00",
+      "name": "Ada Finch",
+      "occupation": "Gardener",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 1",
+      "location": "hilltop_farm",
+      "transport": "walk",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "garden",
+          "task": "Tend the herb beds",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "garden",
+          "task": "Water and prune the flowers",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.01",
+      "name": "Bruno Rossi",
+      "occupation": "Baker",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 2",
+      "location": "hilltop_farm",
+      "transport": "walk",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.02",
+      "name": "Celia Moss",
+      "occupation": "Mechanic",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 3",
+      "location": "hilltop_farm",
+      "transport": "walk",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.03",
+      "name": "Dario Reed",
+      "occupation": "Shopkeeper",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 4",
+      "location": "hilltop_farm",
+      "transport": "walk",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.04",
+      "name": "Elsa Field",
+      "occupation": "Shepherd",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 5",
+      "location": "hilltop_farm",
+      "transport": "walk",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "garden",
+          "task": "Check pasture and feed the flock",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "garden",
+          "task": "Maintain pasture fences",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.05",
+      "name": "Felix Hart",
+      "occupation": "Teacher",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 6",
+      "location": "hilltop_farm",
+      "transport": "walk",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.06",
+      "name": "Greta Lane",
+      "occupation": "Produce driver",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 7",
+      "location": "hilltop_farm",
+      "transport": "car",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.01.07",
+      "name": "Hugo Wood",
+      "occupation": "Courier",
+      "district": "Hilltop Farm",
+      "home": "Hilltop Farm, Cottage 8",
+      "location": "hilltop_farm",
+      "transport": "car",
+      "route_locations": [
+        "hilltop_farm",
+        "harbour_cafe"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.00",
+      "name": "Iris Marin",
+      "occupation": "Fisher",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 1",
+      "location": "harbour_cafe",
+      "transport": "walk",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "fish",
+          "task": "Check the nets along the coast",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "fish",
+          "task": "Fish from the harbour wall",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.01",
+      "name": "Jonas Tide",
+      "occupation": "Baker",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 2",
+      "location": "harbour_cafe",
+      "transport": "walk",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.02",
+      "name": "Kira Sol",
+      "occupation": "Mechanic",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 3",
+      "location": "harbour_cafe",
+      "transport": "walk",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.03",
+      "name": "Leo Ferri",
+      "occupation": "Shopkeeper",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 4",
+      "location": "harbour_cafe",
+      "transport": "walk",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.04",
+      "name": "Mina Cove",
+      "occupation": "Fisher",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 5",
+      "location": "harbour_cafe",
+      "transport": "walk",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "fish",
+          "task": "Check the nets along the coast",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "fish",
+          "task": "Fish from the harbour wall",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.05",
+      "name": "Nico Riva",
+      "occupation": "Teacher",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 6",
+      "location": "harbour_cafe",
+      "transport": "walk",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.06",
+      "name": "Olive Bay",
+      "occupation": "Produce driver",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 7",
+      "location": "harbour_cafe",
+      "transport": "car",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.02.07",
+      "name": "Paolo Rook",
+      "occupation": "Courier",
+      "district": "Harbour",
+      "home": "Harbour, Cottage 8",
+      "location": "harbour_cafe",
+      "transport": "car",
+      "route_locations": [
+        "harbour_cafe",
+        "dunes_lookout"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.00",
+      "name": "Quinn Mesa",
+      "occupation": "Gardener",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 1",
+      "location": "dunes_lookout",
+      "transport": "walk",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "garden",
+          "task": "Tend the herb beds",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "garden",
+          "task": "Water and prune the flowers",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.01",
+      "name": "Rafa Dune",
+      "occupation": "Baker",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 2",
+      "location": "dunes_lookout",
+      "transport": "walk",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.02",
+      "name": "Sana Clay",
+      "occupation": "Mechanic",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 3",
+      "location": "dunes_lookout",
+      "transport": "walk",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.03",
+      "name": "Tomas Flint",
+      "occupation": "Shopkeeper",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 4",
+      "location": "dunes_lookout",
+      "transport": "walk",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.04",
+      "name": "Uma Brook",
+      "occupation": "Shepherd",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 5",
+      "location": "dunes_lookout",
+      "transport": "walk",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "garden",
+          "task": "Check pasture and feed the flock",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "garden",
+          "task": "Maintain pasture fences",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.05",
+      "name": "Vito Sand",
+      "occupation": "Teacher",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 6",
+      "location": "dunes_lookout",
+      "transport": "walk",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.06",
+      "name": "Willa Ash",
+      "occupation": "Produce driver",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 7",
+      "location": "dunes_lookout",
+      "transport": "car",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.03.07",
+      "name": "Xavi Stone",
+      "occupation": "Courier",
+      "district": "Dunes",
+      "home": "Dunes, Cottage 8",
+      "location": "dunes_lookout",
+      "transport": "car",
+      "route_locations": [
+        "dunes_lookout",
+        "monastery"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.00",
+      "name": "Yara Bell",
+      "occupation": "Ranger",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 1",
+      "location": "monastery",
+      "transport": "walk",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "garden",
+          "task": "Inspect the mountain paths",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "garden",
+          "task": "Care for the sanctuary gardens",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.01",
+      "name": "Zeno Hill",
+      "occupation": "Baker",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 2",
+      "location": "monastery",
+      "transport": "walk",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.02",
+      "name": "Alma Pine",
+      "occupation": "Mechanic",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 3",
+      "location": "monastery",
+      "transport": "walk",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.03",
+      "name": "Basil Frost",
+      "occupation": "Shopkeeper",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 4",
+      "location": "monastery",
+      "transport": "walk",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.04",
+      "name": "Clara Fern",
+      "occupation": "Ranger",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 5",
+      "location": "monastery",
+      "transport": "walk",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "garden",
+          "task": "Inspect the mountain paths",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "garden",
+          "task": "Care for the sanctuary gardens",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.05",
+      "name": "Diego Moor",
+      "occupation": "Teacher",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 6",
+      "location": "monastery",
+      "transport": "walk",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.06",
+      "name": "Enzo Bloom",
+      "occupation": "Produce driver",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 7",
+      "location": "monastery",
+      "transport": "car",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.04.07",
+      "name": "Flora Dell",
+      "occupation": "Courier",
+      "district": "San Telmo",
+      "home": "San Telmo, Cottage 8",
+      "location": "monastery",
+      "transport": "car",
+      "route_locations": [
+        "monastery",
+        "quarry"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.00",
+      "name": "Gino Slate",
+      "occupation": "Stonemason",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 1",
+      "location": "quarry",
+      "transport": "walk",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "build",
+          "task": "Cut and dress the limestone",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "build",
+          "task": "Repair the village stonework",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.01",
+      "name": "Hana Grove",
+      "occupation": "Baker",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 2",
+      "location": "quarry",
+      "transport": "walk",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.02",
+      "name": "Ida Rock",
+      "occupation": "Mechanic",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 3",
+      "location": "quarry",
+      "transport": "walk",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.03",
+      "name": "Jules Crane",
+      "occupation": "Shopkeeper",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 4",
+      "location": "quarry",
+      "transport": "walk",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.04",
+      "name": "Kato Vale",
+      "occupation": "Stonemason",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 5",
+      "location": "quarry",
+      "transport": "walk",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "build",
+          "task": "Cut and dress the limestone",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "build",
+          "task": "Repair the village stonework",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.05",
+      "name": "Lena Peak",
+      "occupation": "Teacher",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 6",
+      "location": "quarry",
+      "transport": "walk",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.06",
+      "name": "Mateo Ridge",
+      "occupation": "Produce driver",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 7",
+      "location": "quarry",
+      "transport": "car",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.05.07",
+      "name": "Nina Birch",
+      "occupation": "Courier",
+      "district": "Marble Quarry",
+      "home": "Marble Quarry, Cottage 8",
+      "location": "quarry",
+      "transport": "car",
+      "route_locations": [
+        "quarry",
+        "cala_blanca"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.00",
+      "name": "Oren Gull",
+      "occupation": "Fisher",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 1",
+      "location": "cala_blanca",
+      "transport": "walk",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "fish",
+          "task": "Check the nets along the coast",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "fish",
+          "task": "Fish from the harbour wall",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.01",
+      "name": "Pia Coral",
+      "occupation": "Baker",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 2",
+      "location": "cala_blanca",
+      "transport": "walk",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.02",
+      "name": "Remy Salt",
+      "occupation": "Mechanic",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 3",
+      "location": "cala_blanca",
+      "transport": "walk",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.03",
+      "name": "Sara Pearl",
+      "occupation": "Shopkeeper",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 4",
+      "location": "cala_blanca",
+      "transport": "walk",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.04",
+      "name": "Timo Drift",
+      "occupation": "Fisher",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 5",
+      "location": "cala_blanca",
+      "transport": "walk",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "fish",
+          "task": "Check the nets along the coast",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "fish",
+          "task": "Fish from the harbour wall",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.05",
+      "name": "Vera Shell",
+      "occupation": "Teacher",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 6",
+      "location": "cala_blanca",
+      "transport": "walk",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.06",
+      "name": "Wren Coast",
+      "occupation": "Produce driver",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 7",
+      "location": "cala_blanca",
+      "transport": "car",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.06.07",
+      "name": "Yuri Cove",
+      "occupation": "Courier",
+      "district": "Cala Blanca",
+      "home": "Cala Blanca, Cottage 8",
+      "location": "cala_blanca",
+      "transport": "car",
+      "route_locations": [
+        "cala_blanca",
+        "salinas"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.00",
+      "name": "Ari Brine",
+      "occupation": "Gardener",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 1",
+      "location": "salinas",
+      "transport": "walk",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 0,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 360,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 420,
+          "activity": "garden",
+          "task": "Tend the herb beds",
+          "place": "work"
+        },
+        {
+          "at": 720,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 780,
+          "activity": "garden",
+          "task": "Water and prune the flowers",
+          "place": "work"
+        },
+        {
+          "at": 1020,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1140,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1260,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1320,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.01",
+      "name": "Bea Marsh",
+      "occupation": "Baker",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 2",
+      "location": "salinas",
+      "transport": "walk",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 1,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 363,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 424,
+          "activity": "bake",
+          "task": "Bake bread for the village",
+          "place": "work"
+        },
+        {
+          "at": 723,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 783,
+          "activity": "bake",
+          "task": "Prepare tomorrow’s dough",
+          "place": "work"
+        },
+        {
+          "at": 1023,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1143,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1262,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1322,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.02",
+      "name": "Ciro Pond",
+      "occupation": "Mechanic",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 3",
+      "location": "salinas",
+      "transport": "walk",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#d0b981",
+        "#547b77",
+        "#755342",
+        "#a7724c"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 2,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 366,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 428,
+          "activity": "repair",
+          "task": "Service local vehicles",
+          "place": "work"
+        },
+        {
+          "at": 726,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 786,
+          "activity": "repair",
+          "task": "Repair tools and bicycles",
+          "place": "work"
+        },
+        {
+          "at": 1026,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1146,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1264,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1324,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.03",
+      "name": "Dina Rush",
+      "occupation": "Shopkeeper",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 4",
+      "location": "salinas",
+      "transport": "walk",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#789894",
+        "#ab794e",
+        "#cea768",
+        "#f0ca9c"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 3,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 369,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 432,
+          "activity": "sell",
+          "task": "Open the stall and serve customers",
+          "place": "work"
+        },
+        {
+          "at": 729,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 789,
+          "activity": "sell",
+          "task": "Restock the market stall",
+          "place": "work"
+        },
+        {
+          "at": 1029,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1149,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1266,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1326,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 0,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.04",
+      "name": "Eli White",
+      "occupation": "Shepherd",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 5",
+      "location": "salinas",
+      "transport": "walk",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#8984a1",
+        "#758168",
+        "#503627",
+        "#9f6846"
+      ],
+      "car_color": "#76aa94",
+      "scale": 0.94,
+      "slot": 4,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 372,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 436,
+          "activity": "garden",
+          "task": "Check pasture and feed the flock",
+          "place": "work"
+        },
+        {
+          "at": 732,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 792,
+          "activity": "garden",
+          "task": "Maintain pasture fences",
+          "place": "work"
+        },
+        {
+          "at": 1032,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1152,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1268,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1328,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 1,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.05",
+      "name": "Faye Lake",
+      "occupation": "Teacher",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 6",
+      "location": "salinas",
+      "transport": "walk",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#7893bd",
+        "#d1ad63",
+        "#b9702c",
+        "#e3b77c"
+      ],
+      "car_color": "#d6a34d",
+      "scale": 0.975,
+      "slot": 5,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 375,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 440,
+          "activity": "teach",
+          "task": "Teach the morning class",
+          "place": "work"
+        },
+        {
+          "at": 735,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 795,
+          "activity": "teach",
+          "task": "Read with the afternoon group",
+          "place": "work"
+        },
+        {
+          "at": 1035,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1155,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1270,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1330,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 2,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.06",
+      "name": "Gus Rowan",
+      "occupation": "Produce driver",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 7",
+      "location": "salinas",
+      "transport": "car",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#91a078",
+        "#796344",
+        "#493027",
+        "#c48d63"
+      ],
+      "car_color": "#ad5b46",
+      "scale": 1.01,
+      "slot": 6,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 378,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 444,
+          "activity": "deliver",
+          "task": "Deliver produce around the island",
+          "place": "work"
+        },
+        {
+          "at": 738,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 798,
+          "activity": "deliver",
+          "task": "Collect supplies from neighbouring villages",
+          "place": "work"
+        },
+        {
+          "at": 1038,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1158,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1272,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1332,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 3,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    },
+    {
+      "id": "resident.07.07",
+      "name": "Hope Gale",
+      "occupation": "Courier",
+      "district": "Salinas",
+      "home": "Salinas, Cottage 8",
+      "location": "salinas",
+      "transport": "car",
+      "route_locations": [
+        "salinas",
+        "villa_rosa_office"
+      ],
+      "palette": [
+        "#b96956",
+        "#bdab88",
+        "#302522",
+        "#eac89b"
+      ],
+      "car_color": "#879cab",
+      "scale": 1.045,
+      "slot": 7,
+      "daily": [
+        {
+          "at": 0,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        },
+        {
+          "at": 381,
+          "activity": "eat",
+          "task": "Breakfast and prepare for the day",
+          "place": "home"
+        },
+        {
+          "at": 448,
+          "activity": "deliver",
+          "task": "Carry parcels to the next village",
+          "place": "work"
+        },
+        {
+          "at": 741,
+          "activity": "social",
+          "task": "Lunch with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 801,
+          "activity": "deliver",
+          "task": "Deliver the afternoon post",
+          "place": "work"
+        },
+        {
+          "at": 1041,
+          "activity": "sell",
+          "task": "Buy groceries and run errands",
+          "place": "market"
+        },
+        {
+          "at": 1161,
+          "activity": "social",
+          "task": "Dinner and a walk with neighbours",
+          "place": "cafe"
+        },
+        {
+          "at": 1274,
+          "activity": "read",
+          "task": "Read and relax at home",
+          "place": "home"
+        },
+        {
+          "at": 1334,
+          "activity": "sleep",
+          "task": "Sleep at home",
+          "place": "home"
+        }
+      ],
+      "weekly": [
+        {
+          "day": 4,
+          "at": 900,
+          "until": 990,
+          "activity": "repair",
+          "task": "Weekly equipment maintenance",
+          "place": "work"
+        },
+        {
+          "day": 5,
+          "at": 480,
+          "until": 1020,
+          "activity": "sell",
+          "task": "Saturday community market",
+          "place": "market"
+        },
+        {
+          "day": 6,
+          "at": 480,
+          "until": 1140,
+          "activity": "social",
+          "task": "Sunday rest and visit with neighbours",
+          "place": "cafe"
+        }
+      ]
+    }
+  ]
+}
