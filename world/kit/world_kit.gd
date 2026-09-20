@@ -26,7 +26,7 @@ const DRY := Color(0.58, 0.52, 0.28)
 const PINE := Color(0.14, 0.30, 0.16)
 const HOODOO := Color(0.78, 0.46, 0.26)
 const LIMESTONE := Color(0.86, 0.84, 0.76)
-const SEA_NAVY := Color(0.065, 0.097, 0.164)   # r5: tried x1.1 / bluer (0.070,0.104,0.205): the open water went S0.55 V0.41 but the whole surf zone joined it and the dark-water bins doubled; the r4 value renders #2f415c V0.36 S0.49 (ref #2a3d5e), kept   # deep-band albedo (r2: x0.7 for the 1.6 sun; r3: x1.15 back for exposure 0.57; r4: x1.43 total — open water rendered V0.31 / region p50 0.21, ref #2a3d5e V0.35 / p50 0.26), shared by the sea shader and the abyss floor
+const SEA_NAVY := Color(0.08, 0.29, 0.42)   # clear blue open water
 
 
 ## Overridden by the island: id -> [centre: Vector2, pad radius].
@@ -34,167 +34,56 @@ func hub_table() -> Dictionary:
 	return {}
 
 
-## Atmosphere tunables, in one place so later passes can tweak the look without reading the builder.
-## Colours are sRGB; they were sampled from reference/ref_cliff_coast.png (zenith #8ea8c1, mid sky
-## #a9b5ca, horizon #69809c, pink clouds #b6abbd, far stacks #636a7b, sunlit rock #a78e74).
-## Note for Compatibility: `fog_aerial_perspective` and `shadow_blur` are no-ops on geometry there,
-## so aerial perspective = fog_light_color ~ horizon colour, and shadow softness = PCF quality +
-## shadow-map size in project.godot (rendering/lights_and_shadows/directional_shadow/*).
+## Summer gouache palette shared by sky, water, lighting and fog.
+## Fog carries aerial perspective in Compatibility; PCF carries shadow softness.
 const Atmosphere := {
-	# sky
-	# r3: the rendered sky measured S 0.23 against the reference's 0.14 (#a0a5bb): both ends
-	# desaturated (S 0.28 / 0.42 -> 0.16 / 0.23); the value gradient (darker horizon) is kept
-	# r4: #a6b0c8 -> #9fb0c9 (H210 S0.21): the ref's high sky carries a pale BLUE (H190-210 is 2.7 %
-	# of its frame, 0 % of ours) while the wide glow lobe keeps the pink-peach low
-	# r5 (critique item 4): the r4 sky was one flat grey-lavender field (right column H216-219 constant,
-	# L std 0.03): cloud_cover 0.7 with the 0.22-wide ramp veiled EVERY sky pixel with 30-50 % of the
-	# lilac cloud base, and the sky gradient underneath never showed. The ref grades lilac #a39bb1 H261
-	# at the top of the frame to #88a2bb H209 S0.27 at the horizon band (the bluest, most SATURATED part
-	# of the sky) with L std 0.09. Only elevations 0-25 deg are in frame, so the "top" here is a lilac
-	# that the 0.22 curve blends in above ~6 deg; the horizon is a real blue (S0.43 in, ~S0.30 out after
-	# the grade). Tuned in a numpy copy of the pipeline (lin(sRGB) x energy -> fog_sky_affect -> filmic
-	# -> contrast -> ramp; c1 confirmed the energy is applied in LINEAR, the r2 note above is wrong for 4.7).
-	# c1 (#ab9bbb / #5c8ec6 / 1.25) came out H232 -> 212 at V0.64-0.68: too dark, and the frame's sky
-	# spans only elevations 0-17 deg, so the top colour needs to be the lilac itself, not a blend.
-	# c2 (#c6b2c0 / #7a9fd6 / 0.22) rendered H257 S0.09 V0.71 at the top -> H219 S0.24 V0.76 at y240: the
-	# gradient is there but the blue band was too thin and too lilac (pale-blue bin 1.4 % vs ref 31 %)
-	"sky_top": Color("c6b2c0"),          # c2 value: rendered H257 S0.09 V0.71 at the frame top; d2b2c8 (c3) read pink in cliff_arch          # pale lilac-pink (H260 S0.15): rendered ~H250 S0.14 V0.75 at the frame top (ref #a39bb1)
-	# r6 (item 1): 70a0d8 is V0.85 in, BRIGHTER than sky_top, so the lowest sky rendered V0.78-0.80 against
-	# the ref's 0.71-0.73 at the horizon; 6892c6 (V0.78 S0.47 in) renders ~V0.72 S0.32 at H210
-	# c1 at 6892c6 (H213 in) rendered H213 at y240 and emptied the ref's H180-210 pale-blue bin (score bin edge
-	# at H210): 6898c6 is the same value at H209 in
-	"sky_horizon": Color("6898c6"),      # blue horizon band: 7a9fd6 rendered H219 S0.24 at y240, 68a0da H209 S0.31 but pulled the mid sky out of the ref's H210-240 bin; between
-	"sky_curve": 0.22,
-	# c6: coast_b / cliff_arch frame the sky up to 29 deg and the lilac top covered 20 % of their frames as
-	# a pink sheet (H240-300 S<0.17); the lilac is a haze band, above ~16 deg the sky returns to blue-grey
-	# c7 at #a8b2c8 / 16-40 deg changed nothing measurable: the colour-correction ramp (lift_white
-	# #f5e9ea) turns any low-saturation bright sky pink-grey (#a8b2c8 -> H235 S0.11 -> H278 with the
-	# lilac half); the zenith must be a real blue to survive the grade, and take over by ~25 deg
-	# r6 (item 5): 8fa8cc rendered as a lilac-grey sheet (S0.11-0.13) above 13 deg in coast_b / cliff_arch; a
-	# more saturated blue (S0.39 in) keeps the upper sky in the ref's H210-240 S0.17-0.33 bin, and it takes
-	# over lower (band 11, zenith 24 deg)
-	"sky_zenith": Color("84a4d0"),       # renders ~#8a9ab6 H218 S0.24 (the ref's high sky between the clouds, #a0abc4-class)
-	"sky_band_deg": 11.0,
-	"sky_zenith_deg": 24.0,                   # r5: 0.35 -> 0.24, the lilac owns everything above ~7 deg, the blue band sits low
-	"sky_energy": 1.38,                  # r6: 1.45 -> 1.38 with the darker horizon, the whole sky lands V0.68-0.73 (ref p98 0.68)
-	# r6 (item 1): the ground half of the sky is taken from sky_horizon in _build_environment (a separate
-	# entry drifted: 68a0da under a 70a0d8 sky drew a 4-px cyan line where the sea plane ended)
-	"ground_bottom": Color("55606e"),
-	# clouds MULTIPLY the sky (sky.gdshader). r4 (critique item 11): re-measured, the reference's cloud
-	# bank is LIGHTER and pinker than the sky beside it (#b1a7ba / #b5aec1 V0.76-0.78 H265-290 over a
-	# #9ba5bf zenith): dV +0.02, dH +40 deg — the r3 multipliers (< 1) made invisible dark smears
-	# (c1 at 1.07/1.03 and flat 0.5 was still an invisible smear: the bank must read as lobes)
-	# r5 (item 4): the bank in coast_b was a V0.80-0.85 S0.06 slab across the top third and the water
-	# reflected it (S0.22 vs ref 0.54). Pink stays in the clouds only, a hair lighter than the sky beside
-	# them (dV +0.01..0.04, never > 0.80), and the cover drops so the graded sky shows between them
-	# r6 (item 5): clouds never lighter than the sky (ref cloud V0.74 on sky V0.75)
-	"cloud_mul_edge": Color(0.99, 0.97, 0.99),
-	"cloud_mul_core": Color(1.02, 0.95, 0.97),
-	# c3 at (0.84,0.78,0.84) x flat 0.5: cliff_arch (low camera, more sky) went 10 % H270-300 pink (ref 0.4 %):
-	# the bank is lilac-GREY (ref #a6a9be H235 S0.10), the pink in the ref is a thin edge, not the mass
-	"cloud_base": Color(0.72, 0.70, 0.80),     # r6: a hair darker again (item 5)     # c8: coast_b sky p98 0.82 (target <= 0.78), the cloud cores a touch lower     # the flat stratus colour the smears converge on (x sky_energy)
-	"cloud_flat": 0.4,
-	"cloud_cover": 0.35,                 # 0 = clear, 1 = overcast (noise threshold, soft ramp); r5: 0.7 -> 0.35
+	"sky_top": Color("68afe2"),
+	"sky_horizon": Color("b8d8ee"),
+	"sky_curve": 0.42,
+	"sky_zenith": Color("3a83c4"),
+	"sky_band_deg": 10.0,
+	"sky_zenith_deg": 48.0,
+	"sky_energy": 1.18,
+	"ground_bottom": Color("718f9b"),
+	"cloud_mul_edge": Color("fff4d8"),
+	"cloud_mul_core": Color("b8cad7"),
+	"cloud_base": Color("fffaf0"),
+	"cloud_flat": 0.94,
+	"cloud_cover": 0.47,
 	"cloud_seed": 5,
-	# r4: the narrow lobe toward the sun is PEACH (ref low sky on the sun side #bdaa95 H31), the wide
-	# azimuth-independent cast stays pink-lilac: warm haze low, pale blue high
-	"sky_glow_color": Color("d4b8a8"),   # narrow lobe toward the sun
-	"sky_glow_wide_color": Color("c4b0bb"),   # the wide cast (ref upper-right sky #a09eb5 / #c4b0bb)
-	# r5: with the sun 75 deg ahead-right the narrow lobe now lands IN the frame (right sky column,
-	# d ~0.75): at 0.35 x d^2.5 it would put a peach cast on what the ref shows as its bluest sky, so the
-	# lobe is narrow (power 4) and weak (0.15) again — a warm hint at the sun side, not a haze
-	"sky_glow_amount": 0.10,
-	"sky_glow_power": 4.0,
-	# r3: the wide lobe is azimuth-independent above ~10 deg (sky.gdshader), so the upper sky warms to
-	# a pink-lilac (ref upper-right #a09eb5 H245) even when the sun is behind the camera
-	"sky_glow_wide": 0.35,
-	"sky_glow_wide_color_mul": 0.05,     # r5: 0.28 -> 0.08, the lilac lives in sky_top now; the wide cast only keeps the horizon from going pure blue on the sun side
-	# sun
-	# r4: #ffd6b0 (S0.31) -> #ffe2c6 (S0.22): the reference's lit faces are warm because of the RATIO
-	# to the blue sky-lit shade, not because the sun is orange; the orange sun pushed lit limestone to S0.46
-	"sun_color": Color("ffe2c6"),
-	# 1.25 -> 1.6 (r2): lit:shade on rock was 1.25:1 against the reference's 1.6:1; the sun carries
-	# the lit side up while ambient (below) comes down, so the whole-frame histogram stays put
-	# r3: 1.6 -> 1.4 with ambient 0.25 -> 0.3: with the sun now on the broad faces, lit limestone hit
-	# V 0.96 (blown) and lit:shade 2.0 (ref 1.6); the swap keeps the frame median and lifts the tops
-	"sun_energy": 1.4,
-	# r3: 24 -> 32: at 24 deg a horizontal ledge top got sin 24 = 0.41 of the sun and every top read
-	# as a dark band between pale courses; the reference's tops are its palest rock, which needs >= 30
-	# r4: 32 -> 36 with the yaw below (critique exp2): tops a little paler, the wall shadows shorter
-	"sun_elevation_deg": 36.0,
-	# yaw: rotation_degrees (-el, yaw, 0) is YXZ, so the light travels along
-	# (-sin(yaw)*cos el, -sin el, -cos(yaw)*cos el) and the SUN stands at (sin(yaw)*cos el, sin el,
-	# cos(yaw)*cos el). (The old comment had z's sign wrong, which is how r4 ended up with the sun
-	# behind the camera.) r2's -62 put it in the WSW and the light raked ENE along the west-facing
-	# walls; r3 -120 (WNW) lit the broad NW faces; r4 -150 was meant to be "ahead-left" of the
-	# cliff_coast camera but sat at (-0.40, 0.59, -0.70): 144 deg off the view axis (0.52, 0.86), i.e.
-	# BEHIND-left, so the arch front facing the camera was the lit face (V0.70, ref V0.45 shade) and
-	# shadows fell away from the camera.
-	# r5 -40: sun at (-0.52, 0.59, 0.62), 75 deg ahead-right of the cliff_coast view axis. The arch
-	# front and the walls the camera sees are sky-lit shade (the ref's dominant rock bin, H210-240
-	# S0.17-0.33 V0.33-0.67), the hero wall on the left and the tops carry the sun, shadows fall
-	# toward the camera (critique r5 exp3: cliff_coast 0.633, cliff_arch 0.631, frame p50 0.35 = ref).
-	# Fixed for the round so ROCKS and GROUND tune against it.
+	"sky_glow_color": Color("ffe7b9"),
+	"sky_glow_wide_color": Color("ffefd3"),
+	"sky_glow_amount": 0.08,
+	"sky_glow_power": 7.0,
+	"sky_glow_wide": 0.18,
+	"sky_glow_wide_color_mul": 0.04,
+	"sun_color": Color("fff0d3"),
+	"sun_energy": 1.3,
+	"sun_elevation_deg": 48.0,
 	"sun_yaw_deg": -40.0,
-	"shadow_max_distance": 260.0,
-	# ambient fill (the part of ambient that is not the sky): lilac, so shadows go blue-lilac not grey.
-	# Kept low on purpose: the reference's shadow faces are ~65 % of the lit ones (#5a5d6d vs #ae9985)
-	# r2: the fill was lilac #8a87a0 with the (blue) sky at 0.5 — on dark green leaf albedo that blue
-	# ambient out-voted the sun and every canopy went teal (H 200). Warmer/neutral fill and less sky:
-	# shade sides stay cool grey-olive, not blue.
-	# r4: with the sun ahead of the camera (yaw -150) the faces the camera sees are SKY-LIT shade, and
-	# the reference's shade is #535d73-class (V0.45 S0.27), not navy: the ambient goes up (0.3 -> 0.4),
-	# cooler and more neutral (#95968d -> #a3a6b2) with more of the sky in it (0.25 -> 0.4). The foliage
-	# teal risk that kept it low is gone (leaf.gdshader has ambient_light_disabled since r3)
-	# r5: tried #9ca3b9 (S0.16) for the grey shade rock (H234 S0.10, ref S0.25): it only deepened the
-	# blue in the darkest 5 % (shadow bins H210-240 S0.33-0.5 V<0.17 doubled); the shade saturation is
-	# the rock shader's shade_fill_color (ROCKS), left at the r4 neutral
-	"ambient_color": Color("a3a6b2"),    # cool: shade rock lands blue-grey, shade greens grey-olive
-	"ambient_sky_contribution": 0.4,     # the sky's linear blue is ~3x the fill; 0.5 out-voted every green in r1
-	"ambient_energy": 0.4,
-	# fog: exponential depth fog + height fog + sun-side scatter (all work in Compatibility).
-	# The fog colour sits BELOW the horizon sky (ref far headland #66758a at 300 m under a #7b95b0
-	# sky) so far rock lands under the sky it dissolves into. NOTE (r2): the Compatibility sky shader
-	# applies its energy in sRGB *before* linearising, so the rendered horizon is lin(sRGB x 1.4)
-	# ~ 2.1x the linear colour, while fog is lin(colour) x energy: "fog = sky horizon" is not one
-	# setting, and lifting the fog to it flattened every pillar at 200 m. The far SEA therefore fogs
-	# itself (sea.gdshader FOG output) and converges on the real horizon colour (rebuilt in that shader).
-	# r4: #7190b2 -> #7d94b0 (S 0.37 -> 0.29): on 200-400 m rock the blue fog added S0.3 (villa background
-	# outcrops navy); the ref's far rock is pale grey dissolving (#6f87a4 far stack, #5d6e86 headland)
-	# r5 (item 8): far islets were neutral grey (S0.05, a pink-grey blot at 1550,320) while the ref's far
-	# rock is blue under the sky (S0.30, #7a95b2): fog colour back toward S0.35 H213 at a touch less
-	# energy, and the sun scatter down — with the sun ahead of the camera it bleached the far stacks
-	# c5 tried #6f9ac4 (S0.43) x 1.32 for the ref's brighter far haze (#92b0c8 V0.78): the villa's whole
-	# middle distance went cyan (H180-210 bins +8 % of the frame) and cliff_coast lost 0.02 — the ref's far
-	# brightness is its far ROCK albedo under haze, not the haze; keep S0.35 at 1.18
-	"fog_color": Color("7591b5"),
-	"fog_energy": 1.22,                  # r6 (item 8): 1.18 -> 1.27 cost villa 0.018 / cliff_coast 0.014 (the H210-240 S0.5-0.67 water bin +3.5 %), 1.22 is the compromise at the same colour, far islet V0.51 -> ~0.6 (ref 0.61) under the now-darker sky                  # r4: 1.15 -> 1.22: far stacks sat at V0.56 under a V0.70 sky (ref far headland V0.60-0.68); 1.3 cost villa / arch colour and did nothing for the villa's shade outcrops (the rock's shade fill, ROCKS)
-	"fog_density": 0.0030,               # r4: 0.0026 -> 0.0030: ~37 % at 150 m, ~70 % at 400 m (the ref's ratio)
-	"fog_sun_scatter": 0.15,             # r5: 0.22 -> 0.15 (sun ahead of the camera now)
-	"sea_horizon_gain": 0.82,            # r6 (item 1): 1.0 -> 0.82, the far sea sits ~0.07 V UNDER the sky instead of converging on it            # far-sea fog colour vs the rendered sky horizon; r4: 1.0 -> 0.92, the far sea must sit ~0.05 V under the sky (ref #7992ae under #a1a6bc), with the slide 400-2000 m (sea.gdshader) there is no line
-	"fog_sky_affect": 0.15,             # mixes the WHOLE sky toward fog (no vertical falloff), keep low
-	# r3: 2 m / 0.012 -> 9 m / 0.022: sea-level haze so the islets' feet (0-10 m) are hazier than
-	# their crowns (ref: bases dissolve first). Not distance-scaled, so keep it under ~20 % at y = 0
-	# (round 0's 6 m / 0.035 laid a second haze over the near rocks); the sea fogs itself and ignores it
-	# r4: 9 m / 0.022 -> 12 m / 0.028: a little more sea-level haze under the stacks (still ~24 % at y = 0)
-	"fog_height": 12.0,
-	"fog_height_density": 0.022,         # r6 (item 12): 0.028 -> 0.022, with fog_energy 1.27 the 24 % skirt on the stack feet read pale
-	# grade: the reference is a DARK, contrasty, warm image (darkest 1 % at luminance 0.11, std 0.17,
-	# mean saturation 0.29); distance fog does the desaturating, the grade must not.
-	# r3: the r2 frame floated up (cliff_coast p1 / p50 0.18 / 0.41 vs ref 0.10 / 0.36) when the pale
-	# limestone arrived; exposure 0.68 -> 0.62 and contrast 1.22 -> 1.28 bring the median back
-	# without a black clip (lift_black still holds the floor above 0)
-	"exposure": 0.55,                    # r4: 0.57 -> 0.55, the ambient lift (0.4) floated p1 / p50 to 0.15 / 0.40 (ref 0.10 / 0.35)
-	"tonemap_white": 3.5,
-	"saturation": 1.0,
-	"contrast": 1.28,
+	"shadow_max_distance": 320.0,
+	"ambient_color": Color("c6c8c5"),
+	"ambient_sky_contribution": 0.28,
+	"ambient_energy": 0.48,
+	"fog_color": Color("92aec9"),
+	"fog_energy": 1.0,
+	"fog_density": 0.00065,
+	"fog_sun_scatter": 0.12,
+	"sea_horizon_gain": 0.93,
+	"fog_sky_affect": 0.04,
+	"fog_height": 8.0,
+	"fog_height_density": 0.008,
+	"exposure": 0.61,
+	"tonemap_white": 4.0,
+	"saturation": 1.03,
+	"contrast": 1.08,
 	"brightness": 1.0,
-	"lift_black": Color("0e0d0c"),       # colour-correction ramp ends: barely lifted NEUTRAL black (r4: the blue lift turned cast shadows on warm villa ground navy/maroon) ...
-	"lift_white": Color("f5e9ea"),       # ... and warm-pink whites (the split tone of the reference)
-	"glow_intensity": 0.28,
-	"glow_bloom": 0.04,
-	"glow_threshold": 1.3,               # r3: 0.9 bloomed every lit limestone face (~1.1 linear): soft white islet edges
-	"vignette": 0.10,                    # r6 (item 12): 0.16 -> 0.10, the sky corners fell 0.09 V under the centre row                    # 0 = off; darkening at the corners
+	"lift_black": Color("101b21"),
+	"lift_white": Color("f8faff"),
+	"glow_intensity": 0.18,
+	"glow_bloom": 0.025,
+	"glow_threshold": 1.5,
+	"vignette": 0.035,
 }
 
 
@@ -202,9 +91,7 @@ func _build_environment() -> void:
 	var A := Atmosphere
 	var env := Environment.new()
 	var sky := Sky.new()
-	# sky.gdshader: the ProceduralSkyMaterial gradient + sun halo, but clouds that MULTIPLY the sky
-	# (the built-in cover is additive, so its clouds were always lighter than the sky) and a warm
-	# glow lobe toward the sun
+	# A blue gradient, softly lit cumulus, and a restrained warm sun halo.
 	var sm := ShaderMaterial.new()
 	sm.shader = load("res://world/kit/sky.gdshader")
 	sm.set_shader_parameter("sky_top_color", A.sky_top)
@@ -233,9 +120,7 @@ func _build_environment() -> void:
 	sm.set_shader_parameter("glow_power", A.sky_glow_power)
 	sm.set_shader_parameter("glow_wide", A.sky_glow_wide)
 	sm.set_shader_parameter("glow_wide_color_mul", A.sky_glow_wide_color_mul)
-	# cloud smears: a seamless noise panorama (alpha = cover, red = lobe detail). Built as an Image
-	# (not a NoiseTexture2D) so the alpha can be faded out toward the horizon: the panorama's bottom
-	# rows map to the horizon band, where any cover would smear into a solid ring.
+	# Build the cloud atlas synchronously so the first gameplay frame has the final sky.
 	var cov := _cloud_cover_texture()
 	sm.set_shader_parameter("cloud_strength", 1.0 if cov else 0.0)
 	if cov:
@@ -334,53 +219,35 @@ void fragment() {
 	sink.add_child(layer)
 
 
-## Equirectangular cloud mask: low-frequency 2-octave noise stretched 4:1 horizontally (stratus
-## smears, not cauliflower blobs), thresholded by `cloud_cover` with a WIDE smoothstep so the edges
-## fade over tens of degrees. Alpha = cover, fading to zero in the last degrees above the horizon
-## and thinning toward the zenith. Red = lobe detail: a second 2-octave noise at half the wavelength
-## inside the smear, so the sky shader can darken the cores and the smear stops being one flat
-## streak (r2 item 11). Null when clouds are off.
+## Equirectangular cumulus mask: alpha is coverage and red is underside shading.
 func _cloud_cover_texture() -> ImageTexture:
-	var cover: float = Atmosphere.cloud_cover
-	if cover <= 0.0:
-		return null
-	var w := 512
-	var h := 256
-	var cn := FastNoiseLite.new()
-	cn.seed = Atmosphere.cloud_seed
-	cn.frequency = 0.07          # ~14 px wavelength before the stretch: ~10 deg tall, ~40 deg wide bands
-	cn.fractal_octaves = 2
-	cn.fractal_gain = 0.45
-	# seamless at a quarter width, then stretched: the same noise 4x wider than tall
-	var noise_img := cn.get_seamless_image(w / 4, h)
-	noise_img.resize(w, h, Image.INTERPOLATE_CUBIC)
-	# lobes: half the wavelength, stretched only 2:1 so the cores read as rounded masses inside the smear
-	var ln := FastNoiseLite.new()
-	ln.seed = Atmosphere.cloud_seed + 11
-	ln.frequency = 0.14
-	ln.fractal_octaves = 2
-	ln.fractal_gain = 0.5
-	var lobe_img := ln.get_seamless_image(w / 2, h)
-	lobe_img.resize(w, h, Image.INTERPOLATE_CUBIC)
-	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	# FastNoiseLite images sit mostly in 0.3..0.7, so the threshold walks that range; the ramp is
-	# 0.22 wide so a smear fades over ~70 px of panorama rather than cutting out (r4: 0.30 -> 0.22, the
-	# bank must have a solid pink core, not be one thin veil)
-	# r5: ramp 0.22 -> 0.14: at 0.22 nearly every sky pixel carried 30-50 % of the cloud base and the
-	# sky was one veil (item 4); clouds are now banks with edges, and clear sky shows the gradient
-	var lo: float = lerpf(0.72, 0.40, cover)
-	var hi: float = minf(lo + 0.14, 1.0)
-	for y in range(h):
-		var v := float(y) / float(h - 1)            # 0 = zenith, 0.5 = horizon, 1 = nadir
-		# the cameras look down, so the visible sky is the lowest ~12 deg: clouds must reach nearly
-		# to the horizon (as in the reference) and only fade in the last 2 deg; high sky stays clearer
-		var band := (1.0 - smoothstep(0.455, 0.495, v)) * lerpf(0.35, 1.0, smoothstep(0.1, 0.4, v))
-		for x in range(w):
-			var n := noise_img.get_pixel(x, y).r
-			var a := smoothstep(lo, hi, n) * band
-			# cores: where both the smear and the lobe noise are strong; 0 at the smear's thin edges
-			var core := smoothstep(0.42, 0.68, lobe_img.get_pixel(x, y).r) * smoothstep(lo + 0.08, hi + 0.1, n)
-			img.set_pixel(x, y, Color(core, 1.0, 1.0, a))
+	if Atmosphere.cloud_cover <= 0.0: return null
+	# Rounded cumulus clusters with a shared flat underside. Encoding shadow
+	# depth in red keeps the cloud lighting coherent instead of random speckles.
+	const WIDTH := 1024
+	const HEIGHT := 512
+	var img := Image.create(WIDTH, HEIGHT, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0,0,0,0))
+	var random := RandomNumberGenerator.new(); random.seed = Atmosphere.cloud_seed
+	for cloud in range(36):
+		var cx := random.randf_range(0, WIDTH)
+		var cy := random.randf_range(180, 243)
+		var rx := random.randf_range(10, 24)
+		var ry := random.randf_range(5, 12)
+		var lobes := [Vector3(-.72,.10,.58),Vector3(-.28,-.30,.88),Vector3(.28,-.18,.76),Vector3(.76,.13,.51)]
+		for y in range(maxi(0,floori(cy-ry*1.6)),mini(HEIGHT,ceili(cy+ry))):
+			for x in range(floori(cx-rx*1.5),ceili(cx+rx*1.5)):
+				var px := posmod(x, WIDTH)
+				var coverage := 0.0
+				for lobe: Vector3 in lobes:
+					var delta := Vector2((x-cx-lobe.x*rx)/(rx*lobe.z),(y-cy-lobe.y*ry)/(ry*lobe.z))
+					coverage=maxf(coverage,1.0-smoothstep(.88,1.10,delta.length()))
+				coverage *= 1.0-smoothstep(cy+ry*.48,cy+ry*.68,y)
+				var previous := img.get_pixel(px,y)
+				if coverage>previous.a:
+					var shade := smoothstep(cy-ry*.7,cy+ry*.6,y)
+					img.set_pixel(px,y,Color(shade,1,1,coverage*.93))
+	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 
 
@@ -1414,8 +1281,7 @@ static func _tree_parts(model: String, kind: String, scale: float) -> Array[Prop
 		var aabb := m.get_aabb()
 		for s in range(m.get_surface_count()):
 			var src: Material = mi.get_active_material(s)
-			var one := ArrayMesh.new()
-			one.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, m.surface_get_arrays(s))
+			var one := IslandArt.extract_surface(m as ArrayMesh, s)
 			var mat: Material
 			if src != null and src.resource_name.begins_with("Leaves"):
 				var leaf := ShaderMaterial.new()
@@ -1425,7 +1291,7 @@ static func _tree_parts(model: String, kind: String, scale: float) -> Array[Prop
 				leaf.set_shader_parameter("col_lit", look[1])
 				leaf.set_shader_parameter("y_bottom", aabb.position.y + aabb.size.y * float(look[2]))
 				leaf.set_shader_parameter("y_top", aabb.end.y)
-				if look.size() > 3: leaf.set_shader_parameter("ambient_floor", look[3])
+				leaf.set_shader_parameter("ambient_floor", Color(.40,.49,.37))
 				mat = leaf
 			else:
 				# the bark is fully opaque: drop the importer's alpha scissor (discard costs early-Z)
@@ -1516,7 +1382,7 @@ func _spawn_multimesh(parts: Array[PropPart], xforms: Array[Transform3D], colors
 		sink.add_child(body)
 
 
-func _scatter(count: int, min_road: float, min_h: float, max_h: float, max_slope: float, scale_range: Vector2, tint: Color, spread: float, region: Rect2 = Rect2(-Terrain.SIZE * 0.5, -Terrain.SIZE * 0.5, Terrain.SIZE, Terrain.SIZE), hub_clear: float = 26.0) -> Array:
+func _scatter(count: int, min_road: float, min_h: float, max_h: float, max_slope: float, scale_range: Vector2, tint: Color, spread: float, region: Rect2 = Rect2(-Terrain.CORE_SIZE * 0.5, -Terrain.CORE_SIZE * 0.5, Terrain.CORE_SIZE, Terrain.CORE_SIZE), hub_clear: float = 26.0) -> Array:
 	var xforms: Array[Transform3D] = []
 	var colors: Array[Color] = []
 	var tries := 0

@@ -1,0 +1,62 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:95)
+         [1] _init (res://world/terrain/terrain.gd:85)
+         [2] build_terrain (res://world/island/island.gd:258)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:657)
+         [1] build (res://world/terrain/terrain.gd:504)
+         [2] build_terrain (res://world/island/island.gd:269)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 1040, "t3d_setup": 177, "t3d_maps": 1114, "crest_n": 1870, "foot_n": 2348, "t3d_import": 32 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:282)
+         [1] generate (res://world/island/island.gd:211)
+         [2] setup (res://world/world_manager.gd:32)
+         [3] _boot_world (res://core/app/game.gd:84)
+         [4] _ready (res://core/app/game.gd:63)
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[world] 25 km terrain, north viaduct 360 navigation samples
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3642 road nodes, seven-day routines
+[game] world generated in 4209 ms (7053 recipes in 396 chunks); tree 9047 nodes
+[game] package collected at t=0.5
+{ "path": "/root/Game/WorldManager/Environment/OuterIsland25km/@MeshInstance3D@8", "tris": 319352, "instances": 1, "dist": 483.871948242188, "size": "(25000.0, 792.6359, 25000.0)" }
+{ "path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/DD_Paint_courier_bike/CourierBike/Body/Body_Geometry", "tris": 91756, "instances": 1, "dist": 16.0892066955566, "size": "(2.478668, 1.256387, 0.846768)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@7022/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry", "tris": 73504, "instances": 1, "dist": 206.635635375977, "size": "(10.57883, 11.74, 10.90649)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7530/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry", "tris": 73504, "instances": 1, "dist": 255.150344848633, "size": "(9.954559, 11.74, 10.01532)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7852/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry", "tris": 73504, "instances": 1, "dist": 262.314239501953, "size": "(9.957184, 11.74, 10.66541)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5987/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry", "tris": 73504, "instances": 1, "dist": 182.324798583984, "size": "(9.701782, 11.74, 9.443909)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@932/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry", "tris": 73504, "instances": 1, "dist": 51.6813850402832, "size": "(15.04398, 11.74, 14.67242)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7534/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry", "tris": 43360, "instances": 1, "dist": 247.056884765625, "size": "(10.46289, 8.639999, 10.39261)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7856/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry", "tris": 43360, "instances": 1, "dist": 230.028610229492, "size": "(9.888519, 8.639999, 9.983383)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7860/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry", "tris": 43360, "instances": 1, "dist": 249.677337646484, "size": "(9.090729, 8.639999, 10.17116)" }
+{ "path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5983/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry", "tris": 43360, "instances": 1, "dist": 162.035247802734, "size": "(10.98114, 8.639999, 10.82951)" }
+{ "path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt", "tris": 30842, "instances": 1, "dist": 29.195520401001, "size": "(0.546417, 0.348111, 0.207821)" }
+{ "path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt", "tris": 30842, "instances": 1, "dist": 10.366512298584, "size": "(0.233826, 0.456519, 0.706531)" }
+{ "path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt", "tris": 30842, "instances": 1, "dist": 13.3372564315796, "size": "(0.242004, 0.472339, 0.731015)" }
+{ "path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt", "tris": 30842, "instances": 1, "dist": 24.938907623291, "size": "(0.553009, 0.348073, 0.239839)" }
+{ "path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt", "tris": 30842, "instances": 1, "dist": 16.0539398193359, "size": "(0.224243, 0.452113, 0.697325)" }
+{ "path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt", "tris": 30842, "instances": 1, "dist": 16.7667751312256, "size": "(0.217651, 0.424879, 0.657564)" }
+{ "path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt", "tris": 30842, "instances": 1, "dist": 20.9916839599609, "size": "(0.225769, 0.440699, 0.682047)" }
+{ "path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry", "tris": 30724, "instances": 1, "dist": 13.2221441268921, "size": "(0.305725, 0.335735, 0.360453)" }
+{ "path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry", "tris": 30724, "instances": 1, "dist": 20.9242897033691, "size": "(0.29776, 0.326031, 0.298408)" }
+{ "path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry", "tris": 30724, "instances": 1, "dist": 24.8644943237305, "size": "(0.261841, 0.300997, 0.295849)" }
+{ "path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry", "tris": 30724, "instances": 1, "dist": 10.2553558349609, "size": "(0.306091, 0.353502, 0.292272)" }
+{ "path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry", "tris": 30724, "instances": 1, "dist": 16.7627906799316, "size": "(0.285889, 0.329001, 0.314485)" }
+{ "path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry", "tris": 30724, "instances": 1, "dist": 29.1299209594727, "size": "(0.269379, 0.300984, 0.285404)" }
+{ "path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry", "tris": 30724, "instances": 1, "dist": 15.9168081283569, "size": "(0.322845, 0.369322, 0.292246)" }

@@ -35,7 +35,7 @@ const FRAMINGS := {
 	Framing.BIKE:  {"distance": 4.5, "height": 1.55, "look_height": 1.05, "look_ahead": 2.7, "fov": 58.0, "orbit": false,
 		"yaw_base": 0.44, "yaw_gain": 0.23, "dist_gain": 0.7, "fov_gain": 4.5,
 		"pos_ease": 8.0, "height_ease": 4.2, "look_ease": 7.0, "fov_ease": 1.8, "air_lift": 0.0},
-	Framing.FOOT:  {"distance": 3.2, "height": 1.7, "look_height": 1.25, "look_ahead": 1.2, "fov": 58.0, "orbit": true,
+	Framing.FOOT:  {"distance": 6.2, "height": 1.7, "look_height": 1.65, "look_ahead": 1.2, "fov": 64.0, "orbit": true,
 		"yaw_base": 0.55, "yaw_gain": 0.6, "dist_gain": 1.1, "fov_gain": 7.0,
 		"pos_ease": 6.0, "height_ease": 0.0, "look_ease": 11.2, "fov_ease": 3.0, "air_lift": 0.0},
 	Framing.SWIM:  {"distance": 3.6, "height": 1.9, "look_height": 0.5,  "look_ahead": 1.0, "fov": 58.0, "orbit": true,
@@ -50,11 +50,16 @@ const FRAMINGS := {
 }
 ## Looking back is a deliberate swing, not the framing's own easing.
 const LOOK_BACK_YAW := {"base": 0.55, "gain": 0.6}
-const PITCH_MIN := -35.0 * PI / 180.0
-const PITCH_MAX := 55.0 * PI / 180.0
+const PITCH_MIN := -0.35
+const PITCH_MAX := 1.1
 
 @export var pos_smooth := 6.0
 @export var rot_smooth := 8.0
+@export var orbit_recenter := false
+@export var collision_radius := .22
+@export var orbit_recovery_speed := 9.0
+## Red Sea Baron orbit framing/zoom, adapted to this camera's +down pitch.
+@export var orbit_distance := 6.2
 
 var target: Node3D
 var framing: int = Framing.BIKE
@@ -71,11 +76,15 @@ var _initialized := false
 var _shake := 0.0
 var _last_look_t := 0.0
 var _rng := RandomNumberGenerator.new()
+var _orbit_pivot := Vector3.ZERO
+var _boom_distance := 3.4
+var _collision_sphere := SphereShape3D.new()
 
 
 func _ready() -> void:
-	near = 0.15
-	far = 1600.0
+	process_physics_priority = 40
+	near = 0.10
+	far = 30000.0
 	current = true
 	fov = _f.fov
 
@@ -83,6 +92,8 @@ func _ready() -> void:
 # ---------------------------------------------------------------- interface
 func follow(p_target: Node3D, p_framing: int) -> void:
 	var retarget := p_target != target
+	if retarget and is_instance_valid(target) and target.has_method("set_camera_distance"):
+		target.set_camera_distance(INF)
 	target = p_target
 	framing = p_framing
 	_f = FRAMINGS[p_framing]
@@ -90,10 +101,14 @@ func follow(p_target: Node3D, p_framing: int) -> void:
 	_orbit = _f.orbit
 	if not _orbit:
 		_orbit_pitch = 0.0
+	if _orbit and not was_orbit: _orbit_pitch = .27
 	if retarget and not _initialized:
 		snap_to_target()
 	elif _orbit and not was_orbit:
 		_yaw = target.rotation.y
+		_orbit_pitch = .27
+		_orbit_pivot = target.global_position + Vector3.UP * float(_f.look_height)
+		_boom_distance = float(_f.distance)
 
 
 func look(delta: Vector2) -> void:
@@ -101,6 +116,26 @@ func look(delta: Vector2) -> void:
 	_yaw -= delta.x
 	_orbit_pitch = clampf(_orbit_pitch + delta.y, PITCH_MIN, PITCH_MAX)
 	_last_look_t = Time.get_ticks_msec() * 0.001
+	if _orbit: _orient_orbit()
+
+
+## Positive notches zoom outward, as in the source OrbitCamera wheel handler.
+func zoom(notches: float) -> void:
+	if framing != Framing.FOOT: return
+	orbit_distance = clampf(orbit_distance + notches * .5, 3.0, 9.0)
+
+
+func control_yaw() -> float:
+	return _yaw if _orbit else global_rotation.y
+
+
+func _orbit_direction() -> Vector3:
+	return Vector3(-sin(_yaw) * cos(_orbit_pitch), -sin(_orbit_pitch), -cos(_yaw) * cos(_orbit_pitch))
+
+
+func _orient_orbit() -> void:
+	# Keep the crosshair ray current even when a look and fire share a tick.
+	look_at(global_position + _orbit_direction(), Vector3.UP)
 
 
 func set_aiming(v: bool) -> void:
@@ -119,6 +154,7 @@ func set_look(yaw: float, p_pitch: float) -> void:
 	_yaw = yaw
 	_orbit_pitch = clampf(p_pitch, PITCH_MIN, PITCH_MAX)
 	_last_look_t = Time.get_ticks_msec() * 0.001
+	if _orbit: _orient_orbit()
 
 
 ## The ray through the centre of the screen.
@@ -135,6 +171,11 @@ func snap_to_target() -> void:
 	global_position = _cur_pos
 	look_at(_cur_look, Vector3.UP)
 	_initialized = true
+	_orbit_pivot = target.global_position + Vector3.UP * float(_f.look_height)
+	_boom_distance = float(_f.distance)
+	if _orbit:
+		_orbit_update(0.0)
+	reset_physics_interpolation()
 
 
 func shake(amount: float) -> void:
@@ -195,36 +236,80 @@ func _chase_update(delta: float) -> void:
 	fov = lerpf(fov, _f.fov + sf * float(_f.fov_gain), 1.0 - exp(-float(_f.fov_ease) * delta))
 
 
+func _camera_clearance(from: Vector3, to: Vector3) -> Vector3:
+	var travel := to - from
+	if travel.length_squared() < .000001: return from
+	_collision_sphere.radius = collision_radius
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _collision_sphere
+	query.transform = Transform3D(Basis.IDENTITY, from)
+	query.motion = travel
+	query.margin = .025
+	query.collision_mask = 1 | 2 | 16
+	if target is CollisionObject3D: query.exclude = [target.get_rid()]
+	var space := get_world_3d().direct_space_state
+	# Sweeps deliberately ignore shapes already overlapping their starting
+	# sphere. Resolve those contacts first (for example an aim shoulder beside
+	# a wall), including parallel walls that a center ray cannot detect.
+	var start := from
+	query.motion = Vector3.ZERO
+	for attempt in range(4):
+		query.transform.origin = start
+		var overlap := space.get_rest_info(query)
+		if overlap.is_empty(): break
+		start = overlap.point + overlap.normal * (collision_radius + query.margin + .01)
+	query.transform.origin = start
+	travel = to - start
+	if travel.length_squared() < .000001: return start
+	query.motion = travel
+	var fractions := space.cast_motion(query)
+	var fraction := fractions[0] if fractions.size() > 0 else 1.0
+	# A center ray also catches thin surfaces if the sweep starts overlapping.
+	var ray := PhysicsRayQueryParameters3D.create(start, to, query.collision_mask)
+	ray.exclude = query.exclude
+	var hit := space.intersect_ray(ray)
+	if hit:
+		fraction = minf(fraction, maxf(0.0, start.distance_to(hit.position) - collision_radius) / travel.length())
+	return start + travel * clampf(fraction, 0.0, 1.0)
+
+
 func _orbit_update(delta: float) -> void:
 	var speed := _target_speed()
-	# after a few seconds without look input, drift back behind the walking direction
 	var idle := Time.get_ticks_msec() * 0.001 - _last_look_t
-	if idle > 3.0 and absf(speed) > 0.5 and not _aiming:
-		_yaw = lerp_angle(_yaw, target.rotation.y, clampf(1.2 * delta, 0.0, 1.0))
-	var f := Vector3(-sin(_yaw), 0, -cos(_yaw))
-	var pr := clampf(_orbit_pitch, PITCH_MIN, PITCH_MAX)
-	var dir := Vector3(-sin(_yaw) * cos(pr), -sin(pr), -cos(_yaw) * cos(pr))   # + pitch looks down
-	var side := Vector3(-f.z, 0, f.x)
-	var pivot := target.global_position + Vector3(0, _f.look_height, 0)
-	var dist: float = _f.distance
+	# Manual orbit stays where the player put it; optional recenter is explicit.
+	if orbit_recenter and idle > 3.0 and absf(speed) > 0.5 and not _aiming:
+		_yaw = lerp_angle(_yaw, target.rotation.y, 1.0 - exp(-1.2 * delta))
+	var dir := _orbit_direction()
+	var side := Vector3(cos(_yaw), 0, -sin(_yaw))
+	var anchor := target.global_position + Vector3(0, _f.look_height, 0)
+	if _orbit_pivot.distance_squared_to(anchor) > 36.0 or delta <= 0.0:
+		_orbit_pivot = anchor
+	else:
+		# Source orbit follows at exponential response 18; keep the existing
+		# overlap-aware sweep to prevent smoothing the pivot through cover.
+		_orbit_pivot = _camera_clearance(anchor, _orbit_pivot.lerp(anchor, 1.0 - exp(-18.0 * delta)))
+	var pivot := _orbit_pivot
+	var distance: float = orbit_distance if framing == Framing.FOOT else float(_f.distance)
 	if _aiming:
-		dist = 1.7
-		pivot += side * 0.55 + Vector3(0, 0.25, 0)
-	var desired := pivot - dir * dist
+		distance = 1.8
+		pivot = _camera_clearance(pivot, pivot + side * .45 + Vector3.UP * .16)
+	var desired := pivot - dir * distance
 	if terrain:
-		desired.y = maxf(desired.y, terrain.height_at(desired.x, desired.z) + 0.5)
-	var space := get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(pivot, desired, 1 | 2)
-	q.exclude = [target.get_rid()] if target is CollisionObject3D else []
-	var hit := space.intersect_ray(q)
-	if hit:
-		desired = hit.position + (pivot - desired).normalized() * 0.3
-	_cur_pos = _cur_pos.lerp(desired, clampf((pos_smooth * 2.0 if _aiming else pos_smooth) * delta, 0.0, 1.0))
-	var pos := _shaken(_cur_pos, delta)
-	global_position = pos
-	look_at(pos + dir, Vector3.UP)
-	_cur_look = pos + dir * 5.0
-	fov = lerpf(fov, (_f.fov - 10.0) if _aiming else _f.fov, clampf(6.0 * delta, 0.0, 1.0))
+		desired.y = maxf(desired.y, terrain.height_at(desired.x, desired.z) + collision_radius + .08)
+	var safe := _camera_clearance(pivot, desired)
+	var allowed := pivot.distance_to(safe)
+	# Retract immediately, recover softly. A smoothed world-space endpoint can
+	# remain behind a newly encountered wall or cut through a corner on orbit.
+	_boom_distance = minf(_boom_distance, allowed)
+	_boom_distance = lerpf(_boom_distance, allowed, 1.0 - exp(-orbit_recovery_speed * delta))
+	if delta <= 0.0: _boom_distance = allowed
+	_cur_pos = pivot + (safe - pivot).normalized() * _boom_distance
+	global_position = _camera_clearance(pivot, _shaken(_cur_pos, delta))
+	if target.has_method("set_camera_distance"):
+		target.set_camera_distance(global_position.distance_to(anchor))
+	_orient_orbit()
+	_cur_look = global_position + dir * 5.0
+	fov = lerpf(fov, (_f.fov - 10.0) if _aiming else _f.fov, 1.0 - exp(-8.0 * delta))
 
 
 func _shaken(pos: Vector3, delta: float) -> Vector3:

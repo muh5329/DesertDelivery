@@ -1,0 +1,12 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS right hand attachment survives GLB rebuild
+PASS boot clears side fairing and reaches peg
+PASS boot sole sits at peg height
+PASS boot overlaps peg fore/aft
+PASS boot clears side fairing and reaches peg
+PASS boot sole sits at peg height
+PASS boot overlaps peg fore/aft
+PASS car/truck seating retains its original fit
+PASS seated grip reach remains intact
+CHARACTER FIT: PASS (0 failures)

@@ -1,0 +1,12 @@
+{
+  "source_sha256": "7545998a788787778fc36b7e63f3a2fda54d8f36801a25b9e7ecd5856be0a780",
+  "parts": {
+    "LowerForkGeometry": 632,
+    "StanchionGeometryL": 16,
+    "StanchionGeometryR": 16,
+    "SwingarmGeometry": 100,
+    "ShockGeometryL": 3664,
+    "ShockGeometryR": 3664
+  },
+  "output_vertices": 79211
+}

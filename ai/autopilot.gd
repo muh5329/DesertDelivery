@@ -7,8 +7,6 @@ var bike: Bike
 var gm: DeliverySystem
 var terrain: Terrain
 var controls: Controls.Scripted
-var nodes: PackedVector3Array = PackedVector3Array()
-var adj: Array = []              # Array[PackedInt32Array]
 var path: PackedVector3Array = PackedVector3Array()
 var path_i := 0
 var _last_target := Vector3(INF, INF, INF)
@@ -28,78 +26,23 @@ func setup(p_bike: Bike, p_gm: DeliverySystem, p_terrain: Terrain, p_controls: C
 	_build_graph()
 
 
+var navigation := RoadNavigation.new()
+
 func _build_graph() -> void:
-	var step := 3
-	var road_starts: Array[int] = []
-	for pts in terrain.road_samples:
-		road_starts.append(nodes.size())
-		var k := 0
-		while k < pts.size():
-			nodes.append(pts[k])
-			k += step
-		if (pts.size() - 1) % step != 0:
-			nodes.append(pts[pts.size() - 1])
-	adj.resize(nodes.size())
-	for i in range(nodes.size()):
-		adj[i] = PackedInt32Array()
-	# consecutive links within each road
-	var idx := 0
-	for r in range(terrain.road_samples.size()):
-		var start := road_starts[r]
-		var end := (road_starts[r + 1] if r + 1 < road_starts.size() else nodes.size())
-		for i in range(start, end - 1):
-			_link(i, i + 1)
-	# junction links: nodes from different roads that are close together
-	for i in range(nodes.size()):
-		for j in range(i + 1, nodes.size()):
-			if absi(i - j) <= 1: continue
-			if nodes[i].distance_to(nodes[j]) < 4.5:
-				_link(i, j)
-
-
-func _link(a: int, b: int) -> void:
-	var pa: PackedInt32Array = adj[a]; pa.append(b); adj[a] = pa
-	var pb: PackedInt32Array = adj[b]; pb.append(a); adj[b] = pb
-
-
-func _nearest(p: Vector3) -> int:
-	var best := 0; var bd := INF
-	for i in range(nodes.size()):
-		var d := Vector2(nodes[i].x - p.x, nodes[i].z - p.z).length_squared()
-		if d < bd: bd = d; best = i
-	return best
-
+	navigation.build(terrain)
 
 func _plan(from: Vector3, to: Vector3) -> void:
-	var s := _nearest(from); var g := _nearest(to)
-	# Dijkstra
-	var dist := PackedFloat32Array(); dist.resize(nodes.size()); dist.fill(INF)
-	var prev := PackedInt32Array(); prev.resize(nodes.size()); prev.fill(-1)
-	var visited := PackedByteArray(); visited.resize(nodes.size()); visited.fill(0)
-	dist[s] = 0.0
-	for _it in range(nodes.size()):
-		var u := -1; var ud := INF
-		for i in range(nodes.size()):
-			if visited[i] == 0 and dist[i] < ud:
-				ud = dist[i]; u = i
-		if u == -1 or u == g: break
-		visited[u] = 1
-		for v in adj[u]:
-			var nd := ud + nodes[u].distance_to(nodes[v])
-			if nd < dist[v]:
-				dist[v] = nd; prev[v] = u
-	path = PackedVector3Array()
-	var cur := g
-	while cur != -1:
-		path.append(nodes[cur])
-		cur = prev[cur]
-	path.reverse()
-	path.append(to)
+	# Reuse the same grade-aware AStar network as island traffic. Disconnected
+	# roads must never produce a fictitious straight-line route across the sea.
+	path = navigation.path(from, to, 0.0, terrain)
+	if not path.is_empty() and path[-1].distance_to(to) > .1:
+		path.append(to)
 	path_i = 0
 	_progress_index=-1; _best_waypoint_distance=INF; _no_progress_time=0
 
 
 func _physics_process(delta: float) -> void:
+	if gm == null or bike == null or controls == null: return
 	if gm.stage == DeliverySystem.Stage.DONE:
 		controls.intent.throttle = 0.0; controls.intent.brake = 1.0; controls.intent.steer = 0.0
 		return
@@ -107,6 +50,9 @@ func _physics_process(delta: float) -> void:
 	if target.distance_to(_last_target) > 0.5:
 		_last_target = target
 		_plan(bike.global_position, target)
+	if path.is_empty():
+		controls.intent.throttle=0.0; controls.intent.brake=1.0; controls.intent.steer=0.0
+		return
 	var pos := bike.global_position
 	# advance along the path
 	while path_i < path.size() - 1 and Vector2(path[path_i].x - pos.x, path[path_i].z - pos.z).length() < 7.0:

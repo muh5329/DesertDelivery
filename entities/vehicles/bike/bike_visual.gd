@@ -31,6 +31,14 @@ var _wing_open := 0.0
 var _prop: Node3D
 var headlight_mat: StandardMaterial3D
 var _wheel_spin := 0.0
+var _front_rest := Vector3.ZERO
+var _rear_rest := Vector3.ZERO
+var _front_travel := 0.0
+var _rear_travel := 0.0
+var _front_suspension: Node3D
+var _rear_swingarm: Node3D
+var _stanchions: Array[Node3D] = []
+var _shocks: Array[Node3D] = []
 
 
 func _ready() -> void:
@@ -52,16 +60,24 @@ const BIKE_MODEL = preload("res://assets/models/courier_bike.glb")
 func _build_bike(p: Node3D) -> void:
 	var model: Node3D = BIKE_MODEL.instantiate()
 	p.add_child(model)
+	Storybook.apply(model)
 	fork_pivot = model.find_child("ForkPivot", true, false)
 	front_wheel = model.find_child("FrontWheel", true, false)
 	rear_wheel = model.find_child("RearWheel", true, false)
+	_front_rest = front_wheel.position
+	_rear_rest = rear_wheel.position
+	_front_suspension = model.find_child("FrontSuspension", true, false)
+	_rear_swingarm = model.find_child("RearSwingarm", true, false)
+	for suffix in ["L", "R"]:
+		_stanchions.append(model.find_child("ForkStanchion" + suffix, true, false))
+		_shocks.append(model.find_child("RearShock" + suffix, true, false))
 
 
 func _build_rider(p: Node3D) -> void:
 	var model := RiderModel.new()
 	model.name = "Rider"
 	p.add_child(model)
-	model.pose_riding()
+	model.pose_riding(true)
 	rider = model
 	head = model.head
 
@@ -182,8 +198,36 @@ func update_visual(bike: Node, delta: float) -> void:
 	fork_pivot.rotation.y = -bike.steer * deg_to_rad(22.0)
 	if head:
 		head.rotation.y = -bike.steer * deg_to_rad(18.0)
-		head.rotation.x = clampf(-bike.speed * 0.006, -0.18, 0.0)
-	# small bob at speed
-	var t := Time.get_ticks_msec() * 0.001
-	var sf := clampf(bike.speed / bike.max_speed, 0.0, 1.0)
-	rider.position.y = sin(t * 14.0) * 0.008 * sf
+		head.rotation.x = .45 + clampf(-bike.speed * 0.006, -0.18, 0.0)
+	# Actual wheel support drives suspension travel; no time-based road vibration.
+	var response := 1.0 - exp(-18.0 * delta)
+	var front_target: float = bike.drive.front_suspension if not bike.airborne else -.08
+	var rear_target: float = bike.drive.rear_suspension if not bike.airborne else -.08
+	_front_travel = front_target
+	_rear_travel = rear_target
+	if _front_suspension and _rear_swingarm:
+		_front_suspension.position = Vector3(0, -.73 + _front_travel, -.24 + _front_travel * .24 / .73)
+		var swing_length := Vector2(.05, .54).length()
+		_rear_swingarm.rotation.x = atan2(-.05, .54) - asin(clampf((-.05 + _rear_travel) / swing_length, -.95, .95))
+		for index in 2:
+			var side := -1.0 if index == 0 else 1.0
+			var lower := Vector3(side * .12, _front_suspension.position.y, _front_suspension.position.z)
+			_pose_segment(_stanchions[index], Vector3(side * .12, 0, 0), lower, Vector2(.73, .24).length())
+			var wheel_center := _rear_swingarm.transform * _rear_rest
+			var shock_bottom := wheel_center + Vector3(side * .21, .02, 0)
+			_pose_segment(_shocks[index], shock_bottom, Vector3(side * .21, .89, .40), Vector2(.55, .30).length())
+	else:
+		# Legacy asset fallback while an editor is still importing the new pivots.
+		front_wheel.position = _front_rest + Vector3.UP * _front_travel
+		rear_wheel.position = _rear_rest + Vector3.UP * _rear_travel
+	if rider:
+		var compression := clampf(bike.drive.suspension_load - 1.0, -.5, 2.0) if not bike.airborne else 0.0
+		rider.position.y = lerpf(rider.position.y, -.012 * compression, response)
+
+
+func _pose_segment(pivot: Node3D, a: Vector3, b: Vector3, rest_length: float) -> void:
+	if pivot == null: return
+	var span := b - a
+	pivot.position = (a + b) * .5
+	pivot.basis = Basis(Quaternion(Vector3.UP, span.normalized()))
+	pivot.scale.y = span.length() / rest_length

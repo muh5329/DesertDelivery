@@ -51,6 +51,11 @@ func load_game(slot: String = "quick") -> bool:
 		var p: Object = _providers.get(key)
 		if p and is_instance_valid(p) and p.has_method("load_state"):
 			p.load_state(_decode(systems[key]))
+	# New optional systems can explicitly reset when loading a pre-feature save.
+	for key in _providers:
+		var p: Object = _providers[key]
+		if not systems.has(key) and is_instance_valid(p) and p.has_method("load_missing_state"):
+			p.load_missing_state()
 	Events.game_loaded.emit(slot)
 	return true
 

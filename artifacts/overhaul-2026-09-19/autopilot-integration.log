@@ -1,0 +1,74 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:95)
+         [1] _init (res://world/terrain/terrain.gd:85)
+         [2] build_terrain (res://world/island/island.gd:258)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:657)
+         [1] build (res://world/terrain/terrain.gd:504)
+         [2] build_terrain (res://world/island/island.gd:269)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 1071, "t3d_setup": 192, "t3d_maps": 1161, "crest_n": 1870, "foot_n": 2348, "t3d_import": 33 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:282)
+         [1] generate (res://world/island/island.gd:211)
+         [2] setup (res://world/world_manager.gd:32)
+         [3] _boot_world (res://core/app/game.gd:84)
+         [4] _ready (res://core/app/game.gd:63)
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[world] 25 km terrain, north viaduct 360 navigation samples
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3642 road nodes, seven-day routines
+[game] autopilot enabled (autotest=true shots=)
+[game] world generated in 4380 ms (7053 recipes in 396 chunks); tree 8975 nodes
+[autopilot] pos=(-303.1, 5.0, 2.5) speed=7.0 m/s target=Villa Rosa Office dist=13.4 grounded=true
+[game] package collected at t=5.5
+[autopilot] pos=(-311.9, 4.9, -1.8) speed=1.5 m/s target=Hilltop Farm dist=253.0 grounded=true
+[autopilot] pos=(-295.7, 5.4, 3.5) speed=16.0 m/s target=Hilltop Farm dist=256.0 grounded=true
+[autopilot] pos=(-278.6, 5.8, 3.2) speed=3.1 m/s target=Hilltop Farm dist=254.6 grounded=true
+[autopilot] pos=(-237.2, 5.0, -1.0) speed=22.6 m/s target=Hilltop Farm dist=252.5 grounded=true
+[autopilot] pos=(-168.8, 5.8, 23.7) speed=2.0 m/s target=Hilltop Farm dist=293.1 grounded=true
+[autopilot] pos=(-158.5, 5.4, -0.9) speed=17.6 m/s target=Hilltop Farm dist=274.2 grounded=true
+[autopilot] pos=(-109.0, 15.5, -50.8) speed=27.0 m/s target=Hilltop Farm dist=257.3 grounded=true
+[autopilot] pos=(-86.9, 14.4, -112.9) speed=3.7 m/s target=Hilltop Farm dist=229.6 grounded=true
+[autopilot] pos=(-104.8, 15.3, -110.7) speed=10.9 m/s target=Hilltop Farm dist=217.1 grounded=true
+[autopilot] pos=(-130.8, 26.7, -145.5) speed=11.0 m/s target=Hilltop Farm dist=175.0 grounded=true
+[autopilot] pos=(-169.3, 33.9, -181.3) speed=25.9 m/s target=Hilltop Farm dist=122.8 grounded=true
+[autopilot] pos=(-227.9, 37.0, -235.6) speed=27.0 m/s target=Hilltop Farm dist=45.1 grounded=true
+[autopilot] pos=(-265.4, 38.8, -257.3) speed=4.1 m/s target=Hilltop Farm dist=7.7 grounded=true
+[game] DELIVERY COMPLETED #1 at t=43.5 (odometer 614 m)
+[autopilot] pos=(-267.9, 38.8, -254.4) speed=-0.0 m/s target=Hilltop Farm dist=3.9 grounded=true
+[game] package collected at t=46.5
+[autopilot] pos=(-265.9, 38.8, -251.7) speed=5.1 m/s target=Harbour Cafe dist=469.7 grounded=true
+[autopilot] pos=(-245.7, 38.8, -252.4) speed=11.8 m/s target=Harbour Cafe dist=450.2 grounded=true
+[autopilot] pos=(-210.2, 36.5, -219.5) speed=25.2 m/s target=Harbour Cafe dist=408.8 grounded=true
+[autopilot] pos=(-151.7, 33.7, -164.6) speed=27.0 m/s target=Harbour Cafe dist=344.6 grounded=true
+[autopilot] pos=(-98.8, 14.8, -106.1) speed=27.4 m/s target=Harbour Cafe dist=294.4 grounded=true
+[autopilot] pos=(-63.4, 17.0, -106.8) speed=8.8 m/s target=Harbour Cafe dist=259.3 grounded=true
+[autopilot] pos=(-80.4, 14.2, -105.9) speed=9.0 m/s target=Harbour Cafe dist=276.3 grounded=true
+[autopilot] pos=(-73.0, 16.1, -114.3) speed=13.6 m/s target=Harbour Cafe dist=267.7 grounded=false
+[autopilot] pos=(-45.7, 29.9, -146.8) speed=21.1 m/s target=Harbour Cafe dist=238.2 grounded=true
+[autopilot] pos=(-0.5, 16.8, -193.8) speed=16.1 m/s target=Harbour Cafe dist=198.1 grounded=true
+[autopilot] pos=(29.5, 14.9, -190.9) speed=20.2 m/s target=Harbour Cafe dist=168.3 grounded=true
+[autopilot] pos=(106.0, 11.4, -201.8) speed=27.1 m/s target=Harbour Cafe dist=101.3 grounded=true
+[autopilot] pos=(130.3, 9.2, -207.8) speed=10.1 m/s target=Harbour Cafe dist=85.5 grounded=true
+[autopilot] pos=(152.8, 8.5, -162.0) speed=25.1 m/s target=Harbour Cafe dist=41.7 grounded=true
+[autopilot] pos=(186.5, 9.2, -144.4) speed=4.2 m/s target=Harbour Cafe dist=7.5 grounded=true
+[game] DELIVERY COMPLETED #2 at t=91.7 (odometer 1313 m)
+AUTOTEST PASS: 2 deliveries in 91.7s, avg fps 141.1
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

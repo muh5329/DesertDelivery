@@ -17,6 +17,7 @@ var terrain: Terrain
 var environment: Node3D
 var streamer: WorldStreamer
 var generate_ms := 0
+var expanse: Node3D
 
 
 func setup(p_config: WorldConfig) -> void:
@@ -30,12 +31,18 @@ func setup(p_config: WorldConfig) -> void:
 	add_child(island)
 	island.generate(database, environment, config.seed)
 	terrain = island.terrain
+	expanse = preload("res://world/terrain/world_expanse.gd").new()
+	environment.add_child(expanse)
+	expanse.setup(terrain, config.seed)
+	terrain.expanse = expanse
 	streamer.setup(database, island, config)
 	generate_ms = Time.get_ticks_msec() - t0
 
 
 func set_focus(node: Node3D) -> void:
 	streamer.focus = node
+	expanse.focus = node
+	expanse.refresh_collision()
 
 
 func probe(pos: Vector3) -> Dictionary:

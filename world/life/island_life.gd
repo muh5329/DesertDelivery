@@ -8,6 +8,8 @@ const WEEK_MINUTES := 10080.0
 var total_minutes := 570.0
 var minutes_per_second := .5 # 48 real minutes per island day.
 var residents: Array[Resident] = []
+# Colony jobs share these residents and their rendered actors.
+var colony_owned: Dictionary = {}
 var by_id: Dictionary = {}
 ## id -> ResidentActor, owned by the pool. Kept as `actors` because that is what everything
 ## from the catalogue to the tests calls it.
@@ -20,6 +22,27 @@ var navigation := RoadNavigation.new()
 var ambient: IslandWildlife
 var _accumulator := 0.0
 var _last_minute := -1
+const NEIGHBOR_CELL := 24.0
+var _neighbors: Dictionary = {}
+
+func _rebuild_neighbors() -> void:
+	_neighbors.clear()
+	for r in residents:
+		if r.activity == "sleep": continue
+		var cell := Vector2i(floori(r.position.x / NEIGHBOR_CELL), floori(r.position.z / NEIGHBOR_CELL))
+		if not _neighbors.has(cell): _neighbors[cell] = []
+		_neighbors[cell].append(r)
+
+func _nearby_residents(p: Vector3, reach: float) -> Array:
+	# Tests and tools may move records directly between simulation ticks.
+	if not is_physics_processing() or _neighbors.is_empty(): return residents
+	var found: Array = []
+	var cell := Vector2i(floori(p.x / NEIGHBOR_CELL), floori(p.z / NEIGHBOR_CELL))
+	var radius := maxi(1, ceili((reach + 4.0) / NEIGHBOR_CELL))
+	for x in range(-radius, radius + 1):
+		for z in range(-radius, radius + 1):
+			found.append_array(_neighbors.get(cell + Vector2i(x,z), []))
+	return found
 
 func setup(p_world: WorldManager, p_entities: EntityManager) -> void:
 	world=p_world; entities=p_entities
@@ -79,12 +102,14 @@ func clock_text() -> String:
 	return "%s  %02d:%02d  ·  Week %d" % [DAYS[day_index()],minute/60,minute%60,week_number()]
 
 func _assign_task(r: Resident, initial: bool=false) -> void:
+	if colony_owned.has(r.id): return
 	var task := r.task_at(day_index(),minute_of_day())
 	var key := "%d:%s:%s" % [floori(total_minutes/1440),task.at,task.task]
 	if key==r.task_key: return
 	r.task_key=key; r.activity=task.activity; r.task=task.task; r.place=task.place
 	r.driving = r.transport=="car" and r.activity=="deliver"
 	r.wait=0.0; r.work_progress=0.0; r.station_validated=false
+	r.blocked_time=0.0; r.route_retry=0.0; r.sim_elapsed=0.0
 	var destination: Vector3=r.station(task.place)
 	if initial:
 		r.position=destination; r.speed=0.0
@@ -95,6 +120,7 @@ func _assign_task(r: Resident, initial: bool=false) -> void:
 		_route_to(r,destination)
 	else:
 		r.status=r.task; r.moving=false
+		r.transition(Resident.State.RESTING if r.activity=="sleep" else Resident.State.WORKING)
 
 func _route_to(r: Resident, destination: Vector3) -> void:
 	r.route=navigation.path(r.position,destination,1.05 if r.driving else 3.3,world.terrain)
@@ -103,9 +129,17 @@ func _route_to(r: Resident, destination: Vector3) -> void:
 	r.destination=destination
 	if not r.moving:
 		r.status="Route unavailable · "+r.task
-	else: r.status=("Driving · " if r.driving else "Walking · ")+r.task
+		r.transition(Resident.State.ROUTE_BLOCKED)
+		r.route_retry=5.0
+	else:
+		r.status=("Driving · " if r.driving else "Walking · ")+r.task
+		r.transition(Resident.State.TRAVELLING)
 
 func _dispatch_driver(r: Resident) -> void:
+	if r.route_locations.is_empty():
+		r.moving=false; r.transition(Resident.State.ROUTE_BLOCKED); r.route_retry=30.0
+		r.status="No delivery stops assigned"
+		return
 	r.circuit=int(r.circuit)+1
 	var stop: StringName=StringName(r.route_locations[int(r.circuit)%r.route_locations.size()])
 	_route_to(r,world.database.location_pos(stop))
@@ -121,6 +155,7 @@ func _physics_process(delta: float) -> void:
 		if floori(total_minutes)!=_last_minute:
 			_last_minute=floori(total_minutes); calendar_changed.emit()
 		_update_daylight()
+	_rebuild_neighbors()
 	for r in residents:
 		if actors.has(r.id):
 			_advance(r,delta)
@@ -213,7 +248,7 @@ func _obstacle_distance(r: Resident, direction: Vector3, reach: float) -> float:
 		var ahead:=offset.dot(direction)
 		if ahead>0 and absf(offset.cross(direction).y)<width+.8 and absf(offset.y)<2:
 			clearance=minf(clearance,maxf(0,ahead-1.8))
-	for other in residents:
+	for other in _nearby_residents(position, maxf(reach, 20.0)):
 		if other.id==r.id or other.activity=="sleep": continue
 		clearance=minf(clearance,_junction_stop_distance(r,other,direction))
 		var offset: Vector3=other.position-position
@@ -233,30 +268,47 @@ func _obstacle_distance(r: Resident, direction: Vector3, reach: float) -> float:
 			if not hit.is_empty(): clearance=minf(clearance,start.distance_to(hit.position)-(.95 if r.driving else .35))
 	return maxf(0,clearance)
 
+func _arrive(r: Resident) -> void:
+	r.moving=false; r.speed=0.0; r.status=r.task; r.wait=0.0; r.station_validated=false
+	r.transition(Resident.State.UNLOADING if r.driving else (Resident.State.RESTING if r.activity=="sleep" else Resident.State.WORKING))
+
 func _advance(r: Resident, delta: float) -> void:
+	if colony_owned.has(r.id): return
+	r.state_elapsed += delta
+	if r.state == Resident.State.ROUTE_BLOCKED:
+		r.speed = 0.0
+		r.route_retry -= delta
+		if r.route_retry <= 0.0:
+			if r.driving and r.route_locations.is_empty(): r.route_retry = 30.0
+			else: _route_to(r, r.destination)
+		return
 	if not r.moving:
 		r.speed=move_toward(float(r.speed),0,delta*6)
 		_validate_station(r)
 		var support:=vehicle_support_at(r.position,r.forward,actors.has(r.id)) if r.driving else surface_at(r.position,actors.has(r.id))
 		r.position.y=support.height; r.surface_normal=support.normal
 		if r.driving:
+			r.transition(Resident.State.UNLOADING)
 			r.wait+=delta
 			r.status="Unloading · "+String(r.task)
 			if r.wait>=18.0:
 				r.deliveries_completed+=1; r.completed_tasks+=1; r.wait=0.0; _dispatch_driver(r)
 		elif String(r.activity) in ["garden","repair","bake","fish","build","sell","teach","deliver"]:
+			r.transition(Resident.State.WORKING)
 			r.work_progress+=delta
 			if r.work_progress>=30.0:
-				r.completed_tasks+=1; r.work_progress=fposmod(r.work_progress,30.0)
+				r.completed_tasks+=floori(r.work_progress/30.0); r.work_progress=fposmod(r.work_progress,30.0)
 		return
-	if int(r.cursor)>=r.route.size(): r.moving=false; return
+	if int(r.cursor)>=r.route.size():
+		_arrive(r)
+		return
 	var target: Vector3=r.route[int(r.cursor)]
 	var direction:=target-Vector3(r.position); direction.y=0
 	while direction.length()<.18 and int(r.cursor)<r.route.size()-1:
 		r.cursor+=1; target=r.route[int(r.cursor)]; direction=target-Vector3(r.position); direction.y=0
 	var remaining:=direction.length()
 	if remaining<.08:
-		r.moving=false; r.speed=0.0; r.status=r.task; r.wait=0.0; r.station_validated=false
+		_arrive(r)
 		return
 	direction=direction.normalized()
 	var desired_speed:=7.5 if r.driving else 1.35
@@ -270,8 +322,10 @@ func _advance(r: Resident, delta: float) -> void:
 	if obstacle<reach-.05: desired_speed=minf(desired_speed,sqrt(maxf(0,2*4.5*(obstacle-.5))))
 	if obstacle<.65:
 		desired_speed=0; r.status="Yielding to traffic" if r.driving else "Waiting for a clear path"
+		r.transition(Resident.State.YIELDING)
 		r.blocked_time+=delta
 	else:
+		r.transition(Resident.State.TRAVELLING)
 		r.blocked_time=0.0; r.status=("Driving · " if r.driving else "Walking · ")+String(r.task)
 	if not r.driving and r.blocked_time>2.0:
 		# A small, ground-validated detour around roadside props. Never tunnel
@@ -297,7 +351,7 @@ func _advance(r: Resident, delta: float) -> void:
 	if Vector2(target.x-next.x,target.z-next.z).length()<.08:
 		r.cursor+=1
 		if int(r.cursor)>=r.route.size():
-			r.moving=false; r.speed=0.0; r.status=r.task; r.wait=0.0; r.station_validated=false
+			_arrive(r)
 
 func _sync_views(delta: float) -> void:
 	if entities.focus==null: return

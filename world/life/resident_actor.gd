@@ -9,6 +9,10 @@ var _activity := ""
 var _was_driving := false
 var _body_shape: CollisionShape3D
 var _wheel_roll := 0.0
+var _visual_elapsed := 0.0
+## Imported animation pivots are stable for this actor's lifetime.
+var _wheels: Array[Node3D] = []
+var _steering: Array[Node3D] = []
 
 ## FULL tier: worth drawing the name tag and the small activity flourishes.
 var detailed := true
@@ -21,8 +25,16 @@ func setup(record: Resident) -> void:
 	person = RiderModel.new(); add_child(person)
 	var colors: Array = record.palette
 	person.set_palette(Color(colors[0]), Color(colors[1]), Color(colors[2]), Color(colors[3]))
+	person.set_character_identity(record.id, record.occupation, colors)
+	person.enable_resident_lod()
 	person.scale = Vector3.ONE * float(record.scale)
 	car = IslandArt.instantiate("island_car"); add_child(car); car.visible = false
+	for node_name in ["WheelFL", "WheelFR", "WheelRL", "WheelRR"]:
+		var wheel := car.find_child(node_name, true, false) as Node3D
+		if wheel: _wheels.append(wheel)
+	for node_name in ["SteeringFL", "SteeringFR"]:
+		var steering := car.find_child(node_name, true, false) as Node3D
+		if steering: _steering.append(steering)
 	for mi in car.find_children("*", "MeshInstance3D", true, false):
 		for i in range(mi.mesh.get_surface_count()):
 			var src: Material = mi.get_surface_override_material(i)
@@ -39,6 +51,20 @@ func setup(record: Resident) -> void:
 	prop = Node3D.new(); person.hand_r.add_child(prop)
 
 func update_view(record: Resident, delta: float, nearby: bool) -> void:
+	var camera := get_viewport().get_camera_3d()
+	var distance := camera.global_position.distance_to(global_position) if camera else 0.0
+	person.set_resident_lod_distance(distance)
+	_visual_elapsed += delta
+	var interval := 1.0 / (20.0 if person.resident_lod_active else 60.0)
+	# State changes must update body size/visibility immediately. Only cosmetic
+	# animation is throttled; IslandLife still moves this body's collision at120Hz.
+	if _visual_elapsed < interval and record.driving == _was_driving and record.activity == _activity: return
+	var visual_delta := _visual_elapsed
+	_visual_elapsed = 0.0
+	_update_visual_pose(record, visual_delta, nearby)
+	person.sync_resident_pose()
+
+func _update_visual_pose(record: Resident, delta: float, nearby: bool) -> void:
 	var driving: bool = record.driving
 	car.visible = driving
 	person.visible = record.activity != "sleep"
@@ -56,18 +82,16 @@ func update_view(record: Resident, delta: float, nearby: bool) -> void:
 		car.rotation.x=lerpf(car.rotation.x,atan2(local_normal.z,local_normal.y),minf(1,delta*10))
 		car.rotation.z=lerpf(car.rotation.z,-atan2(local_normal.x,local_normal.y),minf(1,delta*10))
 		_wheel_roll-=float(record.speed)*delta/.34
-		for wheel_name in ["WheelFL","WheelFR","WheelRL","WheelRR"]:
-			var wheel:=car.find_child(wheel_name,true,false)
-			if wheel: wheel.rotation.x=_wheel_roll
+		for wheel in _wheels:
+			wheel.rotation.x=_wheel_roll
 		var steer:=0.0
 		if record.moving and int(record.cursor)<record.route.size():
 			var toward: Vector3=record.route[int(record.cursor)]-record.position
 			steer=clampf(wrapf(atan2(-toward.x,-toward.z)-rotation.y,-PI,PI),-.5,.5)
-		for steering_name in ["SteeringFL","SteeringFR"]:
-			var steering:=car.find_child(steering_name,true,false)
-			if steering: steering.rotation.y=steer
+		for steering in _steering:
+			steering.rotation.y=steer
 		person.rotation=car.rotation
-		person.pose_riding()
+		person.pose_riding(false, false)
 		person.position = Vector3(-.31,-.067,.065)
 		person.scale = Vector3.ONE * .77
 		person.root.position = Vector3(0,1.10,.25)

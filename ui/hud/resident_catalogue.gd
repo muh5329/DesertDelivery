@@ -158,6 +158,7 @@ func toggle() -> void:
 		game.panels.close(self)
 
 func _input(event: InputEvent) -> void:
+	if game.mayor != null and game.mayor.active: return
 	if game.journey and game.journey.is_open(): return
 	if event is InputEventJoypadButton and event.pressed and event.button_index==JOY_BUTTON_B and is_open():
 		toggle(); get_viewport().set_input_as_handled(); return

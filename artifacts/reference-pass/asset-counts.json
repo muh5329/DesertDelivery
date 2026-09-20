@@ -1,0 +1,16 @@
+[
+  {
+    "path": "artifacts/reference-pass/character-before.glb",
+    "bytes": 1692648,
+    "surfaces": 43,
+    "vertices": 33088,
+    "triangles": 60950
+  },
+  {
+    "path": "assets/models/courier_character.glb",
+    "bytes": 1202432,
+    "surfaces": 43,
+    "vertices": 27625,
+    "triangles": 51141
+  }
+]

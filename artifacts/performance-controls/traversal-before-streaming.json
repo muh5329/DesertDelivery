@@ -1,0 +1,19 @@
+{
+	"adapter": "Apple M4 Pro",
+	"average_fps": 85.2208730916326,
+	"displacement_m": 152.319808959961,
+	"final_speed": 2.92272386260116,
+	"frames": 1800,
+	"max_ms": 846.031,
+	"median_ms": 10.268,
+	"p95_ms": 12.913,
+	"p99_ms": 14.081,
+	"renderer": "forward_plus",
+	"streaming": {
+		"build_ms": 2895,
+		"focus": "(-8, -1)",
+		"loaded": 58,
+		"pending": 0,
+		"total": 396
+	}
+}

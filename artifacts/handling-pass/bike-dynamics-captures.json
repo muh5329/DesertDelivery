@@ -1,0 +1,62 @@
+[
+	{
+		"air_time": 0.0583333333333333,
+		"front_travel": -0.2,
+		"grounded": false,
+		"phase": "takeoff",
+		"position": [
+			0.0,
+			223.289688110352,
+			-2.1964635848999
+		],
+		"rear_travel": -0.2,
+		"speed": 22.2238287735357,
+		"suspension_load": 0.0,
+		"vertical_velocity": 1.85682904720306
+	},
+	{
+		"air_time": 0.166666666666667,
+		"front_travel": -0.2,
+		"grounded": false,
+		"phase": "apex",
+		"position": [
+			0.0,
+			223.377090454102,
+			-4.60137176513672
+		],
+		"rear_travel": -0.2,
+		"speed": 22.2238287735357,
+		"suspension_load": 0.0,
+		"vertical_velocity": -0.0931707471609116
+	},
+	{
+		"air_time": 0.0,
+		"front_travel": 0.0275317438447131,
+		"grounded": true,
+		"phase": "landing",
+		"position": [
+			0.0,
+			220.654632568359,
+			-16.6261100769043
+		],
+		"rear_travel": -0.2,
+		"speed": 15.556680141475,
+		"suspension_load": 7.40810050787058,
+		"vertical_velocity": -8.73195457458496
+	},
+	{
+		"air_time": 0.0,
+		"front_travel": -0.0400618938468075,
+		"grounded": true,
+		"phase": "settled",
+		"position": [
+			0.0,
+			220.040069580078,
+			-53.3800010681152
+		],
+		"rear_travel": -0.0400618938468075,
+		"speed": 22.8235451036328,
+		"suspension_load": 0.999999999837018,
+		"vertical_velocity": -0.000506036798469722
+	}
+]

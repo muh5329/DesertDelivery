@@ -1,0 +1,40 @@
+{
+	"adapter": "Apple M4 Pro",
+	"date": "2026-09-19T21:54:37",
+	"frames_per_scene": 300,
+	"process_ready_ms": 5577,
+	"renderer": "gl_compatibility",
+	"resolution": "(1600.0, 900.0)",
+	"scenes": [
+		{
+			"average_fps": 48.4945591529359,
+			"max_frame_ms": 23.825,
+			"mean_draw_calls": 3814.05,
+			"mean_visible_objects": 4231.74333333333,
+			"median_frame_ms": 20.73,
+			"node_count": 11279.0,
+			"p95_frame_ms": 22.327,
+			"p99_frame_ms": 22.982,
+			"scene": "village",
+			"static_memory_mib": 279.32968711853,
+			"video_memory_mib": 278.444100379944
+		},
+		{
+			"average_fps": 202.878988093708,
+			"max_frame_ms": 8.676,
+			"mean_draw_calls": 371.0,
+			"mean_visible_objects": 773.0,
+			"median_frame_ms": 4.569,
+			"node_count": 2381.0,
+			"p95_frame_ms": 6.54,
+			"p99_frame_ms": 8.151,
+			"scene": "wilderness",
+			"static_memory_mib": 243.135736465454,
+			"video_memory_mib": 274.96172618866
+		}
+	],
+	"shadow_distance": 160.0,
+	"vsync": "disabled",
+	"warmup_frames": 120,
+	"world_generation_ms": 4387
+}

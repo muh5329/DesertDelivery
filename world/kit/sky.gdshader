@@ -1,11 +1,4 @@
-// Sky — a ProceduralSkyMaterial clone (same gradient / sun-halo maths, so the r1 sky colours carry
-// over unchanged) with two things the built-in material cannot do:
-//  * clouds MULTIPLY the sky (`sky_cover` alpha = cover, red = lobe detail). The built-in cover is
-//    additive, so its clouds were always lighter than the sky around them; the reference's are a
-//    touch darker and pinker than the zenith (#a4a8bc on #a0adc5) with darker cores inside the smear.
-//  * a broad sun-side warm glow (the reference sky warms to #c4b0bb toward the sun) — a wide lobe on
-//    the azimuth so it still tints the upper sky when the sun itself is behind the camera.
-// The Sky node bakes this into the radiance map, so ambient / reflections follow it automatically.
+// Rounded, cream-lit cloud banks over a clear blue summer gradient.
 shader_type sky;
 
 uniform vec3 sky_top_color : source_color = vec3(0.61, 0.70, 0.85);
@@ -18,6 +11,7 @@ uniform vec3 sky_zenith_color : source_color = vec3(0.66, 0.70, 0.78);
 uniform float sky_band_deg = 16.0;
 uniform float sky_zenith_deg = 40.0;
 uniform float sky_energy = 1.4;
+uniform float daylight : hint_range(0.0, 1.0) = 1.0;
 uniform vec3 ground_bottom_color : source_color = vec3(0.33, 0.38, 0.43);
 uniform vec3 ground_horizon_color : source_color = vec3(0.42, 0.55, 0.71);
 uniform float ground_curve : hint_range(0.0, 1.0) = 0.02;
@@ -77,12 +71,12 @@ void sky() {
 	// lighter than the horizon sky, a hair darker than the zenith. Cores darker for structure.
 	vec3 mul = mix(cloud_mul_edge, cloud_mul_core, cov.r);
 	vec3 cloud = mix(sky * mul, cloud_base * sky_energy, cloud_flat * smoothstep(0.0, 0.5, a));
-	cloud *= mix(1.0, cloud_core_darken, cov.r);
+	cloud *= mix(vec3(1.0), vec3(0.69, 0.81, 0.94), cov.r * 0.78);
 	sky = mix(sky, cloud, a);
 
 	float cg = (v_angle - PI * 0.5) / (PI * 0.5);
 	vec3 ground = mix(ground_horizon_color, ground_bottom_color, clamp(1.0 - pow(1.0 - cg, 1.0 / ground_curve), 0.0, 1.0));
 	ground *= ground_energy;
 	ground += glow_add;   // the last rows under the sea plane must match the sky's horizon, glow included
-	COLOR = mix(ground, sky, step(0.0, EYEDIR.y));
+	COLOR = mix(ground, sky, step(0.0, EYEDIR.y)) * daylight;
 }

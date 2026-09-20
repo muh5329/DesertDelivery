@@ -1,0 +1,50 @@
+[
+	{
+		"draws": 3699.98888888889,
+		"fps": 52.2689668109483,
+		"median_ms": 18.549,
+		"mode": "baseline",
+		"p95_ms": 23.127,
+		"primitives": 12981007.4111111
+	},
+	{
+		"draws": 2731.87777777778,
+		"fps": 55.7115306464487,
+		"median_ms": 18.049,
+		"mode": "no_residents",
+		"p95_ms": 19.041,
+		"primitives": 12755451.1555556
+	},
+	{
+		"draws": 1454.18888888889,
+		"fps": 69.986597566566,
+		"median_ms": 14.238,
+		"mode": "no_shadows",
+		"p95_ms": 15.702,
+		"primitives": 5013443.73333333
+	},
+	{
+		"draws": 1282.0,
+		"fps": 122.917991164928,
+		"median_ms": 8.119,
+		"mode": "no_chunks",
+		"p95_ms": 8.984,
+		"primitives": 1558574.0
+	},
+	{
+		"draws": 3498.47777777778,
+		"fps": 61.6618484783397,
+		"median_ms": 16.55,
+		"mode": "no_msaa",
+		"p95_ms": 19.321,
+		"primitives": 12901223.0
+	},
+	{
+		"draws": 3498.1,
+		"fps": 54.4144476404535,
+		"median_ms": 18.268,
+		"mode": "baseline_final",
+		"p95_ms": 20.079,
+		"primitives": 12899875.7333333
+	}
+]

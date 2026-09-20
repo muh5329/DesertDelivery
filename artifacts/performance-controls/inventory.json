@@ -1,0 +1,3740 @@
+[
+	{
+		"dist": 483.871948242188,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/Environment/OuterIsland25km/@MeshInstance3D@8",
+		"size": "(25000.0, 792.6359, 25000.0)",
+		"tris": 319352
+	},
+	{
+		"dist": 16.0892066955566,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/DD_Paint_courier_bike/CourierBike/Body/Body_Geometry",
+		"size": "(2.478668, 1.256387, 0.846768)",
+		"tris": 91756
+	},
+	{
+		"dist": 206.635635375977,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@7022/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry",
+		"size": "(10.57883, 11.74, 10.90649)",
+		"tris": 73504
+	},
+	{
+		"dist": 255.150344848633,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7530/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry",
+		"size": "(9.954559, 11.74, 10.01532)",
+		"tris": 73504
+	},
+	{
+		"dist": 262.314239501953,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7852/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry",
+		"size": "(9.957184, 11.74, 10.66541)",
+		"tris": 73504
+	},
+	{
+		"dist": 182.324798583984,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5987/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry",
+		"size": "(9.701782, 11.74, 9.443909)",
+		"tris": 73504
+	},
+	{
+		"dist": 51.6813850402832,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@932/DD_Paint_village_house_2/VillageHouse2/VillageHouse2_Geometry",
+		"size": "(15.04398, 11.74, 14.67242)",
+		"tris": 73504
+	},
+	{
+		"dist": 247.056884765625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7534/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry",
+		"size": "(10.46289, 8.639999, 10.39261)",
+		"tris": 43360
+	},
+	{
+		"dist": 230.028610229492,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7856/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry",
+		"size": "(9.888519, 8.639999, 9.983383)",
+		"tris": 43360
+	},
+	{
+		"dist": 249.677337646484,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7860/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry",
+		"size": "(9.090729, 8.639999, 10.17116)",
+		"tris": 43360
+	},
+	{
+		"dist": 162.035247802734,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5983/DD_Paint_village_house_1/VillageHouse1/VillageHouse1_Geometry",
+		"size": "(10.98114, 8.639999, 10.82951)",
+		"tris": 43360
+	},
+	{
+		"dist": 29.195520401001,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt",
+		"size": "(0.546417, 0.348111, 0.207821)",
+		"tris": 30842
+	},
+	{
+		"dist": 10.366512298584,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt",
+		"size": "(0.233826, 0.456519, 0.706531)",
+		"tris": 30842
+	},
+	{
+		"dist": 13.3372564315796,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt",
+		"size": "(0.242004, 0.472339, 0.731015)",
+		"tris": 30842
+	},
+	{
+		"dist": 24.938907623291,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt",
+		"size": "(0.553009, 0.348073, 0.239839)",
+		"tris": 30842
+	},
+	{
+		"dist": 16.0539398193359,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt",
+		"size": "(0.224243, 0.452113, 0.697325)",
+		"tris": 30842
+	},
+	{
+		"dist": 16.7667751312256,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt",
+		"size": "(0.217651, 0.424879, 0.657564)",
+		"tris": 30842
+	},
+	{
+		"dist": 20.9916839599609,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousShirt",
+		"size": "(0.225769, 0.440699, 0.682047)",
+		"tris": 30842
+	},
+	{
+		"dist": 13.2221441268921,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry",
+		"size": "(0.305725, 0.335735, 0.360453)",
+		"tris": 30724
+	},
+	{
+		"dist": 20.9242897033691,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry",
+		"size": "(0.29776, 0.326031, 0.298408)",
+		"tris": 30724
+	},
+	{
+		"dist": 24.8644943237305,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry",
+		"size": "(0.261841, 0.300997, 0.295849)",
+		"tris": 30724
+	},
+	{
+		"dist": 10.2553558349609,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry",
+		"size": "(0.306091, 0.353502, 0.292272)",
+		"tris": 30724
+	},
+	{
+		"dist": 16.7627906799316,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry",
+		"size": "(0.285889, 0.329001, 0.314485)",
+		"tris": 30724
+	},
+	{
+		"dist": 29.1299209594727,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry",
+		"size": "(0.269379, 0.300984, 0.285404)",
+		"tris": 30724
+	},
+	{
+		"dist": 15.9168081283569,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/Head_Geometry",
+		"size": "(0.322845, 0.369322, 0.292246)",
+		"tris": 30724
+	},
+	{
+		"dist": 16.7800312042236,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/DD_Paint_courier_bike/CourierBike/ForkPivot/FrontWheel/FrontWheel_Geometry",
+		"size": "(0.646973, 0.644342, 0.218148)",
+		"tris": 24044
+	},
+	{
+		"dist": 15.8967523574829,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/DD_Paint_courier_bike/CourierBike/RearWheel/RearWheel_Geometry",
+		"size": "(0.646973, 0.644342, 0.218148)",
+		"tris": 24044
+	},
+	{
+		"dist": 29.2596321105957,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousTrousers",
+		"size": "(0.417389, 0.627619, 0.213462)",
+		"tris": 13312
+	},
+	{
+		"dist": 10.5845537185669,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousTrousers",
+		"size": "(0.250854, 0.823151, 0.535631)",
+		"tris": 13312
+	},
+	{
+		"dist": 21.0973529815674,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousTrousers",
+		"size": "(0.242126, 0.794626, 0.51707)",
+		"tris": 13312
+	},
+	{
+		"dist": 13.511622428894,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousTrousers",
+		"size": "(0.259521, 0.851676, 0.554193)",
+		"tris": 13312
+	},
+	{
+		"dist": 16.895263671875,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousTrousers",
+		"size": "(0.233459, 0.766101, 0.498508)",
+		"tris": 13312
+	},
+	{
+		"dist": 16.1943492889404,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousTrousers",
+		"size": "(0.243103, 0.815126, 0.527858)",
+		"tris": 13312
+	},
+	{
+		"dist": 25.0139579772949,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/ContinuousTrousers",
+		"size": "(0.425873, 0.627582, 0.237208)",
+		"tris": 13312
+	},
+	{
+		"dist": 25.1840038299561,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/DD_Paint_island_car/IslandCar/IslandCar_Geometry",
+		"size": "(2.279663, 1.315402, 3.530988)",
+		"tris": 12540
+	},
+	{
+		"dist": 29.4623985290527,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/DD_Paint_island_car/IslandCar/IslandCar_Geometry",
+		"size": "(2.087128, 1.315958, 3.440393)",
+		"tris": 12540
+	},
+	{
+		"dist": 21.2113075256348,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/LegL/Knee/Knee_Geometry",
+		"size": "(0.304901, 0.30225, 0.15917)",
+		"tris": 7308
+	},
+	{
+		"dist": 21.327091217041,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/LegR/Knee/Knee_001_Geometry",
+		"size": "(0.304901, 0.30225, 0.159169)",
+		"tris": 7308
+	},
+	{
+		"dist": 17.1552181243896,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/LegR/Knee/Knee_001_Geometry",
+		"size": "(0.293915, 0.2914, 0.153456)",
+		"tris": 7308
+	},
+	{
+		"dist": 17.0134410858154,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/LegL/Knee/Knee_Geometry",
+		"size": "(0.293915, 0.2914, 0.153456)",
+		"tris": 7308
+	},
+	{
+		"dist": 29.514045715332,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/LegR/Knee/Knee_001_Geometry",
+		"size": "(0.223602, 0.311756, 0.329376)",
+		"tris": 7308
+	},
+	{
+		"dist": 13.847469329834,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/LegR/Knee/Knee_001_Geometry",
+		"size": "(0.326752, 0.32395, 0.170597)",
+		"tris": 7308
+	},
+	{
+		"dist": 24.7551689147949,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/LegL/Knee/Knee_Geometry",
+		"size": "(0.26767, 0.311783, 0.319437)",
+		"tris": 7308
+	},
+	{
+		"dist": 25.2528305053711,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/LegR/Knee/Knee_001_Geometry",
+		"size": "(0.209106, 0.311783, 0.329293)",
+		"tris": 7308
+	},
+	{
+		"dist": 13.650821685791,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/LegL/Knee/Knee_Geometry",
+		"size": "(0.326752, 0.32395, 0.170597)",
+		"tris": 7308
+	},
+	{
+		"dist": 28.9903831481934,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/LegL/Knee/Knee_Geometry",
+		"size": "(0.2565, 0.311756, 0.323841)",
+		"tris": 7308
+	},
+	{
+		"dist": 15.8375883102417,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/LegL/Knee/Knee_Geometry",
+		"size": "(0.356476, 0.362635, 0.323766)",
+		"tris": 7308
+	},
+	{
+		"dist": 16.405933380127,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/LegR/Knee/Knee_001_Geometry",
+		"size": "(0.357544, 0.362635, 0.317958)",
+		"tris": 7308
+	},
+	{
+		"dist": 10.9625091552734,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/LegR/Knee/Knee_001_Geometry",
+		"size": "(0.315826, 0.3131, 0.164883)",
+		"tris": 7308
+	},
+	{
+		"dist": 10.7250747680664,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/LegL/Knee/Knee_Geometry",
+		"size": "(0.315826, 0.3131, 0.164883)",
+		"tris": 7308
+	},
+	{
+		"dist": 13.302698135376,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Torso_Geometry",
+		"size": "(0.210266, 0.251242, 0.245034)",
+		"tris": 4880
+	},
+	{
+		"dist": 10.3315286636353,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Torso_Geometry",
+		"size": "(0.231323, 0.265211, 0.216397)",
+		"tris": 4880
+	},
+	{
+		"dist": 16.8102149963379,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/Torso_Geometry",
+		"size": "(0.216095, 0.24683, 0.232828)",
+		"tris": 4880
+	},
+	{
+		"dist": 15.9073553085327,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/Torso_Geometry",
+		"size": "(0.300232, 0.306197, 0.212776)",
+		"tris": 4880
+	},
+	{
+		"dist": 29.1604537963867,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Torso_Geometry",
+		"size": "(0.191864, 0.217151, 0.206805)",
+		"tris": 4880
+	},
+	{
+		"dist": 24.9001922607422,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Torso_Geometry",
+		"size": "(0.186737, 0.21716, 0.214204)",
+		"tris": 4880
+	},
+	{
+		"dist": 20.98655128479,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/Torso_Geometry",
+		"size": "(0.195435, 0.234413, 0.196022)",
+		"tris": 4880
+	},
+	{
+		"dist": 20.9913196563721,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedSuspenders",
+		"size": "(0.231445, 0.363784, 0.314241)",
+		"tris": 3268
+	},
+	{
+		"dist": 16.0520668029785,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedSuspenders",
+		"size": "(0.234192, 0.373234, 0.31985)",
+		"tris": 3268
+	},
+	{
+		"dist": 29.1932640075684,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedSuspenders",
+		"size": "(0.257416, 0.287355, 0.196021)",
+		"tris": 3268
+	},
+	{
+		"dist": 10.3619470596313,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedSuspenders",
+		"size": "(0.239807, 0.376843, 0.325521)",
+		"tris": 3268
+	},
+	{
+		"dist": 13.3347806930542,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedSuspenders",
+		"size": "(0.248108, 0.389902, 0.336802)",
+		"tris": 3268
+	},
+	{
+		"dist": 24.9361629486084,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedSuspenders",
+		"size": "(0.266693, 0.287322, 0.209909)",
+		"tris": 3268
+	},
+	{
+		"dist": 16.7655563354492,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedSuspenders",
+		"size": "(0.223175, 0.350725, 0.302961)",
+		"tris": 3268
+	},
+	{
+		"dist": 30.5725231170654,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/DD_Paint_island_car/IslandCar/WheelRR/WheelRR_Geometry",
+		"size": "(0.287201, 0.866399, 0.88106)",
+		"tris": 3056
+	},
+	{
+		"dist": 29.1771430969238,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/DD_Paint_island_car/IslandCar/WheelRL/WheelRL_Geometry",
+		"size": "(0.287201, 0.866399, 0.88106)",
+		"tris": 3056
+	},
+	{
+		"dist": 26.3785095214844,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/DD_Paint_island_car/IslandCar/WheelRR/WheelRR_Geometry",
+		"size": "(0.339478, 0.866459, 0.888735)",
+		"tris": 3056
+	},
+	{
+		"dist": 25.0584201812744,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/DD_Paint_island_car/IslandCar/WheelRL/WheelRL_Geometry",
+		"size": "(0.339478, 0.866459, 0.888735)",
+		"tris": 3056
+	},
+	{
+		"dist": 25.5830039978027,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/DD_Paint_island_car/IslandCar/SteeringFR/WheelFR/WheelFR_Geometry",
+		"size": "(0.440491, 0.866455, 0.893516)",
+		"tris": 3056
+	},
+	{
+		"dist": 24.2229499816895,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/DD_Paint_island_car/IslandCar/SteeringFL/WheelFL/WheelFL_Geometry",
+		"size": "(0.440491, 0.866455, 0.893516)",
+		"tris": 3056
+	},
+	{
+		"dist": 16.6271781921387,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/DD_Paint_courier_bike/CourierBike/ForkPivot/ForkPivot_Geometry",
+		"size": "(0.755341, 1.09029, 0.933349)",
+		"tris": 2556
+	},
+	{
+		"dist": 105.850975036621,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8956/Deer/AnimalHead_001/AnimalHead_001_Geometry",
+		"size": "(0.918945, 0.901109, 0.917107)",
+		"tris": 2128
+	},
+	{
+		"dist": 37.0467910766602,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8955/Deer/AnimalHead_001/AnimalHead_001_Geometry",
+		"size": "(1.128021, 1.082875, 1.116459)",
+		"tris": 2128
+	},
+	{
+		"dist": 15.9119024276733,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/ArmL_Geometry",
+		"size": "(0.177856, 0.17725, 0.159574)",
+		"tris": 1180
+	},
+	{
+		"dist": 16.3058795928955,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/ArmR_Geometry",
+		"size": "(0.174713, 0.17725, 0.158257)",
+		"tris": 1180
+	},
+	{
+		"dist": 21.1598739624023,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/ArmR_Geometry",
+		"size": "(0.149261, 0.120732, 0.141221)",
+		"tris": 1180
+	},
+	{
+		"dist": 17.0514221191406,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/ArmR_Geometry",
+		"size": "(0.15155, 0.130864, 0.167337)",
+		"tris": 1180
+	},
+	{
+		"dist": 28.9662227630615,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/ArmL_Geometry",
+		"size": "(0.139923, 0.129772, 0.141318)",
+		"tris": 1180
+	},
+	{
+		"dist": 16.8172874450684,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/ArmL_Geometry",
+		"size": "(0.136353, 0.111567, 0.166655)",
+		"tris": 1180
+	},
+	{
+		"dist": 10.3365144729614,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/ArmL_Geometry",
+		"size": "(0.145966, 0.119874, 0.154743)",
+		"tris": 1180
+	},
+	{
+		"dist": 10.630428314209,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/ArmR_Geometry",
+		"size": "(0.162323, 0.140609, 0.155475)",
+		"tris": 1180
+	},
+	{
+		"dist": 29.3565883636475,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/ArmR_Geometry",
+		"size": "(0.134674, 0.12976, 0.127671)",
+		"tris": 1180
+	},
+	{
+		"dist": 25.0632038116455,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/ArmR_Geometry",
+		"size": "(0.125214, 0.129757, 0.133308)",
+		"tris": 1180
+	},
+	{
+		"dist": 20.9627304077148,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/ArmL_Geometry",
+		"size": "(0.131287, 0.092789, 0.140965)",
+		"tris": 1180
+	},
+	{
+		"dist": 24.7255229949951,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/ArmL_Geometry",
+		"size": "(0.134521, 0.129763, 0.145776)",
+		"tris": 1180
+	},
+	{
+		"dist": 13.5733909606934,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/ArmR_Geometry",
+		"size": "(0.160522, 0.1294, 0.176525)",
+		"tris": 1180
+	},
+	{
+		"dist": 13.2643022537231,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/ArmL_Geometry",
+		"size": "(0.141266, 0.099452, 0.176251)",
+		"tris": 1180
+	},
+	{
+		"dist": 16.1082744598389,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Hand/Hand_Geometry",
+		"size": "(0.243195, 0.172811, 0.142952)",
+		"tris": 1172
+	},
+	{
+		"dist": 16.5917568206787,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/Hand_001_Geometry",
+		"size": "(0.241577, 0.172811, 0.138535)",
+		"tris": 1172
+	},
+	{
+		"dist": 21.0972938537598,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Hand/Hand_Geometry",
+		"size": "(0.131287, 0.210155, 0.109)",
+		"tris": 1172
+	},
+	{
+		"dist": 21.3295631408691,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/Hand_001_Geometry",
+		"size": "(0.169556, 0.203506, 0.110035)",
+		"tris": 1172
+	},
+	{
+		"dist": 17.2339668273926,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/Hand_001_Geometry",
+		"size": "(0.181488, 0.184929, 0.131347)",
+		"tris": 1172
+	},
+	{
+		"dist": 13.7365808486938,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/Hand_001_Geometry",
+		"size": "(0.182007, 0.218116, 0.137804)",
+		"tris": 1172
+	},
+	{
+		"dist": 17.0043659210205,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Hand/Hand_Geometry",
+		"size": "(0.154694, 0.198441, 0.128705)",
+		"tris": 1172
+	},
+	{
+		"dist": 13.4351797103882,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Hand/Hand_Geometry",
+		"size": "(0.141144, 0.225244, 0.136695)",
+		"tris": 1172
+	},
+	{
+		"dist": 28.8936157226562,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Hand/Hand_Geometry",
+		"size": "(0.118103, 0.174632, 0.177336)",
+		"tris": 1172
+	},
+	{
+		"dist": 10.5171985626221,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Hand/Hand_Geometry",
+		"size": "(0.165771, 0.213219, 0.119085)",
+		"tris": 1172
+	},
+	{
+		"dist": 10.7591075897217,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/Hand_001_Geometry",
+		"size": "(0.194733, 0.198701, 0.121924)",
+		"tris": 1172
+	},
+	{
+		"dist": 29.3621883392334,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/Hand_001_Geometry",
+		"size": "(0.102173, 0.174627, 0.170256)",
+		"tris": 1172
+	},
+	{
+		"dist": 25.0468807220459,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/Hand_001_Geometry",
+		"size": "(0.085236, 0.174645, 0.174229)",
+		"tris": 1172
+	},
+	{
+		"dist": 24.6411571502686,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Hand/Hand_Geometry",
+		"size": "(0.116364, 0.174648, 0.17911)",
+		"tris": 1172
+	},
+	{
+		"dist": 332.028045654297,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8623/@MeshInstance3D@8620",
+		"size": "(12.67383, 26.70683, 17.96979)",
+		"tris": 1020
+	},
+	{
+		"dist": 304.831420898438,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8653/@MeshInstance3D@8650",
+		"size": "(15.05499, 25.16159, 16.31871)",
+		"tris": 888
+	},
+	{
+		"dist": 322.618225097656,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8633/@MeshInstance3D@8630",
+		"size": "(13.49048, 21.34574, 16.78374)",
+		"tris": 852
+	},
+	{
+		"dist": 332.606353759766,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8618/@MeshInstance3D@8615",
+		"size": "(16.38684, 17.86817, 17.99449)",
+		"tris": 828
+	},
+	{
+		"dist": 323.259979248047,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8628/@MeshInstance3D@8625",
+		"size": "(17.75806, 16.48565, 18.5956)",
+		"tris": 828
+	},
+	{
+		"dist": 16.1721057891846,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedTrouserStitching",
+		"size": "(0.070465, 0.186145, 0.286428)",
+		"tris": 804
+	},
+	{
+		"dist": 21.1137561798096,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedTrouserStitching",
+		"size": "(0.071655, 0.181456, 0.279923)",
+		"tris": 804
+	},
+	{
+		"dist": 16.8911209106445,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedTrouserStitching",
+		"size": "(0.069092, 0.174942, 0.269874)",
+		"tris": 804
+	},
+	{
+		"dist": 24.9489574432373,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedTrouserStitching",
+		"size": "(0.225006, 0.143316, 0.082056)",
+		"tris": 804
+	},
+	{
+		"dist": 13.4785127639771,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedTrouserStitching",
+		"size": "(0.076752, 0.194484, 0.30002)",
+		"tris": 804
+	},
+	{
+		"dist": 29.2070007324219,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedTrouserStitching",
+		"size": "(0.223328, 0.143329, 0.068777)",
+		"tris": 804
+	},
+	{
+		"dist": 10.4983701705933,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/CourierClothRig/Skeleton3D/SkinnedTrouserStitching",
+		"size": "(0.074249, 0.18797, 0.289971)",
+		"tris": 804
+	},
+	{
+		"dist": 304.056457519531,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8648/@MeshInstance3D@8645",
+		"size": "(15.46289, 20.36706, 20.69228)",
+		"tris": 784
+	},
+	{
+		"dist": 252.816986083984,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8021/@MeshInstance3D@8018",
+		"size": "(16.36905, 24.72359, 10.63641)",
+		"tris": 732
+	},
+	{
+		"dist": 320.203460693359,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8643/@MeshInstance3D@8640",
+		"size": "(10.77393, 22.47598, 13.54553)",
+		"tris": 716
+	},
+	{
+		"dist": 235.537734985352,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8041/@MeshInstance3D@8038",
+		"size": "(13.93146, 20.25272, 8.660751)",
+		"tris": 620
+	},
+	{
+		"dist": 318.698547363281,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8638/@MeshInstance3D@8635",
+		"size": "(10.02118, 18.37026, 15.10063)",
+		"tris": 620
+	},
+	{
+		"dist": 20.9341239929199,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@305",
+		"size": "(0.1828, 0.41168, 0.129303)",
+		"tris": 588
+	},
+	{
+		"dist": 21.0270919799805,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@306",
+		"size": "(0.1828, 0.41168, 0.129303)",
+		"tris": 588
+	},
+	{
+		"dist": 127.994529724121,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4915",
+		"size": "(0.964966, 0.84, 0.890892)",
+		"tris": 588
+	},
+	{
+		"dist": 16.7178153991699,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@294",
+		"size": "(0.225342, 0.414443, 0.154023)",
+		"tris": 588
+	},
+	{
+		"dist": 16.8589134216309,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@295",
+		"size": "(0.225342, 0.414443, 0.154024)",
+		"tris": 588
+	},
+	{
+		"dist": 10.3553266525269,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@259",
+		"size": "(0.115967, 0.230289, 0.126958)",
+		"tris": 588
+	},
+	{
+		"dist": 10.1443147659302,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@258",
+		"size": "(0.114136, 0.230289, 0.125733)",
+		"tris": 588
+	},
+	{
+		"dist": 24.8111228942871,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@318",
+		"size": "(0.101135, 0.186871, 0.118616)",
+		"tris": 588
+	},
+	{
+		"dist": 24.9800243377686,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@319",
+		"size": "(0.112732, 0.186868, 0.116391)",
+		"tris": 588
+	},
+	{
+		"dist": 21.0383338928223,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@309",
+		"size": "(0.017761, 0.075809, 0.071326)",
+		"tris": 576
+	},
+	{
+		"dist": 29.0654106140137,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@337",
+		"size": "(0.067139, 0.058892, 0.026918)",
+		"tris": 576
+	},
+	{
+		"dist": 10.3672914505005,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@268",
+		"size": "(0.019104, 0.075456, 0.075613)",
+		"tris": 576
+	},
+	{
+		"dist": 10.2677230834961,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@267",
+		"size": "(0.019104, 0.075456, 0.075613)",
+		"tris": 576
+	},
+	{
+		"dist": 29.1583442687988,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@338",
+		"size": "(0.067139, 0.058892, 0.026918)",
+		"tris": 576
+	},
+	{
+		"dist": 21.0681056976318,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@310",
+		"size": "(0.017761, 0.075809, 0.071326)",
+		"tris": 576
+	},
+	{
+		"dist": 264.989379882812,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8011/@MeshInstance3D@8008",
+		"size": "(4.449707, 26.80813, 7.61348)",
+		"tris": 540
+	},
+	{
+		"dist": 234.979446411133,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8036/@MeshInstance3D@8033",
+		"size": "(14.15768, 15.73384, 13.83144)",
+		"tris": 524
+	},
+	{
+		"dist": 227.189682006836,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6901/@MeshInstance3D@6898",
+		"size": "(8.15155, 20.78672, 9.894852)",
+		"tris": 512
+	},
+	{
+		"dist": 37.315013885498,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8955/Deer/Deer_Geometry",
+		"size": "(1.705902, 0.75, 1.672953)",
+		"tris": 484
+	},
+	{
+		"dist": 106.695281982422,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8956/Deer/Deer_Geometry",
+		"size": "(1.720184, 0.749999, 1.655289)",
+		"tris": 484
+	},
+	{
+		"dist": 189.510864257812,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5952/@MeshInstance3D@5949",
+		"size": "(15.61569, 19.12445, 16.09836)",
+		"tris": 440
+	},
+	{
+		"dist": 193.411865234375,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5894/@MeshInstance3D@5891",
+		"size": "(17.57925, 21.79416, 17.11171)",
+		"tris": 440
+	},
+	{
+		"dist": 209.422210693359,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5889/@MeshInstance3D@5888",
+		"size": "(9.387451, 11.08627, 12.43512)",
+		"tris": 440
+	},
+	{
+		"dist": 13.1344890594482,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@280",
+		"size": "(0.135071, 0.098396, 0.147759)",
+		"tris": 440
+	},
+	{
+		"dist": 216.36296081543,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7439/@MeshInstance3D@7436",
+		"size": "(14.76257, 23.37273, 19.94145)",
+		"tris": 440
+	},
+	{
+		"dist": 13.2196569442749,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@279",
+		"size": "(0.135071, 0.098396, 0.147759)",
+		"tris": 440
+	},
+	{
+		"dist": 13.2906112670898,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@278",
+		"size": "(0.135071, 0.098396, 0.147759)",
+		"tris": 440
+	},
+	{
+		"dist": 13.2498025894165,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@277",
+		"size": "(0.135071, 0.098396, 0.147759)",
+		"tris": 440
+	},
+	{
+		"dist": 13.1529932022095,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@276",
+		"size": "(0.135071, 0.098396, 0.147759)",
+		"tris": 440
+	},
+	{
+		"dist": 165.573135375977,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5548/@MeshInstance3D@5545",
+		"size": "(13.98666, 18.37803, 15.13193)",
+		"tris": 440
+	},
+	{
+		"dist": 167.248840332031,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5528/@MeshInstance3D@5525",
+		"size": "(18.8154, 24.60003, 21.49628)",
+		"tris": 440
+	},
+	{
+		"dist": 239.878707885742,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7474/@MeshInstance3D@7471",
+		"size": "(17.5853, 17.57499, 23.59438)",
+		"tris": 440
+	},
+	{
+		"dist": 284.632202148438,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7814/@MeshInstance3D@7811",
+		"size": "(17.20609, 17.11631, 18.52438)",
+		"tris": 440
+	},
+	{
+		"dist": 134.928756713867,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5523/@MeshInstance3D@5520",
+		"size": "(20.20032, 22.44736, 25.71515)",
+		"tris": 440
+	},
+	{
+		"dist": 145.913543701172,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-2/@Node3D@3779/@MeshInstance3D@3776",
+		"size": "(8.997192, 11.25758, 9.871399)",
+		"tris": 440
+	},
+	{
+		"dist": 205.082427978516,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7494/@MeshInstance3D@7491",
+		"size": "(20.23203, 21.02245, 20.86351)",
+		"tris": 440
+	},
+	{
+		"dist": 214.778701782227,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7499/@MeshInstance3D@7496",
+		"size": "(15.44357, 15.58195, 21.48094)",
+		"tris": 440
+	},
+	{
+		"dist": 167.397506713867,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5518/@MeshInstance3D@5515",
+		"size": "(11.54538, 12.632, 9.305084)",
+		"tris": 440
+	},
+	{
+		"dist": 135.005859375,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5510/@MeshInstance3D@5507",
+		"size": "(21.42068, 21.10113, 19.17385)",
+		"tris": 440
+	},
+	{
+		"dist": 10.2608404159546,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@262",
+		"size": "(0.015686, 0.044329, 0.043441)",
+		"tris": 440
+	},
+	{
+		"dist": 10.2709665298462,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@261",
+		"size": "(0.184814, 0.048131, 0.298035)",
+		"tris": 440
+	},
+	{
+		"dist": 10.2112827301025,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@260",
+		"size": "(0.370605, 0.294669, 0.339619)",
+		"tris": 440
+	},
+	{
+		"dist": 212.715850830078,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6994/@MeshInstance3D@6991",
+		"size": "(10.85049, 12.00978, 11.05362)",
+		"tris": 440
+	},
+	{
+		"dist": 164.799468994141,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5965/@MeshInstance3D@5962",
+		"size": "(8.829285, 12.55548, 8.303162)",
+		"tris": 440
+	},
+	{
+		"dist": 29.0785598754883,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@336",
+		"size": "(0.038818, 0.035106, 0.019058)",
+		"tris": 440
+	},
+	{
+		"dist": 232.569778442383,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7125/@MeshInstance3D@7124",
+		"size": "(9.137939, 10.33189, 12.94478)",
+		"tris": 440
+	},
+	{
+		"dist": 192.604278564453,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7145/@MeshInstance3D@7142",
+		"size": "(25.12354, 29.06762, 26.97034)",
+		"tris": 440
+	},
+	{
+		"dist": 29.0861949920654,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@335",
+		"size": "(0.266846, 0.056767, 0.159657)",
+		"tris": 440
+	},
+	{
+		"dist": 29.1087284088135,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@334",
+		"size": "(0.312561, 0.263925, 0.329533)",
+		"tris": 440
+	},
+	{
+		"dist": 29.0539989471436,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@333",
+		"size": "(0.109253, 0.096594, 0.116319)",
+		"tris": 440
+	},
+	{
+		"dist": 29.0643367767334,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@332",
+		"size": "(0.109253, 0.096594, 0.116319)",
+		"tris": 440
+	},
+	{
+		"dist": 29.1505851745605,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@331",
+		"size": "(0.109253, 0.096594, 0.116319)",
+		"tris": 440
+	},
+	{
+		"dist": 29.1934585571289,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@330",
+		"size": "(0.109253, 0.096594, 0.116319)",
+		"tris": 440
+	},
+	{
+		"dist": 29.1338500976562,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@329",
+		"size": "(0.109253, 0.096594, 0.116319)",
+		"tris": 440
+	},
+	{
+		"dist": 24.7956104278564,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@322",
+		"size": "(0.036133, 0.035104, 0.020804)",
+		"tris": 440
+	},
+	{
+		"dist": 24.805233001709,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@321",
+		"size": "(0.250671, 0.056781, 0.171317)",
+		"tris": 440
+	},
+	{
+		"dist": 24.8367118835449,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@320",
+		"size": "(0.303711, 0.263949, 0.341654)",
+		"tris": 440
+	},
+	{
+		"dist": 177.202056884766,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5970/@MeshInstance3D@5967",
+		"size": "(15.62067, 18.07213, 14.75052)",
+		"tris": 440
+	},
+	{
+		"dist": 237.274826049805,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-1/@Node3D@7233/@MeshInstance3D@7230",
+		"size": "(7.305725, 12.95603, 11.33846)",
+		"tris": 440
+	},
+	{
+		"dist": 227.177444458008,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6906/@MeshInstance3D@6903",
+		"size": "(8.084442, 18.47547, 9.128281)",
+		"tris": 440
+	},
+	{
+		"dist": 213.063446044922,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-1/@Node3D@7239/@MeshInstance3D@7238",
+		"size": "(5.982178, 6.020971, 5.156715)",
+		"tris": 440
+	},
+	{
+		"dist": 20.7933540344238,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@304",
+		"size": "(0.196289, 0.151268, 0.182399)",
+		"tris": 440
+	},
+	{
+		"dist": 173.558746337891,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5960/@MeshInstance3D@5957",
+		"size": "(10.56775, 11.97769, 9.426498)",
+		"tris": 440
+	},
+	{
+		"dist": 218.83203125,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7406/@MeshInstance3D@7403",
+		"size": "(14.41489, 19.09341, 20.04459)",
+		"tris": 440
+	},
+	{
+		"dist": 175.769409179688,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5955/@MeshInstance3D@5954",
+		"size": "(7.590729, 9.857849, 10.74614)",
+		"tris": 440
+	},
+	{
+		"dist": 16.7513465881348,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@291",
+		"size": "(0.466064, 0.125834, 0.545172)",
+		"tris": 384
+	},
+	{
+		"dist": 10.3166694641113,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@269",
+		"size": "(0.014709, 0.013419, 0.053751)",
+		"tris": 360
+	},
+	{
+		"dist": 29.1113834381104,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@339",
+		"size": "(0.047424, 0.011663, 0.015334)",
+		"tris": 360
+	},
+	{
+		"dist": 21.1232376098633,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@307",
+		"size": "(0.069153, 0.445642, 0.297318)",
+		"tris": 360
+	},
+	{
+		"dist": 21.0527095794678,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@311",
+		"size": "(0.018982, 0.012187, 0.051507)",
+		"tris": 360
+	},
+	{
+		"dist": 16.9210529327393,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@296",
+		"size": "(0.046509, 0.429597, 0.35491)",
+		"tris": 360
+	},
+	{
+		"dist": 243.70100402832,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8026/@MeshInstance3D@8023",
+		"size": "(9.023285, 16.37016, 11.46127)",
+		"tris": 348
+	},
+	{
+		"dist": 262.757263183594,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8016/@MeshInstance3D@8013",
+		"size": "(6.179108, 15.99891, 11.19171)",
+		"tris": 348
+	},
+	{
+		"dist": 273.759063720703,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8483/@MeshInstance3D@8480",
+		"size": "(8.144745, 7.571384, 11.86371)",
+		"tris": 300
+	},
+	{
+		"dist": 255.016052246094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8488/@MeshInstance3D@8485",
+		"size": "(16.12277, 12.30916, 18.06973)",
+		"tris": 300
+	},
+	{
+		"dist": 256.626403808594,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8493/@MeshInstance3D@8490",
+		"size": "(10.11716, 6.53089, 12.92607)",
+		"tris": 300
+	},
+	{
+		"dist": 260.921325683594,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8498/@MeshInstance3D@8495",
+		"size": "(7.063782, 7.567097, 8.828278)",
+		"tris": 300
+	},
+	{
+		"dist": 309.583862304688,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8613/@MeshInstance3D@8610",
+		"size": "(8.186646, 5.255489, 6.599106)",
+		"tris": 300
+	},
+	{
+		"dist": 273.62744140625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8300/@MeshInstance3D@8297",
+		"size": "(5.64978, 3.784998, 7.681839)",
+		"tris": 300
+	},
+	{
+		"dist": 255.233642578125,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8295/@MeshInstance3D@8292",
+		"size": "(8.416718, 5.445585, 13.15512)",
+		"tris": 300
+	},
+	{
+		"dist": 225.077041625977,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6921/@MeshInstance3D@6920",
+		"size": "(2.407135, 1.519442, 2.635269)",
+		"tris": 300
+	},
+	{
+		"dist": 181.269607543945,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-2/@Node3D@6386/@MeshInstance3D@6383",
+		"size": "(7.495911, 6.341702, 10.06144)",
+		"tris": 300
+	},
+	{
+		"dist": 181.011291503906,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-2/@Node3D@6381/@MeshInstance3D@6378",
+		"size": "(6.733337, 5.519669, 7.085983)",
+		"tris": 300
+	},
+	{
+		"dist": 182.225036621094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-2/@Node3D@6376/@MeshInstance3D@6373",
+		"size": "(9.743103, 6.59344, 10.96313)",
+		"tris": 300
+	},
+	{
+		"dist": 313.287017822266,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8704/@MeshInstance3D@8701",
+		"size": "(15.41321, 12.5536, 16.10596)",
+		"tris": 300
+	},
+	{
+		"dist": 314.249267578125,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8709/@MeshInstance3D@8706",
+		"size": "(9.262268, 6.473057, 10.63618)",
+		"tris": 300
+	},
+	{
+		"dist": 288.188842773438,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8714/@MeshInstance3D@8711",
+		"size": "(15.53973, 12.83839, 20.15939)",
+		"tris": 300
+	},
+	{
+		"dist": 286.803192138672,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8719/@MeshInstance3D@8716",
+		"size": "(9.979614, 7.422668, 14.22029)",
+		"tris": 300
+	},
+	{
+		"dist": 294.217315673828,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8724/@MeshInstance3D@8721",
+		"size": "(7.222778, 8.216431, 10.65373)",
+		"tris": 300
+	},
+	{
+		"dist": 252.785797119141,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8357/@MeshInstance3D@8356",
+		"size": "(1.654236, 1.118679, 1.994171)",
+		"tris": 300
+	},
+	{
+		"dist": 280.662841796875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8354/@MeshInstance3D@8353",
+		"size": "(1.207031, 0.823977, 1.117523)",
+		"tris": 300
+	},
+	{
+		"dist": 281.992401123047,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8360/@MeshInstance3D@8359",
+		"size": "(2.883118, 2.834016, 3.74527)",
+		"tris": 300
+	},
+	{
+		"dist": 260.229888916016,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8351/@MeshInstance3D@8348",
+		"size": "(9.278748, 5.611277, 12.52936)",
+		"tris": 300
+	},
+	{
+		"dist": 258.354217529297,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8346/@MeshInstance3D@8343",
+		"size": "(6.848083, 5.471174, 6.807709)",
+		"tris": 300
+	},
+	{
+		"dist": 270.779663085938,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8324/@MeshInstance3D@8323",
+		"size": "(0.953186, 0.804183, 0.924332)",
+		"tris": 300
+	},
+	{
+		"dist": 261.753509521484,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8316/@MeshInstance3D@8313",
+		"size": "(6.158447, 4.142026, 6.464478)",
+		"tris": 300
+	},
+	{
+		"dist": 249.876724243164,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8371/@MeshInstance3D@8370",
+		"size": "(2.952087, 1.475641, 3.935699)",
+		"tris": 300
+	},
+	{
+		"dist": 267.313720703125,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8394/@MeshInstance3D@8393",
+		"size": "(1.669434, 1.29328, 2.330353)",
+		"tris": 300
+	},
+	{
+		"dist": 251.11555480957,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8420/@MeshInstance3D@8417",
+		"size": "(7.349365, 5.311782, 8.119507)",
+		"tris": 300
+	},
+	{
+		"dist": 228.887771606445,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8438/@MeshInstance3D@8435",
+		"size": "(11.78149, 11.0929, 12.95833)",
+		"tris": 300
+	},
+	{
+		"dist": 229.190246582031,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8443/@MeshInstance3D@8440",
+		"size": "(7.600464, 6.190738, 8.899216)",
+		"tris": 300
+	},
+	{
+		"dist": 233.710464477539,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8448/@MeshInstance3D@8445",
+		"size": "(5.539185, 6.331544, 6.635376)",
+		"tris": 300
+	},
+	{
+		"dist": 270.826263427734,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8311/@MeshInstance3D@8310",
+		"size": "(1.568542, 1.767915, 1.719925)",
+		"tris": 300
+	},
+	{
+		"dist": 261.165679931641,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8308/@MeshInstance3D@8307",
+		"size": "(1.307678, 0.917204, 1.274643)",
+		"tris": 300
+	},
+	{
+		"dist": 228.412094116211,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8453/@MeshInstance3D@8450",
+		"size": "(17.84763, 11.92388, 20.25185)",
+		"tris": 300
+	},
+	{
+		"dist": 229.62565612793,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8458/@MeshInstance3D@8455",
+		"size": "(10.41443, 6.400749, 13.00362)",
+		"tris": 300
+	},
+	{
+		"dist": 239.098739624023,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8463/@MeshInstance3D@8460",
+		"size": "(17.59601, 10.94074, 15.24534)",
+		"tris": 300
+	},
+	{
+		"dist": 238.909088134766,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8468/@MeshInstance3D@8465",
+		"size": "(11.00095, 6.32552, 10.61858)",
+		"tris": 300
+	},
+	{
+		"dist": 244.778427124023,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8473/@MeshInstance3D@8470",
+		"size": "(7.369507, 7.001957, 7.384674)",
+		"tris": 300
+	},
+	{
+		"dist": 274.098114013672,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8478/@MeshInstance3D@8475",
+		"size": "(15.32278, 12.96117, 20.0071)",
+		"tris": 300
+	},
+	{
+		"dist": 188.453735351562,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5909/@MeshInstance3D@5906",
+		"size": "(8.526215, 10.32786, 7.568604)",
+		"tris": 300
+	},
+	{
+		"dist": 186.875244140625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5904/@MeshInstance3D@5901",
+		"size": "(12.40671, 8.913609, 11.25946)",
+		"tris": 300
+	},
+	{
+		"dist": 186.289733886719,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5899/@MeshInstance3D@5896",
+		"size": "(19.44598, 16.80001, 15.67294)",
+		"tris": 300
+	},
+	{
+		"dist": 190.291046142578,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5583/@MeshInstance3D@5580",
+		"size": "(11.17761, 10.41932, 10.9736)",
+		"tris": 300
+	},
+	{
+		"dist": 187.87841796875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5578/@MeshInstance3D@5575",
+		"size": "(15.42404, 9.900787, 15.78096)",
+		"tris": 300
+	},
+	{
+		"dist": 185.147384643555,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5573/@MeshInstance3D@5570",
+		"size": "(24.86581, 18.44406, 22.63071)",
+		"tris": 300
+	},
+	{
+		"dist": 177.716613769531,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5563/@MeshInstance3D@5560",
+		"size": "(7.572388, 7.348911, 7.119476)",
+		"tris": 300
+	},
+	{
+		"dist": 175.19873046875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5558/@MeshInstance3D@5555",
+		"size": "(10.879, 7.185478, 10.26109)",
+		"tris": 300
+	},
+	{
+		"dist": 174.789337158203,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5553/@MeshInstance3D@5550",
+		"size": "(17.81897, 12.87533, 14.83997)",
+		"tris": 300
+	},
+	{
+		"dist": 189.437133789062,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5513/@MeshInstance3D@5512",
+		"size": "(10.35425, 7.748917, 8.477112)",
+		"tris": 300
+	},
+	{
+		"dist": 154.070739746094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5505/@MeshInstance3D@5502",
+		"size": "(5.939941, 6.629908, 7.159027)",
+		"tris": 300
+	},
+	{
+		"dist": 154.75390625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-3/@Node3D@5495/@MeshInstance3D@5492",
+		"size": "(10.70874, 11.73612, 11.47659)",
+		"tris": 300
+	},
+	{
+		"dist": 117.771667480469,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2915/@MeshInstance3D@2912",
+		"size": "(8.691193, 12.33919, 9.285088)",
+		"tris": 300
+	},
+	{
+		"dist": 125.539772033691,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2910/@MeshInstance3D@2907",
+		"size": "(15.64096, 11.14714, 15.38414)",
+		"tris": 300
+	},
+	{
+		"dist": 126.71736907959,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2905/@MeshInstance3D@2902",
+		"size": "(24.21985, 19.28032, 21.5266)",
+		"tris": 300
+	},
+	{
+		"dist": 128.652969360352,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2885/@MeshInstance3D@2882",
+		"size": "(6.634033, 7.572958, 7.109802)",
+		"tris": 300
+	},
+	{
+		"dist": 136.607788085938,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2880/@MeshInstance3D@2877",
+		"size": "(9.368683, 6.841358, 10.67134)",
+		"tris": 300
+	},
+	{
+		"dist": 134.402313232422,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2875/@MeshInstance3D@2872",
+		"size": "(15.03314, 11.83295, 14.99987)",
+		"tris": 300
+	},
+	{
+		"dist": 122.739624023438,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2870/@MeshInstance3D@2867",
+		"size": "(10.78125, 8.983204, 11.34943)",
+		"tris": 300
+	},
+	{
+		"dist": 125.315116882324,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-2/@Node3D@2855/@MeshInstance3D@2852",
+		"size": "(11.86777, 9.038998, 9.547432)",
+		"tris": 300
+	},
+	{
+		"dist": 305.557983398438,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8729/@MeshInstance3D@8726",
+		"size": "(18.06525, 11.10285, 15.63496)",
+		"tris": 300
+	},
+	{
+		"dist": 307.385009765625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8734/@MeshInstance3D@8731",
+		"size": "(11.12268, 6.485828, 11.15901)",
+		"tris": 300
+	},
+	{
+		"dist": 268.198455810547,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8739/@MeshInstance3D@8736",
+		"size": "(15.81052, 15.17291, 12.0882)",
+		"tris": 300
+	},
+	{
+		"dist": 268.527191162109,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8744/@MeshInstance3D@8741",
+		"size": "(9.954224, 8.144829, 8.468475)",
+		"tris": 300
+	},
+	{
+		"dist": 290.886596679688,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8749/@MeshInstance3D@8746",
+		"size": "(18.93723, 11.85238, 18.91388)",
+		"tris": 300
+	},
+	{
+		"dist": 292.160339355469,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8754/@MeshInstance3D@8751",
+		"size": "(12.01767, 6.288536, 13.3463)",
+		"tris": 300
+	},
+	{
+		"dist": 297.791809082031,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8759/@MeshInstance3D@8756",
+		"size": "(8.401611, 7.286289, 9.221527)",
+		"tris": 300
+	},
+	{
+		"dist": 264.129302978516,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8764/@MeshInstance3D@8761",
+		"size": "(15.91949, 14.10484, 14.12106)",
+		"tris": 300
+	},
+	{
+		"dist": 265.527313232422,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8769/@MeshInstance3D@8766",
+		"size": "(10.35168, 7.483631, 10.39127)",
+		"tris": 300
+	},
+	{
+		"dist": 306.72216796875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8774/@MeshInstance3D@8771",
+		"size": "(17.814, 15.17118, 21.96246)",
+		"tris": 300
+	},
+	{
+		"dist": 306.391052246094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8779/@MeshInstance3D@8776",
+		"size": "(11.94376, 8.0494, 16.85873)",
+		"tris": 300
+	},
+	{
+		"dist": 302.935516357422,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-4/@Node3D@8784/@MeshInstance3D@8781",
+		"size": "(6.249268, 9.326532, 8.317123)",
+		"tris": 300
+	},
+	{
+		"dist": 179.353652954102,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5947/@MeshInstance3D@5944",
+		"size": "(10.98181, 12.81549, 15.83987)",
+		"tris": 300
+	},
+	{
+		"dist": 188.339004516602,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5942/@MeshInstance3D@5939",
+		"size": "(15.68576, 11.06059, 22.25179)",
+		"tris": 300
+	},
+	{
+		"dist": 189.151580810547,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5937/@MeshInstance3D@5934",
+		"size": "(24.85678, 20.84656, 31.89009)",
+		"tris": 300
+	},
+	{
+		"dist": 166.35124206543,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5932/@MeshInstance3D@5929",
+		"size": "(7.126587, 6.565077, 8.55397)",
+		"tris": 300
+	},
+	{
+		"dist": 163.045486450195,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5927/@MeshInstance3D@5924",
+		"size": "(9.67395, 6.165958, 11.77794)",
+		"tris": 300
+	},
+	{
+		"dist": 161.487289428711,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5922/@MeshInstance3D@5919",
+		"size": "(15.1727, 10.55528, 16.81444)",
+		"tris": 300
+	},
+	{
+		"dist": 197.673187255859,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5917/@MeshInstance3D@5916",
+		"size": "(8.588379, 5.239477, 7.503708)",
+		"tris": 300
+	},
+	{
+		"dist": 160.887451171875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-3/@Node3D@5914/@MeshInstance3D@5911",
+		"size": "(8.42984, 8.031759, 11.47786)",
+		"tris": 300
+	},
+	{
+		"dist": 225.975570678711,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7517/@MeshInstance3D@7516",
+		"size": "(6.945587, 6.346058, 7.527069)",
+		"tris": 300
+	},
+	{
+		"dist": 218.6279296875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6999/@MeshInstance3D@6996",
+		"size": "(12.65634, 13.19036, 14.55988)",
+		"tris": 300
+	},
+	{
+		"dist": 195.601043701172,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-2/@Node3D@7650/@MeshInstance3D@7647",
+		"size": "(8.534424, 6.040396, 10.69036)",
+		"tris": 300
+	},
+	{
+		"dist": 248.269805908203,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-2/@Node3D@7660/@MeshInstance3D@7657",
+		"size": "(8.652283, 5.985427, 8.936317)",
+		"tris": 300
+	},
+	{
+		"dist": 254.306671142578,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7819/@MeshInstance3D@7816",
+		"size": "(18.94092, 13.53966, 16.38092)",
+		"tris": 300
+	},
+	{
+		"dist": 254.320709228516,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7824/@MeshInstance3D@7821",
+		"size": "(12.03418, 7.183758, 11.85097)",
+		"tris": 300
+	},
+	{
+		"dist": 255.293426513672,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7829/@MeshInstance3D@7826",
+		"size": "(7.90799, 8.323547, 7.81926)",
+		"tris": 300
+	},
+	{
+		"dist": 278.774383544922,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7834/@MeshInstance3D@7831",
+		"size": "(16.44089, 10.66519, 22.15512)",
+		"tris": 300
+	},
+	{
+		"dist": 280.737762451172,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-4/@Node3D@7839/@MeshInstance3D@7836",
+		"size": "(10.38803, 6.166203, 15.74187)",
+		"tris": 300
+	},
+	{
+		"dist": 210.919952392578,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6989/@MeshInstance3D@6986",
+		"size": "(8.68924, 6.249191, 8.856705)",
+		"tris": 300
+	},
+	{
+		"dist": 209.899932861328,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6984/@MeshInstance3D@6981",
+		"size": "(12.24124, 10.80872, 11.43251)",
+		"tris": 300
+	},
+	{
+		"dist": 209.005569458008,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6979/@MeshInstance3D@6978",
+		"size": "(8.904755, 6.131805, 9.730026)",
+		"tris": 300
+	},
+	{
+		"dist": 234.068786621094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8000/@MeshInstance3D@7997",
+		"size": "(12.65271, 8.00696, 15.67409)",
+		"tris": 300
+	},
+	{
+		"dist": 233.393951416016,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8005/@MeshInstance3D@8002",
+		"size": "(8.281738, 4.248266, 11.69044)",
+		"tris": 300
+	},
+	{
+		"dist": 225.26904296875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6927/@MeshInstance3D@6926",
+		"size": "(3.373138, 1.957581, 3.611603)",
+		"tris": 300
+	},
+	{
+		"dist": 259.165435791016,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8056/@MeshInstance3D@8053",
+		"size": "(8.691162, 5.29565, 9.397598)",
+		"tris": 300
+	},
+	{
+		"dist": 262.052490234375,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8061/@MeshInstance3D@8058",
+		"size": "(3.455353, 2.511602, 4.154831)",
+		"tris": 300
+	},
+	{
+		"dist": 261.130981445312,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8066/@MeshInstance3D@8063",
+		"size": "(4.460266, 4.116786, 4.577774)",
+		"tris": 300
+	},
+	{
+		"dist": 262.941589355469,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8071/@MeshInstance3D@8068",
+		"size": "(3.001587, 1.960667, 3.215164)",
+		"tris": 300
+	},
+	{
+		"dist": 257.907287597656,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8076/@MeshInstance3D@8073",
+		"size": "(4.82309, 3.830237, 5.400864)",
+		"tris": 300
+	},
+	{
+		"dist": 260.327667236328,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8081/@MeshInstance3D@8078",
+		"size": "(5.247009, 3.939758, 5.888367)",
+		"tris": 300
+	},
+	{
+		"dist": 251.755081176758,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8086/@MeshInstance3D@8083",
+		"size": "(3.559326, 2.792643, 3.624908)",
+		"tris": 300
+	},
+	{
+		"dist": 243.852661132812,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8091/@MeshInstance3D@8088",
+		"size": "(5.103058, 4.995078, 5.995651)",
+		"tris": 300
+	},
+	{
+		"dist": 235.810470581055,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8099/@MeshInstance3D@8098",
+		"size": "(2.935364, 2.045512, 3.759689)",
+		"tris": 300
+	},
+	{
+		"dist": 249.76139831543,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8107/@MeshInstance3D@8104",
+		"size": "(5.630585, 4.010056, 5.808151)",
+		"tris": 300
+	},
+	{
+		"dist": 240.644012451172,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8110/@MeshInstance3D@8109",
+		"size": "(3.487946, 3.124568, 3.828705)",
+		"tris": 300
+	},
+	{
+		"dist": 225.614028930664,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8116/@MeshInstance3D@8115",
+		"size": "(2.554565, 1.921055, 3.328735)",
+		"tris": 300
+	},
+	{
+		"dist": 230.410522460938,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8127/@MeshInstance3D@8124",
+		"size": "(3.546509, 3.230578, 3.686813)",
+		"tris": 300
+	},
+	{
+		"dist": 230.61408996582,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8130/@MeshInstance3D@8129",
+		"size": "(0.999939, 0.612324, 0.917603)",
+		"tris": 300
+	},
+	{
+		"dist": 213.029373168945,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@7009/@MeshInstance3D@7006",
+		"size": "(7.014038, 7.451429, 8.946365)",
+		"tris": 300
+	},
+	{
+		"dist": 217.749557495117,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@7004/@MeshInstance3D@7001",
+		"size": "(7.461731, 7.080593, 9.961273)",
+		"tris": 300
+	},
+	{
+		"dist": 231.095062255859,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7165/@MeshInstance3D@7162",
+		"size": "(28.34509, 21.88724, 23.63495)",
+		"tris": 300
+	},
+	{
+		"dist": 233.017944335938,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7170/@MeshInstance3D@7167",
+		"size": "(18.63135, 11.61275, 17.8152)",
+		"tris": 300
+	},
+	{
+		"dist": 222.937713623047,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7175/@MeshInstance3D@7172",
+		"size": "(10.7594, 13.45525, 9.741211)",
+		"tris": 300
+	},
+	{
+		"dist": 235.083984375,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7180/@MeshInstance3D@7177",
+		"size": "(18.81598, 15.5835, 24.56288)",
+		"tris": 300
+	},
+	{
+		"dist": 237.694625854492,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7185/@MeshInstance3D@7182",
+		"size": "(11.85925, 9.009785, 17.01874)",
+		"tris": 300
+	},
+	{
+		"dist": 245.645950317383,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7190/@MeshInstance3D@7187",
+		"size": "(8.395844, 9.973272, 12.5972)",
+		"tris": 300
+	},
+	{
+		"dist": 235.709732055664,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7195/@MeshInstance3D@7192",
+		"size": "(12.13327, 11.58397, 12.68025)",
+		"tris": 300
+	},
+	{
+		"dist": 236.594100952148,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-4/@Node3D@7200/@MeshInstance3D@7197",
+		"size": "(7.143677, 6.218288, 8.22435)",
+		"tris": 300
+	},
+	{
+		"dist": 236.025024414062,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7396/@MeshInstance3D@7393",
+		"size": "(25.52814, 21.56182, 25.15901)",
+		"tris": 300
+	},
+	{
+		"dist": 237.404296875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7401/@MeshInstance3D@7398",
+		"size": "(15.40894, 11.118, 17.23367)",
+		"tris": 300
+	},
+	{
+		"dist": 211.537628173828,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7411/@MeshInstance3D@7408",
+		"size": "(11.06216, 10.71615, 14.77542)",
+		"tris": 300
+	},
+	{
+		"dist": 212.749526977539,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7416/@MeshInstance3D@7413",
+		"size": "(5.950562, 5.525608, 8.856689)",
+		"tris": 300
+	},
+	{
+		"dist": 217.129196166992,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7421/@MeshInstance3D@7418",
+		"size": "(5.253693, 6.336588, 7.297974)",
+		"tris": 300
+	},
+	{
+		"dist": 226.06884765625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7424/@MeshInstance3D@7423",
+		"size": "(6.571198, 5.713718, 7.992401)",
+		"tris": 300
+	},
+	{
+		"dist": 218.233215332031,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7429/@MeshInstance3D@7426",
+		"size": "(13.78809, 11.09359, 18.28258)",
+		"tris": 300
+	},
+	{
+		"dist": 220.729904174805,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7434/@MeshInstance3D@7431",
+		"size": "(8.43576, 6.480419, 12.41507)",
+		"tris": 300
+	},
+	{
+		"dist": 245.10676574707,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7444/@MeshInstance3D@7441",
+		"size": "(10.57574, 8.826645, 10.9976)",
+		"tris": 300
+	},
+	{
+		"dist": 229.526962280273,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7449/@MeshInstance3D@7446",
+		"size": "(16.63058, 13.24462, 14.96106)",
+		"tris": 300
+	},
+	{
+		"dist": 230.393218994141,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7454/@MeshInstance3D@7451",
+		"size": "(10.12616, 7.109726, 10.41719)",
+		"tris": 300
+	},
+	{
+		"dist": 223.832626342773,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7459/@MeshInstance3D@7456",
+		"size": "(24.05283, 17.07494, 31.39737)",
+		"tris": 300
+	},
+	{
+		"dist": 225.942199707031,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7464/@MeshInstance3D@7461",
+		"size": "(15.43845, 9.165844, 22.89607)",
+		"tris": 300
+	},
+	{
+		"dist": 219.788986206055,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7469/@MeshInstance3D@7466",
+		"size": "(11.17166, 9.645891, 15.94804)",
+		"tris": 300
+	},
+	{
+		"dist": 214.815582275391,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7479/@MeshInstance3D@7476",
+		"size": "(11.94968, 11.1412, 13.63017)",
+		"tris": 300
+	},
+	{
+		"dist": 216.202133178711,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7484/@MeshInstance3D@7481",
+		"size": "(7.392853, 6.508228, 9.234497)",
+		"tris": 300
+	},
+	{
+		"dist": 209.696838378906,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7489/@MeshInstance3D@7486",
+		"size": "(5.008209, 6.929497, 6.315872)",
+		"tris": 300
+	},
+	{
+		"dist": 223.386245727539,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7504/@MeshInstance3D@7501",
+		"size": "(26.01422, 17.89404, 26.21303)",
+		"tris": 300
+	},
+	{
+		"dist": 223.412368774414,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7509/@MeshInstance3D@7506",
+		"size": "(16.77029, 9.605534, 18.95268)",
+		"tris": 300
+	},
+	{
+		"dist": 233.317367553711,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-7_-4/@Node3D@7514/@MeshInstance3D@7511",
+		"size": "(12.17316, 10.10861, 13.73361)",
+		"tris": 300
+	},
+	{
+		"dist": 237.860275268555,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8233/@MeshInstance3D@8232",
+		"size": "(3.295654, 3.305515, 4.21257)",
+		"tris": 300
+	},
+	{
+		"dist": 237.272064208984,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8225/@MeshInstance3D@8222",
+		"size": "(4.05368, 4.171442, 4.428833)",
+		"tris": 300
+	},
+	{
+		"dist": 243.877853393555,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8220/@MeshInstance3D@8219",
+		"size": "(1.123077, 0.799806, 1.037415)",
+		"tris": 300
+	},
+	{
+		"dist": 236.839340209961,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8212/@MeshInstance3D@8211",
+		"size": "(1.197418, 0.759667, 1.520447)",
+		"tris": 300
+	},
+	{
+		"dist": 259.174926757812,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8206/@MeshInstance3D@8205",
+		"size": "(1.430237, 0.996239, 1.85318)",
+		"tris": 300
+	},
+	{
+		"dist": 235.170043945312,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8251/@MeshInstance3D@8248",
+		"size": "(5.567383, 4.050312, 6.858383)",
+		"tris": 300
+	},
+	{
+		"dist": 253.067977905273,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8254/@MeshInstance3D@8253",
+		"size": "(1.279205, 0.806264, 1.619064)",
+		"tris": 300
+	},
+	{
+		"dist": 260.124908447266,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8257/@MeshInstance3D@8256",
+		"size": "(3.020203, 1.647731, 2.757996)",
+		"tris": 300
+	},
+	{
+		"dist": 236.040512084961,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8260/@MeshInstance3D@8259",
+		"size": "(1.375092, 0.966013, 1.449051)",
+		"tris": 300
+	},
+	{
+		"dist": 240.715881347656,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8197/@MeshInstance3D@8196",
+		"size": "(1.46347, 0.877532, 1.59549)",
+		"tris": 300
+	},
+	{
+		"dist": 256.057586669922,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8271/@MeshInstance3D@8270",
+		"size": "(3.381622, 3.005217, 4.149811)",
+		"tris": 300
+	},
+	{
+		"dist": 255.575042724609,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8276/@MeshInstance3D@8273",
+		"size": "(3.701508, 2.448064, 3.861755)",
+		"tris": 300
+	},
+	{
+		"dist": 256.579986572266,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8290/@MeshInstance3D@8287",
+		"size": "(12.48932, 12.08883, 16.28831)",
+		"tris": 300
+	},
+	{
+		"dist": 239.266784667969,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8183/@MeshInstance3D@8180",
+		"size": "(5.499512, 3.935335, 5.2435)",
+		"tris": 300
+	},
+	{
+		"dist": 235.949752807617,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8178/@MeshInstance3D@8175",
+		"size": "(7.226837, 5.100704, 8.84256)",
+		"tris": 300
+	},
+	{
+		"dist": 229.471389770508,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8135/@MeshInstance3D@8132",
+		"size": "(7.485535, 4.11158, 8.630112)",
+		"tris": 300
+	},
+	{
+		"dist": 243.159622192383,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8143/@MeshInstance3D@8142",
+		"size": "(2.492401, 1.559781, 2.369141)",
+		"tris": 300
+	},
+	{
+		"dist": 228.364517211914,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8151/@MeshInstance3D@8150",
+		"size": "(1.356262, 1.07582, 1.430328)",
+		"tris": 300
+	},
+	{
+		"dist": 228.951110839844,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8159/@MeshInstance3D@8156",
+		"size": "(5.107758, 4.058921, 6.106293)",
+		"tris": 300
+	},
+	{
+		"dist": 235.76594543457,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8173/@MeshInstance3D@8170",
+		"size": "(4.514404, 3.10521, 5.688583)",
+		"tris": 300
+	},
+	{
+		"dist": 245.317321777344,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8162/@MeshInstance3D@8161",
+		"size": "(0.710907, 0.497093, 0.773682)",
+		"tris": 300
+	},
+	{
+		"dist": 37.680492401123,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8955/Deer/AnimalLeg_007/AnimalLeg_007_Geometry",
+		"size": "(0.25885, 0.6875, 0.257172)",
+		"tris": 292
+	},
+	{
+		"dist": 106.049842834473,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8956/Deer/AnimalLeg_004/AnimalLeg_004_Geometry",
+		"size": "(0.344452, 0.712419, 0.332779)",
+		"tris": 292
+	},
+	{
+		"dist": 106.986137390137,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8956/Deer/AnimalLeg_005/AnimalLeg_005_Geometry",
+		"size": "(0.344452, 0.712419, 0.332779)",
+		"tris": 292
+	},
+	{
+		"dist": 106.000495910645,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8956/Deer/AnimalLeg_006/AnimalLeg_006_Geometry",
+		"size": "(0.344452, 0.712419, 0.332779)",
+		"tris": 292
+	},
+	{
+		"dist": 37.4550704956055,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8955/Deer/AnimalLeg_006/AnimalLeg_006_Geometry",
+		"size": "(0.25885, 0.6875, 0.257172)",
+		"tris": 292
+	},
+	{
+		"dist": 106.937217712402,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8956/Deer/AnimalLeg_007/AnimalLeg_007_Geometry",
+		"size": "(0.344452, 0.712419, 0.332779)",
+		"tris": 292
+	},
+	{
+		"dist": 36.9770355224609,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8955/Deer/AnimalLeg_004/AnimalLeg_004_Geometry",
+		"size": "(0.25885, 0.6875, 0.257172)",
+		"tris": 292
+	},
+	{
+		"dist": 37.2053680419922,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/@Node3D@8955/Deer/AnimalLeg_005/AnimalLeg_005_Geometry",
+		"size": "(0.25885, 0.6875, 0.257172)",
+		"tris": 292
+	},
+	{
+		"dist": 16.7497425079346,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@293",
+		"size": "(0.271362, 0.080327, 0.316928)",
+		"tris": 288
+	},
+	{
+		"dist": 16.7466602325439,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/Head/ResidentWardrobe/@MeshInstance3D@292",
+		"size": "(0.279724, 0.164004, 0.320961)",
+		"tris": 288
+	},
+	{
+		"dist": 243.500366210938,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8031/@MeshInstance3D@8028",
+		"size": "(8.499786, 14.01939, 9.174271)",
+		"tris": 284
+	},
+	{
+		"dist": 127.554359436035,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4921",
+		"size": "(0.151184, 0.75, 0.151154)",
+		"tris": 192
+	},
+	{
+		"dist": 128.485946655273,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4922",
+		"size": "(0.151184, 0.75, 0.151154)",
+		"tris": 192
+	},
+	{
+		"dist": 42.3706512451172,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1088/@MeshInstance3D@1089",
+		"size": "(0.119995, 3.4, 0.119999)",
+		"tris": 192
+	},
+	{
+		"dist": 128.363983154297,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4920",
+		"size": "(0.151184, 0.75, 0.151154)",
+		"tris": 192
+	},
+	{
+		"dist": 127.677101135254,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4923",
+		"size": "(0.151184, 0.75, 0.151154)",
+		"tris": 192
+	},
+	{
+		"dist": 47.5941467285156,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@932/@MeshInstance3D@938",
+		"size": "(0.110291, 2.4, 0.110237)",
+		"tris": 192
+	},
+	{
+		"dist": 42.5271301269531,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1088/@MeshInstance3D@1090",
+		"size": "(0.359985, 0.15, 0.360001)",
+		"tris": 192
+	},
+	{
+		"dist": 16.5837898254395,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-1/CourierCounter/@MeshInstance3D@2007",
+		"size": "(0.134583, 2.8, 0.134576)",
+		"tris": 192
+	},
+	{
+		"dist": 17.0829887390137,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/@Node3D@299/@MeshInstance3D@347",
+		"size": "(0.579956, 0.589767, 0.139569)",
+		"tris": 192
+	},
+	{
+		"dist": 19.762020111084,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1096",
+		"size": "(0.195007, 2.6, 0.194982)",
+		"tris": 192
+	},
+	{
+		"dist": 16.8927974700928,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Forearm",
+		"size": "(0.193237, 0.24502, 0.125881)",
+		"tris": 188
+	},
+	{
+		"dist": 13.6283760070801,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Forearm_001",
+		"size": "(0.22583, 0.269313, 0.135398)",
+		"tris": 188
+	},
+	{
+		"dist": 17.1167602539062,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Forearm_001",
+		"size": "(0.224792, 0.228335, 0.129233)",
+		"tris": 188
+	},
+	{
+		"dist": 13.3339262008667,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Forearm",
+		"size": "(0.175537, 0.278118, 0.133989)",
+		"tris": 188
+	},
+	{
+		"dist": 21.0110778808594,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Forearm",
+		"size": "(0.163391, 0.259488, 0.106846)",
+		"tris": 188
+	},
+	{
+		"dist": 21.2184219360352,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Forearm_001",
+		"size": "(0.210449, 0.251274, 0.10816)",
+		"tris": 188
+	},
+	{
+		"dist": 24.6988105773926,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Forearm",
+		"size": "(0.121307, 0.215652, 0.218737)",
+		"tris": 188
+	},
+	{
+		"dist": 25.0550575256348,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Forearm_001",
+		"size": "(0.08194, 0.21565, 0.216081)",
+		"tris": 188
+	},
+	{
+		"dist": 28.9443359375,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Forearm",
+		"size": "(0.120819, 0.215632, 0.217842)",
+		"tris": 188
+	},
+	{
+		"dist": 29.3561096191406,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Forearm_001",
+		"size": "(0.100586, 0.215627, 0.212462)",
+		"tris": 188
+	},
+	{
+		"dist": 16.0006237030029,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Forearm",
+		"size": "(0.299316, 0.212282, 0.146998)",
+		"tris": 188
+	},
+	{
+		"dist": 10.4179449081421,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmL/Elbow/Forearm",
+		"size": "(0.207245, 0.263267, 0.116435)",
+		"tris": 188
+	},
+	{
+		"dist": 16.4224376678467,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Forearm_001",
+		"size": "(0.298248, 0.212282, 0.141366)",
+		"tris": 188
+	},
+	{
+		"dist": 10.67613697052,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Forearm_001",
+		"size": "(0.241241, 0.245339, 0.120036)",
+		"tris": 188
+	},
+	{
+		"dist": 235.353652954102,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8191/@MeshInstance3D@8188",
+		"size": "(4.320892, 3.698652, 3.984802)",
+		"tris": 132
+	},
+	{
+		"dist": 247.264892578125,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8279/@MeshInstance3D@8278",
+		"size": "(3.785034, 2.196113, 3.675903)",
+		"tris": 132
+	},
+	{
+		"dist": 282.591674804688,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8305/@MeshInstance3D@8302",
+		"size": "(5.711975, 3.898974, 6.865814)",
+		"tris": 132
+	},
+	{
+		"dist": 271.166015625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8285/@MeshInstance3D@8282",
+		"size": "(4.188354, 2.580774, 4.618729)",
+		"tris": 132
+	},
+	{
+		"dist": 223.022033691406,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6924/@MeshInstance3D@6923",
+		"size": "(3.006744, 2.099075, 3.685562)",
+		"tris": 132
+	},
+	{
+		"dist": 252.299301147461,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8186/@MeshInstance3D@8185",
+		"size": "(1.380737, 0.765957, 1.329102)",
+		"tris": 132
+	},
+	{
+		"dist": 222.168548583984,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6918/@MeshInstance3D@6917",
+		"size": "(2.767029, 2.686234, 3.165482)",
+		"tris": 132
+	},
+	{
+		"dist": 248.67253112793,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8265/@MeshInstance3D@8262",
+		"size": "(4.766602, 3.068276, 4.496964)",
+		"tris": 132
+	},
+	{
+		"dist": 246.088104248047,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8168/@MeshInstance3D@8167",
+		"size": "(1.851837, 1.387065, 1.994827)",
+		"tris": 132
+	},
+	{
+		"dist": 256.211181640625,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8165/@MeshInstance3D@8164",
+		"size": "(3.636871, 2.682173, 4.104385)",
+		"tris": 132
+	},
+	{
+		"dist": 258.748870849609,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8096/@MeshInstance3D@8093",
+		"size": "(6.101959, 5.226179, 7.561707)",
+		"tris": 132
+	},
+	{
+		"dist": 251.058319091797,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8102/@MeshInstance3D@8101",
+		"size": "(4.252899, 2.829772, 5.348831)",
+		"tris": 132
+	},
+	{
+		"dist": 244.245910644531,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8154/@MeshInstance3D@8153",
+		"size": "(3.102295, 2.322157, 3.478592)",
+		"tris": 132
+	},
+	{
+		"dist": 251.341323852539,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8200/@MeshInstance3D@8199",
+		"size": "(2.008179, 1.378815, 2.228195)",
+		"tris": 132
+	},
+	{
+		"dist": 252.439208984375,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8341/@MeshInstance3D@8340",
+		"size": "(2.541412, 1.883899, 2.668701)",
+		"tris": 132
+	},
+	{
+		"dist": 268.077453613281,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8321/@MeshInstance3D@8318",
+		"size": "(4.213501, 2.664959, 4.670685)",
+		"tris": 132
+	},
+	{
+		"dist": 238.982406616211,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8268/@MeshInstance3D@8267",
+		"size": "(1.432343, 1.412802, 1.871567)",
+		"tris": 132
+	},
+	{
+		"dist": 255.253677368164,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8327/@MeshInstance3D@8326",
+		"size": "(2.996094, 2.326347, 2.891556)",
+		"tris": 132
+	},
+	{
+		"dist": 222.612655639648,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6932/@MeshInstance3D@6929",
+		"size": "(4.862091, 3.709105, 5.813019)",
+		"tris": 132
+	},
+	{
+		"dist": 261.091033935547,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8338/@MeshInstance3D@8337",
+		"size": "(3.731812, 2.253393, 4.215118)",
+		"tris": 132
+	},
+	{
+		"dist": 218.950225830078,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-3/@Node3D@6937/@MeshInstance3D@6934",
+		"size": "(6.204407, 6.107611, 8.150116)",
+		"tris": 132
+	},
+	{
+		"dist": 262.335296630859,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8332/@MeshInstance3D@8329",
+		"size": "(7.937927, 5.316786, 9.996201)",
+		"tris": 132
+	},
+	{
+		"dist": 243.859573364258,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-1/@Node3D@7213/@MeshInstance3D@7210",
+		"size": "(4.150024, 3.398767, 4.527397)",
+		"tris": 132
+	},
+	{
+		"dist": 241.970275878906,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-1/@Node3D@7218/@MeshInstance3D@7215",
+		"size": "(5.436707, 3.716821, 6.53511)",
+		"tris": 132
+	},
+	{
+		"dist": 243.534561157227,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@7995/@MeshInstance3D@7994",
+		"size": "(4.346863, 3.822282, 5.01239)",
+		"tris": 132
+	},
+	{
+		"dist": 235.102920532227,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8194/@MeshInstance3D@8193",
+		"size": "(3.343689, 2.661788, 3.274017)",
+		"tris": 132
+	},
+	{
+		"dist": 258.8408203125,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8335/@MeshInstance3D@8334",
+		"size": "(2.744629, 2.414976, 3.323135)",
+		"tris": 132
+	},
+	{
+		"dist": 199.938873291016,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-1/@Node3D@7236/@MeshInstance3D@7235",
+		"size": "(5.305145, 3.063677, 6.36261)",
+		"tris": 132
+	},
+	{
+		"dist": 242.918121337891,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-1/@Node3D@7228/@MeshInstance3D@7225",
+		"size": "(6.019531, 3.672261, 6.297283)",
+		"tris": 132
+	},
+	{
+		"dist": 231.493240356445,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8230/@MeshInstance3D@8227",
+		"size": "(9.866058, 4.897568, 12.63463)",
+		"tris": 132
+	},
+	{
+		"dist": 256.430328369141,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8236/@MeshInstance3D@8235",
+		"size": "(4.423309, 2.89604, 4.520264)",
+		"tris": 132
+	},
+	{
+		"dist": 253.829635620117,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8415/@MeshInstance3D@8412",
+		"size": "(6.891663, 3.869533, 7.471855)",
+		"tris": 132
+	},
+	{
+		"dist": 268.450103759766,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8410/@MeshInstance3D@8409",
+		"size": "(0.929871, 0.741636, 1.188477)",
+		"tris": 132
+	},
+	{
+		"dist": 255.976226806641,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8407/@MeshInstance3D@8404",
+		"size": "(5.038422, 2.597942, 5.426071)",
+		"tris": 132
+	},
+	{
+		"dist": 259.709747314453,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8402/@MeshInstance3D@8401",
+		"size": "(3.954346, 2.104656, 5.065338)",
+		"tris": 132
+	},
+	{
+		"dist": 246.643997192383,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-2/@Node3D@7665/@MeshInstance3D@7662",
+		"size": "(4.6297, 2.834065, 4.787071)",
+		"tris": 132
+	},
+	{
+		"dist": 257.802124023438,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8140/@MeshInstance3D@8137",
+		"size": "(6.306458, 3.297504, 7.786377)",
+		"tris": 132
+	},
+	{
+		"dist": 256.2451171875,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8122/@MeshInstance3D@8121",
+		"size": "(1.203735, 1.146788, 1.042419)",
+		"tris": 132
+	},
+	{
+		"dist": 241.944869995117,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8119/@MeshInstance3D@8118",
+		"size": "(2.298584, 1.988384, 2.784821)",
+		"tris": 132
+	},
+	{
+		"dist": 246.987213134766,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8217/@MeshInstance3D@8214",
+		"size": "(5.848969, 3.976858, 7.778488)",
+		"tris": 132
+	},
+	{
+		"dist": 250.192398071289,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8148/@MeshInstance3D@8145",
+		"size": "(5.222321, 3.091847, 4.673996)",
+		"tris": 132
+	},
+	{
+		"dist": 281.985412597656,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8399/@MeshInstance3D@8396",
+		"size": "(4.858154, 3.138134, 4.820892)",
+		"tris": 132
+	},
+	{
+		"dist": 243.990951538086,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8209/@MeshInstance3D@8208",
+		"size": "(3.596252, 2.612702, 3.296997)",
+		"tris": 132
+	},
+	{
+		"dist": 252.258407592773,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8241/@MeshInstance3D@8238",
+		"size": "(4.72525, 2.416414, 6.3685)",
+		"tris": 132
+	},
+	{
+		"dist": 265.081756591797,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8365/@MeshInstance3D@8362",
+		"size": "(3.801025, 2.596563, 3.343216)",
+		"tris": 132
+	},
+	{
+		"dist": 269.906188964844,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8368/@MeshInstance3D@8367",
+		"size": "(1.391052, 0.742052, 1.359314)",
+		"tris": 132
+	},
+	{
+		"dist": 255.803787231445,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8246/@MeshInstance3D@8243",
+		"size": "(10.57965, 6.623785, 10.6595)",
+		"tris": 132
+	},
+	{
+		"dist": 229.163116455078,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8113/@MeshInstance3D@8112",
+		"size": "(3.085968, 2.03631, 2.723282)",
+		"tris": 132
+	},
+	{
+		"dist": 264.301879882812,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8376/@MeshInstance3D@8373",
+		"size": "(6.071533, 4.588598, 6.703476)",
+		"tris": 132
+	},
+	{
+		"dist": 256.298004150391,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8381/@MeshInstance3D@8378",
+		"size": "(8.693909, 6.72633, 9.03064)",
+		"tris": 132
+	},
+	{
+		"dist": 250.375228881836,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8391/@MeshInstance3D@8388",
+		"size": "(15.53082, 11.48159, 15.49854)",
+		"tris": 132
+	},
+	{
+		"dist": 242.324554443359,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8203/@MeshInstance3D@8202",
+		"size": "(3.858307, 2.924943, 4.889008)",
+		"tris": 132
+	},
+	{
+		"dist": 265.512084960938,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-3/@Node3D@8386/@MeshInstance3D@8383",
+		"size": "(4.215454, 2.784672, 4.748444)",
+		"tris": 132
+	},
+	{
+		"dist": 16.8042907714844,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Waistband",
+		"size": "(0.219482, 0.0423, 0.305729)",
+		"tris": 124
+	},
+	{
+		"dist": 13.3879175186157,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Waistband",
+		"size": "(0.243958, 0.047025, 0.33988)",
+		"tris": 124
+	},
+	{
+		"dist": 21.0224380493164,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Waistband",
+		"size": "(0.227661, 0.043875, 0.317113)",
+		"tris": 124
+	},
+	{
+		"dist": 25.0064239501953,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_06/@Node3D@315/DesertDelivery_Assets/CourierCharacter/Root/Waistband",
+		"size": "(0.268555, 0.034676, 0.207166)",
+		"tris": 124
+	},
+	{
+		"dist": 10.4301881790161,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Waistband",
+		"size": "(0.23584, 0.04545, 0.328497)",
+		"tris": 124
+	},
+	{
+		"dist": 15.7269563674927,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Rider/DesertDelivery_Assets/CourierCharacter/Root/Waistband",
+		"size": "(0.230011, 0.04512, 0.322838)",
+		"tris": 124
+	},
+	{
+		"dist": 29.2444171905518,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_07/@Node3D@326/DesertDelivery_Assets/CourierCharacter/Root/Waistband",
+		"size": "(0.25946, 0.034709, 0.193073)",
+		"tris": 124
+	},
+	{
+		"dist": 242.882278442383,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-2/@Node3D@7645/@MeshInstance3D@7642",
+		"size": "(7.939819, 13.20236, 6.673328)",
+		"tris": 112
+	},
+	{
+		"dist": 249.784378051758,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-9_-2/@Node3D@7655/@MeshInstance3D@7652",
+		"size": "(6.468384, 12.67977, 5.289001)",
+		"tris": 112
+	},
+	{
+		"dist": 47.5967140197754,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@932/@MeshInstance3D@939",
+		"size": "(4.276672, 0.700001, 4.3265)",
+		"tris": 110
+	},
+	{
+		"dist": 42.2588500976562,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1088/@MeshInstance3D@1092",
+		"size": "(0.570618, 0.25, 0.599998)",
+		"tris": 110
+	},
+	{
+		"dist": 128.314529418945,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4917",
+		"size": "(0.608154, 0.450001, 0.521301)",
+		"tris": 80
+	},
+	{
+		"dist": 127.754997253418,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4916",
+		"size": "(0.625549, 0.48, 0.729813)",
+		"tris": 80
+	},
+	{
+		"dist": 66.7370910644531,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1202",
+		"size": "(0.576477, 2.020899, 0.541561)",
+		"tris": 72
+	},
+	{
+		"dist": 47.2548637390137,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1146",
+		"size": "(0.57074, 1.968692, 0.540768)",
+		"tris": 72
+	},
+	{
+		"dist": 42.4162979125977,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1216",
+		"size": "(0.627808, 2.086681, 0.612408)",
+		"tris": 72
+	},
+	{
+		"dist": 73.3822250366211,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1188",
+		"size": "(0.645752, 2.153296, 0.65102)",
+		"tris": 72
+	},
+	{
+		"dist": 10.5222196578979,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@263",
+		"size": "(0.099701, 0.561758, 0.375742)",
+		"tris": 16
+	},
+	{
+		"dist": 13.5081443786621,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@281",
+		"size": "(0.029907, 0.585312, 0.425667)",
+		"tris": 16
+	},
+	{
+		"dist": 21.1223163604736,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@308",
+		"size": "(0.094482, 0.222672, 0.202631)",
+		"tris": 12
+	},
+	{
+		"dist": 46.7870063781738,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@932/@MeshInstance3D@936",
+		"size": "(8.903625, 0.25, 9.698942)",
+		"tris": 12
+	},
+	{
+		"dist": 19.8120994567871,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1106",
+		"size": "(1.175476, 0.28, 0.843965)",
+		"tris": 12
+	},
+	{
+		"dist": 19.6979064941406,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1103",
+		"size": "(1.175476, 0.28, 0.843965)",
+		"tris": 12
+	},
+	{
+		"dist": 19.6387062072754,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1100",
+		"size": "(1.175476, 0.28, 0.843965)",
+		"tris": 12
+	},
+	{
+		"dist": 50.1156616210938,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@932/@MeshInstance3D@937",
+		"size": "(4.717224, 1.0, 2.99936)",
+		"tris": 12
+	},
+	{
+		"dist": 42.2685737609863,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1088/@MeshInstance3D@1091",
+		"size": "(0.359985, 0.42, 0.360001)",
+		"tris": 12
+	},
+	{
+		"dist": 19.6349945068359,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1097",
+		"size": "(1.175476, 0.28, 0.843965)",
+		"tris": 12
+	},
+	{
+		"dist": 16.9554080963135,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@297",
+		"size": "(0.111389, 0.22334, 0.240132)",
+		"tris": 12
+	},
+	{
+		"dist": 15.4507503509521,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@49",
+		"size": "(0.445923, 0.300235, 0.46554)",
+		"tris": 12
+	},
+	{
+		"dist": 15.3983087539673,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@50",
+		"size": "(0.050781, 0.310027, 0.050632)",
+		"tris": 12
+	},
+	{
+		"dist": 17.3478813171387,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_04/@Node3D@288/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/@Node3D@299/@MeshInstance3D@348",
+		"size": "(0.113098, 0.11693, 0.225084)",
+		"tris": 12
+	},
+	{
+		"dist": 15.145637512207,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@51",
+		"size": "(0.050781, 0.310027, 0.050632)",
+		"tris": 12
+	},
+	{
+		"dist": 15.7563829421997,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@52",
+		"size": "(0.050781, 0.310027, 0.050632)",
+		"tris": 12
+	},
+	{
+		"dist": 15.5095462799072,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@53",
+		"size": "(0.050781, 0.310027, 0.050632)",
+		"tris": 12
+	},
+	{
+		"dist": 16.4119663238525,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-1/CourierCounter/@MeshInstance3D@2008",
+		"size": "(1.203186, 0.9, 0.152937)",
+		"tris": 12
+	},
+	{
+		"dist": 15.4082889556885,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@54",
+		"size": "(0.284668, 0.200149, 0.36352)",
+		"tris": 12
+	},
+	{
+		"dist": 16.4119663238525,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-1/CourierCounter/@MeshInstance3D@2009",
+		"size": "(1.103943, 0.8, 0.16934)",
+		"tris": 12
+	},
+	{
+		"dist": 17.0107669830322,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-1/CourierCounter/@MeshInstance3D@2012",
+		"size": "(0.636108, 0.78, 0.481925)",
+		"tris": 12
+	},
+	{
+		"dist": 17.1523323059082,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-1/CourierCounter/@MeshInstance3D@2013",
+		"size": "(0.400635, 0.055, 0.03932)",
+		"tris": 12
+	},
+	{
+		"dist": 16.9134845733643,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-6_-1/CourierCounter/@MeshInstance3D@2014",
+		"size": "(0.67749, 0.055, 0.523333)",
+		"tris": 12
+	},
+	{
+		"dist": 10.7766256332397,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/@Node3D@271/@MeshInstance3D@345",
+		"size": "(0.197693, 0.201772, 0.084605)",
+		"tris": 12
+	},
+	{
+		"dist": 10.5315647125244,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@264",
+		"size": "(0.026855, 0.084701, 0.131823)",
+		"tris": 12
+	},
+	{
+		"dist": 10.3563451766968,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@265",
+		"size": "(0.049561, 0.22418, 0.057626)",
+		"tris": 12
+	},
+	{
+		"dist": 10.4886856079102,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_02/@Node3D@255/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@266",
+		"size": "(0.049133, 0.22418, 0.05905)",
+		"tris": 12
+	},
+	{
+		"dist": 129.156631469727,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4919",
+		"size": "(0.184326, 0.16, 0.312263)",
+		"tris": 12
+	},
+	{
+		"dist": 128.899291992188,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-8_-1/@Node3D@4914/@MeshInstance3D@4918",
+		"size": "(0.579468, 0.421659, 0.404579)",
+		"tris": 12
+	},
+	{
+		"dist": 13.8116445541382,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/@Node3D@286/@MeshInstance3D@346",
+		"size": "(0.297058, 0.305321, 0.291014)",
+		"tris": 12
+	},
+	{
+		"dist": 15.2992897033691,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@57",
+		"size": "(0.182617, 0.140096, 0.202266)",
+		"tris": 12
+	},
+	{
+		"dist": 13.518985748291,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@282",
+		"size": "(0.017151, 0.086887, 0.149715)",
+		"tris": 12
+	},
+	{
+		"dist": 13.352201461792,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@283",
+		"size": "(0.023193, 0.231809, 0.066288)",
+		"tris": 12
+	},
+	{
+		"dist": 13.4709959030151,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_03/@Node3D@273/DesertDelivery_Assets/CourierCharacter/Root/Torso/ResidentWardrobe/@MeshInstance3D@284",
+		"size": "(0.021667, 0.231809, 0.066422)",
+		"tris": 12
+	},
+	{
+		"dist": 15.3830699920654,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@56",
+		"size": "(0.300354, 0.030159, 0.033799)",
+		"tris": 12
+	},
+	{
+		"dist": 21.3981800079346,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/resident_00_05/@Node3D@301/DesertDelivery_Assets/CourierCharacter/Root/Torso/ArmR/Elbow/Hand/@Node3D@313/@MeshInstance3D@349",
+		"size": "(0.186707, 0.153769, 0.142991)",
+		"tris": 12
+	},
+	{
+		"dist": 15.3830699920654,
+		"instances": 1,
+		"path": "/root/Game/EntityManager/Bike/@Node3D@46/LeanPivot/Package/@MeshInstance3D@55",
+		"size": "(0.03479, 0.030016, 0.38035)",
+		"tris": 12
+	},
+	{
+		"dist": 19.7104816436768,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1104",
+		"size": "(0.258057, 0.28, 0.201559)",
+		"tris": 8
+	},
+	{
+		"dist": 19.8842582702637,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1107",
+		"size": "(0.258057, 0.28, 0.201559)",
+		"tris": 8
+	},
+	{
+		"dist": 19.6513195037842,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1101",
+		"size": "(0.258057, 0.28, 0.201559)",
+		"tris": 8
+	},
+	{
+		"dist": 19.7078018188477,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/VillaHub/@Node3D@1095/@MeshInstance3D@1098",
+		"size": "(0.258057, 0.28, 0.201559)",
+		"tris": 8
+	},
+	{
+		"dist": 42.8177719116211,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1223",
+		"size": "(1.054565, 4.769558, 1.053335)",
+		"tris": 2
+	},
+	{
+		"dist": 42.379077911377,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1222",
+		"size": "(1.833069, 5.961946, 1.280012)",
+		"tris": 2
+	},
+	{
+		"dist": 42.8177757263184,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1224",
+		"size": "(1.439453, 4.769558, 0.386616)",
+		"tris": 2
+	},
+	{
+		"dist": 42.8177680969238,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1225",
+		"size": "(0.384949, 4.769558, 1.439926)",
+		"tris": 2
+	},
+	{
+		"dist": 42.3790817260742,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1221",
+		"size": "(2.025024, 5.961946, 0.947489)",
+		"tris": 2
+	},
+	{
+		"dist": 42.8574714660645,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1226",
+		"size": "(2.038025, 0.000015, 2.038046)",
+		"tris": 2
+	},
+	{
+		"dist": 73.3064651489258,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1189",
+		"size": "(1.950195, 6.45989, 1.741678)",
+		"tris": 2
+	},
+	{
+		"dist": 73.3064651489258,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1190",
+		"size": "(2.483459, 6.45989, 0.818118)",
+		"tris": 2
+	},
+	{
+		"dist": 67.0680770874023,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1209",
+		"size": "(1.413391, 4.619196, 0.293417)",
+		"tris": 2
+	},
+	{
+		"dist": 73.3064651489258,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1191",
+		"size": "(0.533203, 6.45989, 2.559773)",
+		"tris": 2
+	},
+	{
+		"dist": 73.4262390136719,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1192",
+		"size": "(2.306152, 6.152275, 0.066841)",
+		"tris": 2
+	},
+	{
+		"dist": 73.4262390136719,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1193",
+		"size": "(1.210938, 6.152275, 1.963766)",
+		"tris": 2
+	},
+	{
+		"dist": 73.4262390136719,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1194",
+		"size": "(1.095215, 6.152275, 2.030592)",
+		"tris": 2
+	},
+	{
+		"dist": 73.7293930053711,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1195",
+		"size": "(1.20459, 4.921822, 0.956374)",
+		"tris": 2
+	},
+	{
+		"dist": 73.7293930053711,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1196",
+		"size": "(0.225952, 4.921822, 1.521385)",
+		"tris": 2
+	},
+	{
+		"dist": 73.7293930053711,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1197",
+		"size": "(1.430542, 4.921822, 0.565036)",
+		"tris": 2
+	},
+	{
+		"dist": 73.7561340332031,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1199/@MeshInstance3D@1198",
+		"size": "(2.191406, 0.000015, 2.191381)",
+		"tris": 2
+	},
+	{
+		"dist": 66.7762145996094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1208",
+		"size": "(0.061218, 5.773996, 2.164383)",
+		"tris": 2
+	},
+	{
+		"dist": 66.7762145996094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1207",
+		"size": "(1.843811, 5.773996, 1.135231)",
+		"tris": 2
+	},
+	{
+		"dist": 66.7762145996094,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1206",
+		"size": "(1.905029, 5.773996, 1.029177)",
+		"tris": 2
+	},
+	{
+		"dist": 66.6620635986328,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1205",
+		"size": "(1.527161, 6.062696, 1.920851)",
+		"tris": 2
+	},
+	{
+		"dist": 66.6620635986328,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1203",
+		"size": "(0.899902, 6.062696, 2.282991)",
+		"tris": 2
+	},
+	{
+		"dist": 66.6620559692383,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1204",
+		"size": "(2.427063, 6.062696, 0.362158)",
+		"tris": 2
+	},
+	{
+		"dist": 42.3790740966797,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1220",
+		"size": "(0.191956, 5.961946, 2.227472)",
+		"tris": 2
+	},
+	{
+		"dist": 42.2418823242188,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1219",
+		"size": "(2.523499, 6.260044, 0.228821)",
+		"tris": 2
+	},
+	{
+		"dist": 47.1145477294922,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1147",
+		"size": "(0.987366, 5.906076, 2.177114)",
+		"tris": 2
+	},
+	{
+		"dist": 47.1145439147949,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1148",
+		"size": "(1.391724, 5.906076, 1.943668)",
+		"tris": 2
+	},
+	{
+		"dist": 47.1145401000977,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1149",
+		"size": "(2.37915, 5.906076, 0.233461)",
+		"tris": 2
+	},
+	{
+		"dist": 47.2229194641113,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1150",
+		"size": "(0.571167, 5.624836, 2.03051)",
+		"tris": 2
+	},
+	{
+		"dist": 47.2229156494141,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1151",
+		"size": "(2.044067, 5.624836, 0.520613)",
+		"tris": 2
+	},
+	{
+		"dist": 47.2229156494141,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1152",
+		"size": "(1.4729, 5.624836, 1.509916)",
+		"tris": 2
+	},
+	{
+		"dist": 47.5727844238281,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1153",
+		"size": "(1.163269, 4.499868, 0.790047)",
+		"tris": 2
+	},
+	{
+		"dist": 47.5727844238281,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1154",
+		"size": "(1.265869, 4.499868, 0.61244)",
+		"tris": 2
+	},
+	{
+		"dist": 42.2418785095215,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1218",
+		"size": "(1.063599, 6.260044, 2.299807)",
+		"tris": 2
+	},
+	{
+		"dist": 47.5727882385254,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1155",
+		"size": "(0.102539, 4.499868, 1.402468)",
+		"tris": 2
+	},
+	{
+		"dist": 42.2418670654297,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1227/@MeshInstance3D@1217",
+		"size": "(1.4599, 6.260044, 2.070999)",
+		"tris": 2
+	},
+	{
+		"dist": 67.0938568115234,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1212",
+		"size": "(2.108582, 0.000015, 2.108582)",
+		"tris": 2
+	},
+	{
+		"dist": 67.0680847167969,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1211",
+		"size": "(0.960754, 4.619196, 1.077318)",
+		"tris": 2
+	},
+	{
+		"dist": 47.6045303344727,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1157/@MeshInstance3D@1156",
+		"size": "(1.73645, 0.000013, 1.736477)",
+		"tris": 2
+	},
+	{
+		"dist": 67.0680847167969,
+		"instances": 1,
+		"path": "/root/Game/WorldManager/WorldStreamer/Chunk_-5_0/@Node3D@1213/@MeshInstance3D@1210",
+		"size": "(0.452576, 4.619196, 1.370716)",
+		"tris": 2
+	}
+]

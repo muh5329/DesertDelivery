@@ -50,6 +50,12 @@ var yaw_input := 0.0               ## yaw applied this tick (rad/s), for visual 
 var vertical_vel := 0.0
 var air_time := 0.0
 var odometer := 0.0
+## Wheel travel relative to the authored chassis (positive is compression).
+var front_suspension := 0.0
+var rear_suspension := 0.0
+var suspension_load := 0.0
+var _planar_velocity := Vector3.ZERO
+var _contact_force := 0.0
 
 var steer := 0.0                   ## smoothed steer input (-1..1)
 var throttle := 0.0
@@ -120,6 +126,20 @@ func place(pos: Vector3, forward: Vector3) -> void:
 	ground_normal = Vector3.UP
 	_rev_hold = 0.0
 	_brake_repressed = true
+	intent = Controls.Intent.new()
+	extra_velocity = Vector3.ZERO
+	min_vertical = -INF
+	climbing = false
+	slip = 0.0
+	yaw_input = 0.0
+	air_time = 0.0
+	_last_vertical = 0.0
+	_was_grounded = true
+	_planar_velocity = Vector3.ZERO
+	front_suspension = 0.0
+	rear_suspension = 0.0
+	suspension_load = 0.0
+	_contact_force = 0.0
 
 
 ## Put the vehicle back on the nearest road point. `away_from_sea` faces it inland, which is what
@@ -139,17 +159,28 @@ func recover_to_road(away_from_sea: bool = false) -> void:
 
 ## While parked the vehicle is not driven: it just sits there under gravity.
 func idle(delta: float) -> void:
+	if _def.suspension_enabled:
+		_planar_velocity = Vector3.ZERO
+		_move_suspended(delta, flat_forward(), Tick.new())
+		refresh_wheel_travel()
+		return
 	_body.velocity = Vector3(0, _body.velocity.y - _def.gravity * delta, 0) if not _body.is_on_floor() else Vector3(0, -1.0, 0)
 	_body.move_and_slide()
 	grounded = _body.is_on_floor()
 
 
 func read_intent(delta: float) -> void:
-	throttle = move_toward(throttle, clampf(intent.throttle, 0.0, 1.0), delta * 4.5)
+	var pedal := clampf(intent.throttle, 0.0, 1.0)
+	var pedal_rate := _def.throttle_response if pedal > throttle else _def.throttle_release
+	throttle = move_toward(throttle, pedal, delta * pedal_rate)
 	brake = clampf(intent.brake, 0.0, 1.0)
 	handbrake = intent.handbrake
 	var wanted := clampf(intent.steer, -1.0, 1.0)
+	wanted = lerpf(wanted, wanted * wanted * wanted, _def.steering_precision)
+	var speed_fraction := clampf(absf(speed) / maxf(mods.top_speed, 0.1), 0.0, 1.0)
 	var rate: float = (_def.steer_smooth_hold if absf(wanted) > 0.05 else _def.steer_smooth_free) * lerpf(0.82, 1.0, mods.handling)
+	if absf(wanted) > 0.05:
+		rate *= lerpf(1.0, _def.cruise_steer_response, speed_fraction)
 	steer = move_toward(steer, wanted, rate * delta)
 
 
@@ -160,6 +191,9 @@ func step(delta: float) -> Tick:
 
 	# --- Longitudinal
 	if grounded:
+		# The forward pedal brakes reverse travel before it drives forward.
+		if throttle > 0.0 and speed < -0.1:
+			speed = move_toward(speed, 0.0, throttle * _def.brake_decel * mods.brake_scale * delta)
 		if throttle > 0.0 and speed >= -0.1 and speed < mods.soft_limit:
 			# torque curve: strong at low speed, tapering toward the top
 			speed += throttle * mods.motor_accel * (1.15 - 0.55 * sf) * delta
@@ -171,7 +205,7 @@ func step(delta: float) -> Tick:
 				# reverse only after the brake has been held for a beat at standstill, so braking
 				# into a delivery ring never flips into reverse by accident
 				_rev_hold += delta
-				if _rev_hold > _def.reverse_delay and _brake_repressed:
+				if _rev_hold > _def.reverse_delay and _brake_repressed and throttle < 0.05:
 					speed -= brake * mods.motor_accel * _def.reverse_accel_scale * delta
 					speed = maxf(speed, -mods.reverse_limit)
 		else:
@@ -213,49 +247,52 @@ func step(delta: float) -> Tick:
 
 	# --- Vertical and ground contact
 	var fwd := flat_forward()
-	if grounded: vertical_vel = 0.0
-	else: vertical_vel -= _def.gravity * delta
-	var vel := fwd * speed
-	if grounded:
-		# hug the slope so we don't launch off every bump
-		vel = (fwd - ground_normal * ground_normal.dot(fwd)).normalized() * speed
-		vel.y -= _def.ground_snap
+	if _def.suspension_enabled:
+		_move_suspended(delta, fwd, tick)
 	else:
-		vel.y = vertical_vel
-	vel += extra_velocity
-	if min_vertical > -INF: vel.y = maxf(vel.y, min_vertical)
-	_body.velocity = vel
-	_body.move_and_slide()
+		if grounded: vertical_vel = 0.0
+		else: vertical_vel -= _def.gravity * delta
+		var vel := fwd * speed
+		if grounded:
+			# hug the slope so we don't launch off every bump
+			vel = (fwd - ground_normal * ground_normal.dot(fwd)).normalized() * speed
+			vel.y -= _def.ground_snap
+		else:
+			vel.y = vertical_vel
+		vel += extra_velocity
+		if min_vertical > -INF: vel.y = maxf(vel.y, min_vertical)
+		_body.velocity = vel
+		_body.move_and_slide()
 
-	_was_grounded = grounded
-	grounded = _body.is_on_floor()
-	if _def.ray_ground_assist and not grounded and _body.velocity.y <= 0.0:
-		var gh := wheel_ground_height()
-		if not is_nan(gh) and _body.global_position.y - gh < 0.25:
-			grounded = true
-	if grounded:
-		if not _was_grounded:
-			var impact := absf(_last_vertical)
-			tick.landed_impact = impact
-			if impact > _def.hard_landing_impact:
-				speed *= _def.hard_landing_scale
-		air_time = 0.0
-		vertical_vel = 0.0
-	else:
-		air_time += delta
-		_last_vertical = _body.velocity.y
-		vertical_vel = _body.velocity.y
-
+		_was_grounded = grounded
+		grounded = _body.is_on_floor()
+		if _def.ray_ground_assist and not grounded and _body.velocity.y <= 0.0:
+			var gh := wheel_ground_height()
+			if not is_nan(gh) and _body.global_position.y - gh < 0.25:
+				grounded = true
+		if grounded:
+			if not _was_grounded:
+				var impact := absf(_last_vertical)
+				tick.landed_impact = impact
+				if impact > _def.hard_landing_impact:
+					speed *= _def.hard_landing_scale
+			air_time = 0.0
+			vertical_vel = 0.0
+		else:
+			air_time += delta
+			_last_vertical = _body.velocity.y
+			vertical_vel = _body.velocity.y
 	# --- Wall and obstacle hits
 	for i in range(_body.get_slide_collision_count()):
 		var n := _body.get_slide_collision(i).get_normal()
 		if n.y >= 0.5: continue
-		var head_on := -n.dot(fwd)
+		var head_on := -n.dot(fwd * (-1.0 if speed < 0.0 else 1.0))
 		if climbing:
 			vertical_vel = maxf(vertical_vel, 3.0)
 		elif head_on > 0.4 and absf(speed) > _def.scrub_min_speed:
+			var impact_speed := absf(speed)
 			speed *= clampf(1.0 - head_on * _def.scrub_factor, 0.05, 1.0)
-			if head_on > 0.8 and absf(speed) > _def.crash_min_speed:
+			if head_on > 0.8 and impact_speed > _def.crash_min_speed:
 				tick.crashed = true
 		elif head_on > 0.0:
 			speed *= _def.graze_scrub
@@ -264,6 +301,7 @@ func step(delta: float) -> Tick:
 	_settle_attitude(delta)
 	_body.rotation = Vector3(0, yaw, 0)
 	_body.rotate_object_local(Vector3.RIGHT, pitch)
+	if _def.suspension_enabled: refresh_wheel_travel()
 
 	odometer += absf(speed) * delta
 	if terrain != null and _body.global_position.y < Terrain.SEA_LEVEL - 0.35:
@@ -300,6 +338,7 @@ func _settle_attitude(delta: float) -> void:
 	# one (the truck) holds the last attitude it measured.
 	var n_target := Vector3.UP if _def.attitude_relaxes else ground_normal
 	var pitch_target := 0.0 if _def.attitude_relaxes else pitch
+	if _def.suspension_enabled and not grounded: have_both = false
 	if have_both:
 		pitch_target = atan2(front / float(front_n) - rear / float(rear_n), _def.wheelbase)
 	if normals.length_squared() > 0.01 and (have_both or not _def.attitude_relaxes):
@@ -308,3 +347,108 @@ func _settle_attitude(delta: float) -> void:
 		pitch_target = clampf(vertical_vel * _def.air_pitch_gain, _def.air_pitch_min, _def.air_pitch_max)
 	ground_normal = ground_normal.lerp(n_target, clampf(_def.normal_ease * delta, 0.0, 1.0)).normalized()
 	pitch = lerpf(pitch, pitch_target, clampf(_def.pitch_ease * delta, 0.0, 1.0))
+
+
+## Unilateral spring support: wheels can push up, never pull the bike down.
+## Damping is relative to the terrain's slope velocity. At a crest that support
+## becomes zero and existing vertical/horizontal momentum continues ballistically.
+func _move_suspended(delta: float, fwd: Vector3, tick: Tick) -> void:
+	force_wheel_update()
+	var force := 0.0
+	var front_offset := 0.0
+	var rear_offset := 0.0
+	var fronts := 0
+	var rears := 0
+	for ray in _rays:
+		var offset := -_def.suspension_travel * .5
+		if ray.is_colliding():
+			var normal := ray.get_collision_normal()
+			var hit := ray.get_collision_point()
+			if normal.y > cos(_body.floor_max_angle):
+				var dx := _body.global_position.x - hit.x
+				var dz := _body.global_position.z - hit.z
+				var surface_y := hit.y - (normal.x * dx + normal.z * dz) / normal.y
+				var clearance := _body.global_position.y - surface_y
+				var wheel_zero := _body.to_global(Vector3(ray.position.x, 0, ray.position.z))
+				offset = clampf((hit - wheel_zero).dot(_body.global_basis.y), -_def.suspension_travel, _def.suspension_travel)
+				if clearance < _def.suspension_rest_height + _def.suspension_travel:
+					var surface_velocity := -(normal.x * fwd.x + normal.z * fwd.z) * speed / normal.y
+					var spring := (_def.suspension_rest_height - clearance) * _def.suspension_spring
+					var damper := (surface_velocity - vertical_vel) * _def.suspension_damping
+					force += clampf(_def.gravity + spring + damper, 0, _def.suspension_max_force)
+		if ray.position.z < 0:
+			front_offset += offset
+			fronts += 1
+		else:
+			rear_offset += offset
+			rears += 1
+	_contact_force = force / maxf(_rays.size(), 1)
+	front_suspension = front_offset / maxf(fronts, 1)
+	rear_suspension = rear_offset / maxf(rears, 1)
+	suspension_load = _contact_force / _def.gravity
+	var supported := _contact_force > _def.gravity * .08
+	var was_grounded := grounded
+	if supported:
+		var wanted := fwd * speed
+		var grip := _def.tire_slide_grip if handbrake else _def.tire_grip
+		# Acceleration is already in speed; this limits lateral changes only.
+		var lateral := _planar_velocity - fwd * _planar_velocity.dot(fwd)
+		_planar_velocity = wanted + lateral.move_toward(Vector3.ZERO, grip * delta)
+	elif was_grounded:
+		# Preserve externally assigned speed on the first unsupported tick.
+		if _planar_velocity.length_squared() < .01: _planar_velocity = fwd * speed
+	vertical_vel += (_contact_force - _def.gravity) * delta
+	var before_contact := vertical_vel
+	_body.velocity = _planar_velocity + Vector3.UP * vertical_vel + extra_velocity
+	if min_vertical > -INF: _body.velocity.y = maxf(_body.velocity.y, min_vertical)
+	_body.move_and_slide()
+	grounded = supported or _body.is_on_floor()
+	if grounded:
+		if not was_grounded and air_time > .06:
+			var impact := maxf(0, -_last_vertical)
+			tick.landed_impact = impact
+			if impact > _def.hard_landing_impact: speed *= _def.hard_landing_scale
+		air_time = 0.0
+	else:
+		air_time += delta
+	# A hull impact can stop a bottomed-out spring; ordinary airborne travel keeps
+	# the integrator's velocity rather than resetting it whenever a ray sees ground.
+	vertical_vel = _body.get_real_velocity().y if _body.is_on_floor() else _body.velocity.y
+	_last_vertical = before_contact
+	_planar_velocity = Vector3(_body.velocity.x, 0, _body.velocity.z)
+
+
+## Transfer momentum when returning from the separate wing-flight solver.
+func capture_velocity(value: Vector3) -> void:
+	_planar_velocity = Vector3(value.x, 0, value.z)
+	vertical_vel = value.y
+	_last_vertical = value.y
+
+
+## Unsprung wheels follow the contact plane immediately, after chassis motion
+## and pitch have changed. Smoothing an old ray sample lets tires enter the road
+## on the first landing frame even when the spring solver is correct.
+func refresh_wheel_travel() -> void:
+	force_wheel_update()
+	front_suspension = _travel_for(_front_rays, true)
+	rear_suspension = _travel_for(_rear_rays, false)
+
+
+func _travel_for(rays: Array[RayCast3D], front: bool) -> float:
+	if rays.is_empty(): return 0.0
+	var sum := 0.0
+	for ray in rays:
+		var travel := -_def.suspension_travel
+		if ray.is_colliding():
+			var normal := ray.get_collision_normal()
+			if normal.y > cos(_body.floor_max_angle):
+				# Front telescopes along its authored rake, rear uses vertical travel
+				# as the input to its swingarm arc in the renderer.
+				var axis := _body.global_basis * Vector3(0, 1, .24 / .73 if front else 0.0)
+				var center := _body.to_global(Vector3(ray.position.x, _def.wheel_radius, ray.position.z))
+				var projection := normal.dot(axis)
+				if projection > .1:
+					travel = clampf((_def.wheel_radius - normal.dot(center - ray.get_collision_point())) / projection,
+						-_def.suspension_travel, _def.suspension_travel)
+		sum += travel
+	return sum / rays.size()

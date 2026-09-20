@@ -39,6 +39,11 @@ var world: WorldManager
 var _last_intent: Controls.Intent = Controls.Intent.new()
 var _aiming := false
 var _foot := Controls.Foot.new()
+var pointer_blocks_actions: Callable
+
+
+func _init() -> void:
+	process_physics_priority = -40
 
 
 func setup(p_bike: Bike, p_truck: Truck, p_player: Player, p_cam: ChaseCamera, p_gun: GunSystem, p_world: WorldManager, p_controls: Controls.Source) -> void:
@@ -115,12 +120,18 @@ func _physics_process(delta: float) -> void:
 	# The active Scheme comes from whatever is being controlled — no Context, no vehicle state
 	# travelling backwards through the seam.
 	var i := controls.read(_foot if is_on_foot() else vehicle.control_scheme(), delta)
+	if pointer_blocks_actions.is_valid() and pointer_blocks_actions.call():
+		i.commands.erase(Controls.FIRE)
 	_last_intent = i
 	if i.pressed(Controls.INTERACT):
-		if is_riding(): request_dismount()
-		else: request_mount()
+		var transitioned := request_dismount() if is_riding() else request_mount()
+		# A scheme was sampled for the previous body. Do not apply its jump/brake/fire
+		# meanings to a different body during this same physics tick.
+		if transitioned:
+			return
 	if i.pressed(Controls.RESET):
 		request_reset()
+		return
 	if is_riding():
 		_aiming = false
 		if i.pressed(Controls.WINGS) and vehicle == bike:
@@ -168,6 +179,15 @@ func request_mount() -> bool:
 	if player.global_position.distance_to(chosen.global_position) > 2.9:
 		message.emit("Walk up to the bike or truck and press E.", 2.0)
 		return false
+	if not chosen.grounded or absf(chosen.speed) > 2.5:
+		message.emit("Wait until the vehicle is safely stopped.", 2.0)
+		return false
+	var sight := PhysicsRayQueryParameters3D.create(
+		player.global_position + Vector3.UP, chosen.global_position + Vector3.UP, 1)
+	sight.exclude = [player.get_rid(), chosen.get_rid()]
+	if not player.get_world_3d().direct_space_state.intersect_ray(sight).is_empty():
+		message.emit("Walk around to the vehicle first.", 2.0)
+		return false
 	_set_vehicle(chosen)
 	_set_mode(Mode.RIDING if chosen == bike else Mode.DRIVING)
 	if chosen == truck:
@@ -193,6 +213,7 @@ func request_reset() -> void:
 	var p := vehicle.global_position + side * 1.2
 	p.y = world.probe(p).height + 0.05
 	player.place(p, vehicle.flat_forward())
+	cam.snap_to_target()
 	if mode == Mode.SWIMMING: _set_mode(Mode.ON_FOOT)
 	message.emit("Back on the road.", 2.0)
 
@@ -214,6 +235,11 @@ func _set_vehicle(to: Vehicle) -> void:
 
 ## The choreography of a transition lives here and nowhere else.
 func _apply_mode_effects(to: int) -> void:
+	_aiming = false
+	player.aiming = false
+	player.apply(Controls.Intent.new())
+	cam.set_aiming(false)
+	cam.set_look_back(false)
 	var riding := to == Mode.RIDING or to == Mode.FLYING or to == Mode.DRIVING
 	bike.set_parked(not riding or vehicle != bike)
 	truck.set_parked(not riding or vehicle != truck)
@@ -245,7 +271,7 @@ func _dismount_spot() -> Variant:
 		var q := PhysicsShapeQueryParameters3D.new()
 		q.shape = sh
 		q.transform = Transform3D(Basis(), foot + Vector3(0, 0.95, 0))
-		q.collision_mask = 1
+		q.collision_mask = 1 | 2 | 16
 		q.exclude = [vehicle.get_rid()]
 		if space.intersect_shape(q, 1).is_empty():
 			return foot
@@ -254,10 +280,16 @@ func _dismount_spot() -> Variant:
 
 # ---------------------------------------------------------------- persistence
 func save_state() -> Dictionary:
-	return {"mode": mode, "vehicle": "truck" if vehicle == truck else "bike", "player_pos": player.global_position, "player_forward": player.flat_forward()}
+	return {"mode": mode, "vehicle": "truck" if vehicle == truck else "bike", "player_pos": player.global_position, "player_forward": player.flat_forward(),
+		"stamina": player.stamina, "sprint_exhausted": player.sprint_exhausted, "regen_delay": player.regen_delay}
 
 
 func load_state(d: Dictionary) -> void:
+	var saved_stamina := float(d.get("stamina", player.stamina_max))
+	player.stamina = clampf(saved_stamina, 0.0, player.stamina_max) if is_finite(saved_stamina) else player.stamina_max
+	player.sprint_exhausted = bool(d.get("sprint_exhausted", false))
+	var saved_delay := float(d.get("regen_delay", 0.0))
+	player.regen_delay = clampf(saved_delay, 0.0, .65) if is_finite(saved_delay) else 0.0
 	var m: int = int(d.get("mode", Mode.RIDING))
 	if m == Mode.FLYING: m = Mode.RIDING
 	_set_vehicle(truck if d.get("vehicle", "bike") == "truck" else bike)

@@ -1,0 +1,82 @@
+{
+  "source_sha256": "55db4f030bdb47eba072923a69c7223292c94900faa50ec7600deaaa7c451d58",
+  "source_triangles": 103650,
+  "lod_triangles": 13451,
+  "meshes": [
+    {
+      "name": "ContinuousShirt",
+      "before_triangles": 30842,
+      "after_triangles": 4016
+    },
+    {
+      "name": "ContinuousTrousers",
+      "before_triangles": 13312,
+      "after_triangles": 1732
+    },
+    {
+      "name": "SkinnedSuspenders",
+      "before_triangles": 3268,
+      "after_triangles": 424
+    },
+    {
+      "name": "SkinnedTrouserStitching",
+      "before_triangles": 804,
+      "after_triangles": 104
+    },
+    {
+      "name": "Knee_Geometry",
+      "before_triangles": 7308,
+      "after_triangles": 950
+    },
+    {
+      "name": "Knee.001_Geometry",
+      "before_triangles": 7308,
+      "after_triangles": 950
+    },
+    {
+      "name": "ArmL_Geometry",
+      "before_triangles": 1180,
+      "after_triangles": 152
+    },
+    {
+      "name": "Forearm",
+      "before_triangles": 188,
+      "after_triangles": 30
+    },
+    {
+      "name": "Hand_Geometry",
+      "before_triangles": 1172,
+      "after_triangles": 152
+    },
+    {
+      "name": "ArmR_Geometry",
+      "before_triangles": 1180,
+      "after_triangles": 152
+    },
+    {
+      "name": "Forearm.001",
+      "before_triangles": 188,
+      "after_triangles": 30
+    },
+    {
+      "name": "Hand.001_Geometry",
+      "before_triangles": 1172,
+      "after_triangles": 152
+    },
+    {
+      "name": "Head_Geometry",
+      "before_triangles": 30724,
+      "after_triangles": 4001
+    },
+    {
+      "name": "Torso_Geometry",
+      "before_triangles": 4880,
+      "after_triangles": 634
+    },
+    {
+      "name": "Waistband",
+      "before_triangles": 124,
+      "after_triangles": 32
+    }
+  ]
+}

@@ -62,7 +62,7 @@ func _courier_stopped() -> bool:
 func interaction_hint() -> String:
 	var hub:=nearby_hub()
 	if hub==&"" or is_open(): return ""
-	return "J · %s courier counter" % game.world.database.location_name(hub) if _courier_stopped() else "Slow down for the courier counter · J"
+	return "B · %s courier counter" % game.world.database.location_name(hub) if _courier_stopped() else "Slow down for the courier counter · B"
 
 func status_text() -> String:
 	return "Fuel %d%% · Engine %d/3%s" % [roundi(fuel_ratio*100),engine_level," · Cargo %.0f kg" % active_cargo_mass_kg if active_cargo_mass_kg>0 else ""]
@@ -73,7 +73,7 @@ func open_counter() -> bool:
 		Events.message.emit("Close the journal before visiting the courier counter.",2.5); return false
 	var hub:=nearby_hub()
 	if hub==&"":
-		Events.message.emit("Find a village delivery stop to browse jobs and services. Press J beside the counter.",3.0); return false
+		Events.message.emit("Find a village delivery stop to browse jobs and services. Press B beside the counter.",3.0); return false
 	if not _courier_stopped():
 		Events.message.emit("Stop on the ground to visit the courier counter.",2.5); return false
 	_opened_hub=hub
@@ -89,11 +89,12 @@ func close_counter() -> void:
 	game.panels.close(self)
 
 func _input(event: InputEvent) -> void:
+	if game.mayor != null and game.mayor.active: return
 	if event is InputEventJoypadButton and event.pressed and event.button_index==JOY_BUTTON_B and is_open():
 		close_counter(); get_viewport().set_input_as_handled(); return
 	if not event is InputEventKey or not event.pressed or event.echo: return
-	if event.keycode==KEY_J:
-		if game.catalogue.is_open(): return # J remains usable as text inside the journal.
+	if event.keycode==KEY_B:
+		if game.catalogue.is_open(): return # B remains usable as text inside the journal.
 		if is_open(): close_counter()
 		else: open_counter()
 		get_viewport().set_input_as_handled()
@@ -220,7 +221,7 @@ func _build_ui() -> void:
 	var banner:=Panel.new(); banner.add_theme_stylebox_override("panel",_style(Color("944735"),Color("b56f50"))); _place(banner,Rect2(32,35,1056,82))
 	_title=_label("",Rect2(55,46,830,38),30,Color("fff0d2"))
 	_subtitle=_label("LOCAL COURIER COUNTER",Rect2(58,87,830,24),14,Color("ebcf9e"))
-	var close:=_button("Close · J / Esc",Rect2(891,57,178,40)); close.pressed.connect(close_counter)
+	var close:=_button("Close · B / Esc",Rect2(891,57,178,40)); close.pressed.connect(close_counter)
 	_label("Choose your next journey",Rect2(54,138,690,34),28)
 	_wallet=_label("",Rect2(755,141,311,30),19); _wallet.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 	_label("Unhurried deliveries. Pick a load, find your route, and take the day as it comes.",Rect2(55,177,1008,29),17,Color("6f725e"))

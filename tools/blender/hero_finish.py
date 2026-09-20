@@ -1,7 +1,9 @@
 """Final topology/normal polish, executed through Blender MCP after the asset generators."""
 exec(open('/Users/mun/Documents/Projects/DesertDelivery/tools/blender/common.py').read())
 import bmesh
-for asset_name,filename in [('CourierBike','courier_bike'),('CourierCharacter','courier_character')]:
+# character.py now polishes individual reference-driven components before batching.
+# Never subdivide its merged face/eye/joint geometry here.
+for asset_name,filename in [('CourierBike','courier_bike')]:
     root=bpy.data.objects[asset_name]
     for scene in bpy.data.scenes:
         if root.name in scene.objects: bpy.context.window.scene=scene; break

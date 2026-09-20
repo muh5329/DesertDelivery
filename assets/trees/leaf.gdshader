@@ -28,10 +28,10 @@ shader_type spatial;
 render_mode cull_disabled, specular_disabled, shadows_disabled, ambient_light_disabled;
 
 uniform sampler2D leaf_tex : source_color, filter_linear_mipmap, repeat_disable;
-uniform vec3 col_dark : source_color = vec3(0.23, 0.29, 0.16);   // #3a4a28 canopy underside
-uniform vec3 col_lit : source_color = vec3(0.53, 0.64, 0.27);    // #86a444 sunlit top
-uniform vec3 shade_warm : source_color = vec3(0.56, 0.62, 0.38); // shade side multiplier: olive (the grade cools it), never brown or blue
-uniform vec3 ambient_floor : source_color = vec3(0.44, 0.42, 0.22); // our own flat ambient (x albedo), replaces the sky's blue
+uniform vec3 col_dark : source_color = vec3(0.18, 0.31, 0.20);   // #3a4a28 canopy underside
+uniform vec3 col_lit : source_color = vec3(0.52, 0.67, 0.35);    // #86a444 sunlit top
+uniform vec3 shade_warm : source_color = vec3(0.45, 0.62, 0.48); // shade side multiplier: olive (the grade cools it), never brown or blue
+uniform vec3 ambient_floor : source_color = vec3(0.38, 0.46, 0.32); // our own flat ambient (x albedo), replaces the sky's blue
 uniform float y_bottom = 2.0;
 uniform float y_top = 16.0;
 uniform float alpha_cut : hint_range(0.0, 1.0) = 0.38;
@@ -39,7 +39,7 @@ uniform float hue_jitter : hint_range(0.0, 0.2) = 0.05;
 uniform float wrap : hint_range(0.0, 1.0) = 0.5;    // half-lambert wrap: 0 = plain lambert
 uniform float use_tex : hint_range(0.0, 1.0) = 0.0;  // 1: albedo = texture colour x tint (foliage cards)
 uniform vec3 card_tint : source_color = vec3(1.0);   // material tint for the texture mode
-uniform vec3 far_tint : source_color = vec3(0.64, 0.70, 0.72); // canopy multiplier past far_end (hazed, darker, cooler)
+uniform vec3 far_tint : source_color = vec3(0.81, 0.88, 0.83); // canopy multiplier past far_end (hazed, darker, cooler)
 uniform float far_start = 100.0;
 uniform float far_end = 220.0;
 
@@ -50,6 +50,10 @@ varying float view_dist;
 
 void vertex() {
 	grad = clamp((VERTEX.y - y_bottom) / max(y_top - y_bottom, 0.01), 0.0, 1.0);
+	vec3 world_anchor = MODEL_MATRIX[3].xyz;
+	float breeze = sin(TIME * 1.15 + world_anchor.x * 0.037 + world_anchor.z * 0.023);
+	VERTEX.x += breeze * grad * grad * 0.085;
+	VERTEX.z += sin(TIME * 0.77 + world_anchor.x * 0.025) * grad * 0.045;
 	// the instance colour carries the scatter's tint; its channel spread doubles as a jitter seed
 	tint = COLOR.rgb;
 	jit = clamp((COLOR.r - COLOR.b) * 4.0, -0.5, 0.5);

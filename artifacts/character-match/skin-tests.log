@@ -1,0 +1,13 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS aligned legacy hierarchy binds
+PASS native rest pose times inverse bind leaves all bind-space vertices unchanged
+PASS nonuniform torso and riding arm scales preserve every native bone/pivot world transform
+PASS skin bridge never reparents or transforms hand props
+PASS late activity pose reaches the hand bone through normal bridge processing
+PASS nonidentity skeleton relocation compensates into bone space
+PASS missing authored joint rejects the whole binding
+PASS legacy model without skeleton uses disabled optional bridge
+PASS valid binding can be restored after failure
+PASS freed legacy pivot safely disables binding
+PIVOT SKIN BRIDGE TESTS: PASS (10 checks, 0 failures)

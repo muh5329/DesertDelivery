@@ -63,22 +63,85 @@ const DEFAULTS := {
 }
 
 static var _cache: Dictionary = {}     # parameter key -> make_rock() result
+static var _cache_parameters: Dictionary = {}
+static var use_baked_library := not ("--rebuild-rock-library" in OS.get_cmdline_user_args())
+const BAKED_SCHEMA := 2 # Bump when the geometry algorithm changes. Defaults are in the key.
+const BAKED_DIR := "res://assets/rocks/generated"
+static var disk_load_usec := 0
+static var disk_hits := 0
+static var collision_usec := 0
 static var cache_usec: int = 0         # total time spent building cached pieces (profiling)
 
 
 ## Memoised make_rock: the same parameters always return the same (shared) meshes.
+static func _canonical_parameters(p_in: Dictionary) -> Dictionary:
+	var effective := DEFAULTS.duplicate()
+	effective.merge(p_in, true)
+	var keys := effective.keys(); keys.sort()
+	var canonical: Dictionary = {}
+	for k in keys: canonical[k] = effective[k]
+	return canonical
+
+static func _cache_key(p_in: Dictionary) -> String:
+	# Variant binary encoding retains full float precision, unlike display strings.
+	return "schema=%d;" % BAKED_SCHEMA + var_to_bytes(_canonical_parameters(p_in)).hex_encode()
+
+static func _baked_path(key: String) -> String:
+	return BAKED_DIR + "/" + key.sha256_text() + ".res"
+
 static func cached(p_in: Dictionary) -> Dictionary:
-	var keys := p_in.keys()
-	keys.sort()
-	var key := ""
-	for k in keys:
-		key += "%s=%s;" % [k, p_in[k]]
-	if _cache.has(key):
-		return _cache[key]
-	var r := make_rock(p_in)
-	cache_usec += int(r.usec)
-	_cache[key] = r
-	return r
+	var key := _cache_key(p_in)
+	if _cache.has(key): return _cache[key]
+	var path := _baked_path(key)
+	_cache_parameters[key] = _canonical_parameters(p_in)
+	if use_baked_library and ResourceLoader.exists(path):
+		var start := Time.get_ticks_usec()
+		var baked: Resource = load(path)
+		if baked != null and baked.get_meta("key", "") == key and baked.has_meta("piece"):
+			var piece: Variant = baked.get_meta("piece")
+			if _valid_piece(piece):
+				_cache[key] = piece
+				disk_load_usec += Time.get_ticks_usec() - start
+				disk_hits += 1
+				return piece
+	var result := make_rock(p_in)
+	cache_usec += int(result.usec)
+	_cache[key] = result
+	return result
+
+static func _valid_piece(piece: Variant) -> bool:
+	if not piece is Dictionary: return false
+	if not (piece.get("mesh") is ArrayMesh and piece.get("mesh_lod1") is ArrayMesh and piece.get("hull") is PackedVector3Array): return false
+	return piece.mesh.get_surface_count() > 0 and piece.mesh_lod1.get_surface_count() > 0 and piece.hull.size() >= 4 and piece.get("size") is Vector3 and piece.get("tris") is int and piece.get("tris_lod1") is int
+
+## Authoring-only: run the full-world baker once, then ship exact binary mesh
+## resources. Runtime loads only the requested piece, not the entire library.
+static func save_baked_library() -> Dictionary:
+	DirAccess.make_dir_recursive_absolute(BAKED_DIR)
+	var bytes := 0
+	var failures := 0
+	var saved: Dictionary = {}
+	for key: String in _cache:
+		var resource := Resource.new()
+		resource.set_meta("key", key)
+		resource.set_meta("parameters", _cache_parameters[key])
+		var piece: Dictionary = _cache[key].duplicate()
+		piece.usec = 0 # This resource was already baked; runtime records disk load separately.
+		resource.set_meta("piece", piece)
+		var path := _baked_path(key)
+		var error := ResourceSaver.save(resource, path, ResourceSaver.FLAG_COMPRESS)
+		if error != OK: failures += 1
+		else:
+			var file := FileAccess.open(path, FileAccess.READ)
+			bytes += file.get_length()
+			saved[path.get_file()] = true
+	# This directory is owned by the baker; remove superseded schema resources only
+	# after the complete new library has saved successfully.
+	if failures == 0:
+		for filename in DirAccess.get_files_at(BAKED_DIR):
+			if filename.ends_with(".res") and filename.get_basename().length() == 64 and not saved.has(filename):
+				DirAccess.remove_absolute(BAKED_DIR + "/" + filename)
+	return {"pieces":_cache.size(),"bytes":bytes,"failures":failures,"schema":BAKED_SCHEMA}
 
 
 static func cache_size() -> int:
@@ -141,6 +204,7 @@ static func build_node(r: Dictionary, xf: Transform3D, concave: bool, mat: Mater
 	root.add_child(m0)
 	root.add_child(m1)
 	if collide:
+		var collision_start := Time.get_ticks_usec()
 		var body := StaticBody3D.new()
 		body.collision_layer = 1
 		var cs := CollisionShape3D.new()
@@ -164,6 +228,7 @@ static func build_node(r: Dictionary, xf: Transform3D, concave: bool, mat: Mater
 			cs.shape = hull
 		body.add_child(cs)
 		root.add_child(body)   # identity: the root already has the rotation, the points the scale
+		collision_usec += Time.get_ticks_usec() - collision_start
 	return root
 
 

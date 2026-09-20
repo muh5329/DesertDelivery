@@ -1,0 +1,15 @@
+# Independent benchmark assessment
+
+Inspected `before/benchmark.json` and the sample now preserved as `final/benchmark-before-streaming.json`, both 1600×900 on Apple M4 Pro, 120 warm-up frames and 300 measured frames per scene, VSync disabled, 320 m shadows. The hero asset and resident/vegetation counts match. The baseline uses GL Compatibility; this sample uses Forward+ (root identifies the native driver as Vulkan).
+
+Observed village average: 37.82 to 74.40 FPS. Median: 26.073 to 13.413 ms; p95: 28.672 to 14.834 ms. This is a promising observed pre/post result, not a clean causal attribution to NPC LOD: renderer and other runtime changes are combined, and the focus counter changes from 300/300 to 0/300 despite the focus request. The scheduling/window-state discrepancy must be disclosed. The 300-frame wall interval also changes from 7.93 to 4.03 seconds while simulation continues, so moving residents do not end in identical states. Repeated samples under matched focus/background load are needed to quantify a reliable gain.
+
+Costs: village reported video memory rises 291.4 to 425.3 MiB (+133.8 MiB, about 46%); engine static memory rises 282.2 to 356.1 MiB (+74 MiB, about 26%). These counters are not total operating-system memory and may differ in backend accounting. Time to benchmark readiness increases 5.358 to 6.244 seconds; world generation increases 4.212 to 4.857 seconds. Neither measurement establishes clean-install cold startup cost.
+
+Wilderness averages improve, but tail latency does not uniformly improve: p95 increases 7.000 to 7.478 ms and p99 8.195 to 8.555 ms. Dense meadow p99 increases slightly, 9.430 to 9.664 ms. Do not claim all stutter is fixed. These fixed-camera samples also cannot certify moving-world streaming, which is being investigated separately.
+
+Native Metal's static NPC LOD smoke completed eight animated rigs and eight transitions, as recorded in `npc-metal-smoke.log`. This resolves the reproduced short smoke crash for that implementation; it is not a long-run backend stability certification. Root separately accepted the actual 18/22 m graphical NPC comparison.
+
+Root's subsequent reruns supersede the earlier best-case FPS claim: village samples settled around 46–50 FPS, including cache-off and always-on-top probes. The latest full run is `lod-preserved/benchmark.json` (50.0 village, 217.3 wilderness, 164.9 meadow). This does not demonstrate a locked 60 FPS village; its p95 remains 28.29 ms. Cache-off measured 48.1 FPS, so the added disk cache is not supported as the cause of that variation. Shorter shadows and balanced filtering/MSAA produced little improvement and were not adopted. Mobile/Vulkan reproduced the rendering error and was rejected. All production visual quality settings remain as described above.
+
+The final moving sample, `traversal.json`, averaged 71.0 FPS with a maximum 29.83 ms frame versus the earlier 846.03 ms maximum. No frame exceeded 35 ms in its 1,800-frame sample. Paths and durations differ with FPS in this fixture; this is evidence of improved observed streaming behavior, not a controlled speedup across identical trajectories or a guarantee for every location.

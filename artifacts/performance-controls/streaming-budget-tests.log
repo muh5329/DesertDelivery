@@ -1,0 +1,16 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS one frame stops between recipes rather than constructing whole chunk
+PASS partial chunk is not reported as collision-ready
+PASS instrumentation records individual expensive builder
+PASS incremental queue finishes each recipe exactly once
+PASS RNG sequence identical for synchronous and interrupted construction
+PASS load_all_pending drains both partial and not-started work
+PASS batch departure transfers to survivor without bouncing/rebuilding
+PASS shared structure preserves node, physics RID and world placement
+PASS transferred shared bridge remains physically collidable
+PASS last owner leaving releases recipe
+PASS retired collider disabled before deferred deletion
+PASS same-frame return rebuilds once without active stale collider
+PASS load_everything remains synchronous and disables streaming
+STREAMING BUDGET failures: 0

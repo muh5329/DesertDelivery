@@ -24,10 +24,10 @@ uniform float depth_fallback_end = 600.0;
 // open water beside it), not a lit cyan: turquoise / teal sit at ~linear (0.04,0.12,0.05) — blue kept
 // LOW on purpose because at 150 m the (blue) fog is ~2/3 of the rendered water and adds it back —
 // and only the last 0.5 m against sand lifts to a sand-lit #6f7e6a-class
-uniform vec3 col_shallow : source_color = vec3(0.14, 0.18, 0.11);   // sand-lit skirt, depth < ~0.5 m only
-uniform vec3 col_turquoise : source_color = vec3(0.08, 0.20, 0.17);  // r4: blue back in (ref shallows #3b5d5e / #324c58 — teal, the SAME value as the open water, not a black-green moat)
-uniform vec3 col_mid : source_color = vec3(0.048, 0.096, 0.16);     // lit -> ~#425973 band (r2: x0.7, the sun went 1.25 -> 1.6 and the fog lifted)
-uniform vec3 col_navy : source_color = vec3(0.045, 0.068, 0.115);   // lit -> ~#2a3d5e (ref deep #2a3959 shade / #3d567a sun); r2 x0.7 for the stronger sun
+uniform vec3 col_shallow : source_color = vec3(0.38, 0.65, 0.53);   // sand-lit skirt, depth < ~0.5 m only
+uniform vec3 col_turquoise : source_color = vec3(0.11, 0.52, 0.49);  // r4: blue back in (ref shallows #3b5d5e / #324c58 — teal, the SAME value as the open water, not a black-green moat)
+uniform vec3 col_mid : source_color = vec3(0.065, 0.34, 0.46);     // lit -> ~#425973 band (r2: x0.7, the sun went 1.25 -> 1.6 and the fog lifted)
+uniform vec3 col_navy : source_color = vec3(0.08, 0.29, 0.42);   // lit -> ~#2a3d5e (ref deep #2a3959 shade / #3d567a sun); r2 x0.7 for the stronger sun
 // the seabed off the coast falls ~1:6, so deep band edges make a 10-25 m wide teal band (ref #425973 / #577179)
 uniform float band_turquoise = 0.5;    // vertical depth (m) where shallow -> turquoise completes
 uniform float band_mid = 2.5;
@@ -44,7 +44,7 @@ uniform float wave_b_metres = 7.0;
 uniform vec2 wave_a_dir = vec2(1.0, 0.3);
 uniform vec2 wave_b_dir = vec2(-0.4, 1.0);
 uniform float wave_speed = 0.06;
-uniform float wave_strength : hint_range(0.0, 1.0) = 0.6;
+uniform float wave_strength : hint_range(0.0, 1.0) = 0.36;
 uniform float sparkle : hint_range(0.0, 2.0) = 0.22;   // r6 (item 12): open water had 0.29 % at V>0.85, a glitter path the ref lacks   // r3: 0.9 -> 0.5, the glitter path laced the surf zone with dashes; r5: 0.35, the sun now faces the camera
 uniform vec3 sun_dir = vec3(0.0, 0.5, -0.8);              // world-space direction TOWARD the sun (set by _build_sea)
 uniform vec3 sun_color : source_color = vec3(1.0, 0.84, 0.69);
@@ -54,7 +54,7 @@ uniform float refract_strength : hint_range(0.0, 0.1) = 0.02;
 // r2: the foam must read cream (#e8e4dc) after fog + grade, not the #5a5557 a 1-px rim averaged to
 // r4: (0.97,0.96,0.92) -> (0.86,0.84,0.80) and emission 1.0 -> 0.6: the ref's foam is often GREY (V0.47-0.85), it takes the shade of the rock it hugs
 // (c1 at (0.86,0.84,0.80) x 0.6 read as grey wisps: the surf LINE in the ref is white, only the trails grey)
-uniform vec3 foam_color : source_color = vec3(0.82, 0.81, 0.77);   // r6 (item 4): grey-white, renders ~V0.75 (ref collar #bfbdb3) and never clips   // r5: bright-foam bin was 5x the ref (0.56 % vs 0.11 %), the ref surf is V0.55-0.75 lace
+uniform vec3 foam_color : source_color = vec3(0.96, 0.96, 0.87);   // r6 (item 4): grey-white, renders ~V0.75 (ref collar #bfbdb3) and never clips   // r5: bright-foam bin was 5x the ref (0.56 % vs 0.11 %), the ref surf is V0.55-0.75 lace
 uniform float foam_depth = 0.7;        // r6: 0.4 -> 0.7, a solid 1-2 m collar at every rock foot (the r5 lace lost the water line)        // r4: 0.9 -> 0.6, r5: 0.4, thinner collar        // shoreline / rock ring: foam where vertical depth < this (m); r3 1.6 -> 0.9: 1.6 laced the whole 2 m shelf and drew a hard line along every shore
 // r3: lower frequencies and wider ramps — the r2 1.5 m clumps and 4 m lace at 100-150 m read as
 // TV static (surf-zone HF std 0.064, 7x the reference); the reference's foam is a few soft clumps
@@ -73,13 +73,13 @@ uniform float whitecap_fade_metres = 220.0;   // whitecaps are sub-pixel past th
 // r4: the r3 skirt overshot to a black-green moat (#1d383a V0.23 S0.55, 25 % of the surf zone): blue back
 // in, a narrower and weaker halo — target rendered #3a595a..#334e59 (V0.32-0.38), 5-10 % of the surf zone
 // (c1 at (0.05,0.12,0.11) x 0.6 over 8 m vanished under the fog: the ref's shallows are a VISIBLE green)
-uniform vec3 col_teal : source_color = vec3(0.06, 0.19, 0.12);   // r6 (item 4): GREEN skirt (ref #2d4e42 H155 S0.43), not teal-blue
+uniform vec3 col_teal : source_color = vec3(0.12, 0.43, 0.33);   // r6 (item 4): GREEN skirt (ref #2d4e42 H155 S0.43), not teal-blue
 uniform float teal_metres = 6.0;   // r5: 9 -> 6, the skirt was 27 % of the surf zone (ref 13 %)
 uniform float teal_amount : hint_range(0.0, 1.0) = 0.6;   // r6: 0.5 -> 0.6 (hue move on the 6 m skirt, not a width move)
 // r3: open-water swell: a 16 m noise that modulates the Fresnel sky term (+-25 %) and the albedo a
 // touch, so the open sea shows broad light/dark bands (ref open-water region lum std 0.067, ours 0.034)
 uniform float swell_metres = 16.0;
-uniform float swell_amount : hint_range(0.0, 1.0) = 0.3;   // r4: 0.4 -> 0.3, the bands read as camouflage blotches on the open water
+uniform float swell_amount : hint_range(0.0, 1.0) = 0.18;   // r4: 0.4 -> 0.3, the bands read as camouflage blotches on the open water
 
 
 // r2: the sea writes its own FOG (replacing the engine's): the engine's exponential fog with the

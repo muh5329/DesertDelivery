@@ -13,7 +13,7 @@ uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, re
 uniform float tex_metres = 3.0;            // one texture tile covers this many metres
 uniform float normal_strength : hint_range(0.0, 2.0) = 0.8;
 uniform float fine_metres = 0.8;          // second normal octave: tile size (m) ...
-uniform float fine_normal : hint_range(0.0, 1.0) = 0.15;  // ... and strength, near faces only (r4: 0.4 -> 0.15, the hero wall read as pitting, not planes)
+uniform float fine_normal : hint_range(0.0, 1.0) = 0.035;  // ... and strength, near faces only (r4: 0.4 -> 0.15, the hero wall read as pitting, not planes)
 uniform vec3 base_tint : source_color = vec3(0.788, 0.749, 0.682);   // #c9bfae: the mean colour in flat light
 uniform float albedo_tex_mean = 0.71;     // mean sRGB value of albedo_tex (Rock019 = 0.71, Rock021 = 0.66); the texture is normalised by it
 uniform float triplanar_sharpness : hint_range(1.0, 16.0) = 6.0;
@@ -55,7 +55,7 @@ uniform float streak_amount : hint_range(0.0, 1.0) = 0.08;   // narrow runs unde
 uniform vec3 macro_rust : source_color = vec3(0.72, 0.63, 0.52);  // #b8a184 warm patches (r4: was #c49a6a, which with the macro mix at 0.5 put S +0.1 on every lit face)
 uniform vec3 macro_grey : source_color = vec3(0.69, 0.66, 0.60);  // #b0a89a warm-grey patches (r2 #a8a399 pulled the lit faces grey)
 uniform float tex_saturation : hint_range(0.0, 1.0) = 0.45;   // r5: back to 0.45 (with the warmer tint and the real sun, 0.55 put the lit hero wall at S0.36; target 0.20-0.26)
-uniform float tex_contrast : hint_range(0.0, 1.5) = 0.42;         // the texture's own light/dark grain, damped       // the texture's own colour, damped: limestone is nearly grey
+uniform float tex_contrast : hint_range(0.0, 1.5) = 0.14;         // the texture's own light/dark grain, damped       // the texture's own colour, damped: limestone is nearly grey
 // fresh-fracture undersides (overhang ceilings, the vault of an arch) are orange, never weathered grey
 uniform vec3 fracture_color : source_color = vec3(0.79, 0.60, 0.37);   // #c99a5e
 uniform float fracture_amount : hint_range(0.0, 1.0) = 0.4;
@@ -129,7 +129,8 @@ void fragment() {
 	vec3 tn_z = texture(normal_tex, uv_z).xyz * 2.0 - 1.0;
 	// r4: the 3 m relief fades to half beyond 40-120 m: the ref's far planes are smooth, ours were grain
 	float dist_cam = length(wpos - CAMERA_POSITION_WORLD);
-	float ns = normal_strength * (1.0 - 0.5 * smoothstep(40.0, 120.0, dist_cam));
+	// Preserve the modeled limestone planes; texture relief is a restrained brush grain.
+	float ns = normal_strength * 0.4 * (1.0 - 0.65 * smoothstep(25.0, 100.0, dist_cam));
 	tn_x.xy *= ns; tn_y.xy *= ns; tn_z.xy *= ns;
 	// a second, finer normal octave (0.8 m tiles at 0.4): at 15 m the 3 m grain read as stripes,
 	// this makes it pitting; it fades out beyond ~60 m so far faces keep the coarse relief

@@ -146,6 +146,11 @@ func _check_ground_seam() -> void:
 		spans_valid = spans_valid and span.x <= b.from and span.y >= b.to \
 			and span.x >= 0 and span.y < b.samples.size()
 	_check(spans_valid, "every Bridge reports a deck span that covers its raised run and its ramps (%d bridges)" % terrain.bridges.size())
+	var navigation := RoadNavigation.new()
+	navigation.build(terrain)
+	var outer_road: PackedVector3Array = terrain.road_samples[-1]
+	var outer_route := navigation.path(terrain.road_samples[0][0], outer_road[-1], 1.05, terrain)
+	_check(not outer_route.is_empty(), "the core road network reaches the outer highlands across the north viaduct")
 	# Ground cover is told what to leave bare; it does not know where the Town Square is.
 	_check(not terrain.keep_clear.is_empty(), "the Island hands the terrain its keep-clear regions (%d)" % terrain.keep_clear.size())
 

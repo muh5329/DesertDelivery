@@ -1,0 +1,44 @@
+{
+  "adapter": "Apple M4 Pro",
+  "character_asset": {
+    "bytes": 1158420,
+    "mesh_nodes": 13,
+    "surfaces": 43,
+    "triangles": 49957,
+    "vertices": 26977,
+    "sha256": "e287148acfda328fb8bceaaebdeed7ef1f7dbd5002182c6f8d2c2ffa0496d540"
+  },
+  "date": "2026-09-19T22:32:12",
+  "frames_per_scene": 300,
+  "process_ready_ms": 7926,
+  "renderer": "gl_compatibility",
+  "resolution": "(1600.0, 900.0)",
+  "scenes": [
+    {
+      "actors": 8,
+      "average_fps": 17.1840153143944,
+      "dressing": {
+        "instances": 0,
+        "max_instances": 63000,
+        "max_tiles": 25,
+        "pending": 0,
+        "tiles": 25
+      },
+      "max_frame_ms": 123.285,
+      "mean_draw_calls": 4639.42,
+      "mean_visible_objects": 4975.63,
+      "median_frame_ms": 57.973,
+      "node_count": 11279.0,
+      "p95_frame_ms": 67.824,
+      "p99_frame_ms": 73.985,
+      "scene": "village",
+      "static_memory_mib": 279.376080513,
+      "video_memory_mib": 277.975995063782
+    }
+  ],
+  "shadow_distance": 320.0,
+  "vsync": "disabled",
+  "warmup_frames": 120,
+  "world_generation_ms": 6218,
+  "measurement_validity": "Uncontrolled timing; not comparable to old run. Unexpected eleven-minute timestamp gap, unstable old frame distribution, unrelated game/editor workload."
+}

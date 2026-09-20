@@ -23,6 +23,7 @@ extends RefCounted
 # --- named commands ---------------------------------------------------------------------------
 ## Edge-triggered commands. Adding a control means a name here and one line in one Scheme —
 ## it used to mean editing Intent, clear_edges, Keyboard, Context and two halves of Scripted.
+const DODGE := &"dodge"
 const JUMP := &"jump"
 const FIRE := &"fire"
 const INTERACT := &"interact"
@@ -38,7 +39,7 @@ const CARGO_REMOVE := &"remove_cargo"
 const ACTIONS: Array[StringName] = [
 	&"accelerate", &"brake", &"steer_left", &"steer_right", &"handbrake", &"jump", &"fire",
 	&"interact", &"transform", &"reset_bike", &"winch", &"cargo_mode", &"cargo_rotate",
-	&"cargo_remove",
+	&"cargo_remove", &"dodge",
 ]
 
 
@@ -54,6 +55,7 @@ class Intent:
 	var handbrake := false
 	var move := Vector2.ZERO  # on foot: x strafe (+ right), y forward (+), camera-relative
 	var run := false
+	var jump_held := true     # scripted jumps keep full height unless explicitly released
 	var aim := false          # held
 	var look := Vector2.ZERO  # free-look delta this tick (radians): x yaw (+ right), y pitch (+ down)
 	var look_back := false
@@ -115,7 +117,9 @@ class Foot:
 	extends Scheme
 	func map(r: Reading, i: Intent) -> void:
 		i.move = Vector2(r.side, r.forward - r.back).limit_length(1.0)
+		i.jump_held = r.down(&"jump")
 		if r.just(&"jump"): i.press(JUMP)
+		if r.just(&"dodge"): i.press(DODGE)
 		# A click with the mouse free just re-captures it (Game does that); it never fires.
 		if r.just(&"fire") and r.mouse_captured: i.press(FIRE)
 
@@ -127,10 +131,18 @@ class Source:
 
 
 ## Adapter 1: the real player. Owns every Input.* read in the game (except Esc, which is Game's).
+static func radial_deadzone(value: Vector2, deadzone: float = 0.18) -> Vector2:
+	deadzone = clampf(deadzone, 0.0, 0.999)
+	var magnitude := value.length()
+	if magnitude <= deadzone: return Vector2.ZERO
+	return value.normalized() * clampf((magnitude - deadzone) / (1.0 - deadzone), 0.0, 1.0)
+
+
 class Keyboard:
 	extends Source
 	var blocked := false
-	var mouse_sensitivity := 0.0022
+	var mouse_sensitivity := 0.003
+	var mouse_vertical_sensitivity := 0.0025
 	var stick_look_rate := Vector2(2.4, 1.8)
 	var _mouse_delta := Vector2.ZERO
 
@@ -164,14 +176,17 @@ class Keyboard:
 		r.look_back = Input.is_action_pressed("look_back")
 		r.mouse_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		for a in ACTIONS:
+			if not InputMap.has_action(a): continue
 			r.held[a] = Input.is_action_pressed(a)
 			r.pressed[a] = Input.is_action_just_pressed(a)
 		# free look: mouse (captured) + right stick
-		var look := _mouse_delta * mouse_sensitivity
+		var look := _mouse_delta * Vector2(mouse_sensitivity, mouse_vertical_sensitivity) if r.mouse_captured else Vector2.ZERO
 		_mouse_delta = Vector2.ZERO
 		var rs := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
-		if rs.length() > 0.2:
-			look += rs * stick_look_rate * delta
+		look += Controls.radial_deadzone(rs) * stick_look_rate * delta
+		if InputMap.has_action("look_left"):
+			look += Vector2(Input.get_axis("look_left", "look_right") * 1.9,
+				Input.get_axis("look_up", "look_down")) * delta
 		r.look = look
 		return r
 
@@ -190,3 +205,17 @@ class Scripted:
 		intent.clear_edges()
 		intent.look = Vector2.ZERO
 		return out
+
+
+## Context-safe subset of Red Sea Baron's InputBindings. Q remains the truck
+## winch in its own scheme; only Foot translates this action into a dodge.
+static func install_foot_bindings() -> void:
+	var bindings := {"dodge": [KEY_CTRL, KEY_Q], "look_left": [KEY_J],
+		"look_right": [KEY_L], "look_up": [KEY_I], "look_down": [KEY_K]}
+	for action: String in bindings:
+		if InputMap.has_action(action): continue
+		InputMap.add_action(action)
+		for key: int in bindings[action]:
+			var event := InputEventKey.new()
+			event.physical_keycode = key
+			InputMap.action_add_event(action, event)

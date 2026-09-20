@@ -1,0 +1,41 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M4 Pro (Apple9)
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:95)
+         [1] _init (res://world/terrain/terrain.gd:85)
+         [2] build_terrain (res://world/island/island.gd:258)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:657)
+         [1] build (res://world/terrain/terrain.gd:504)
+         [2] build_terrain (res://world/island/island.gd:269)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 1041, "t3d_setup": 329, "t3d_maps": 1108, "crest_n": 1870, "foot_n": 2348, "t3d_import": 34 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:282)
+         [1] generate (res://world/island/island.gd:211)
+         [2] setup (res://world/world_manager.gd:32)
+         [3] _boot_world (res://core/app/game.gd:84)
+         [4] _ready (res://core/app/game.gd:63)
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[world] 25 km terrain, north viaduct 360 navigation samples
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3642 road nodes, seven-day routines
+[game] world generated in 6677 ms (7053 recipes in 396 chunks); tree 9050 nodes
+[game] package collected at t=0.6
+BENCHMARK {"actors":8,"average_fps":82.5059363021169,"dressing":{"instances":0,"max_instances":63000,"max_tiles":25,"pending":0,"tiles":25},"focused_frames":53,"max_frame_ms":18.206,"mean_draw_calls":3876.0,"mean_visible_objects":5140.22,"median_frame_ms":12.072,"node_count":11351.0,"p95_frame_ms":13.364,"p99_frame_ms":13.788,"sample_wall_ms":3636.102,"scene":"village","static_memory_mib":322.192058563232,"video_memory_mib":456.84375}
+BENCHMARK {"actors":0,"average_fps":120.275189633882,"dressing":{"instances":34567,"max_instances":63000,"max_tiles":25,"pending":0,"tiles":25},"focused_frames":0,"max_frame_ms":10.015,"mean_draw_calls":368.993333333333,"mean_visible_objects":874.113333333333,"median_frame_ms":8.328,"node_count":2405.0,"p95_frame_ms":9.133,"p99_frame_ms":9.784,"sample_wall_ms":2494.28,"scene":"wilderness","static_memory_mib":279.433829307556,"video_memory_mib":450.265625}
+BENCHMARK {"actors":0,"average_fps":119.995488169645,"dressing":{"instances":55510,"max_instances":63000,"max_tiles":25,"pending":0,"tiles":25},"focused_frames":0,"max_frame_ms":10.065,"mean_draw_calls":463.863333333333,"mean_visible_objects":912.703333333333,"median_frame_ms":8.326,"node_count":2407.0,"p95_frame_ms":9.127,"p99_frame_ms":9.633,"sample_wall_ms":2500.094,"scene":"dense_meadow","static_memory_mib":284.613518714905,"video_memory_mib":451.453125}

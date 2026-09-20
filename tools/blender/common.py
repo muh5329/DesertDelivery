@@ -9,12 +9,14 @@ def material(name, color, rough=.65, metal=0):
     m=bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.diffuse_color=(*color[:3],color[3] if len(color)>3 else 1)
     m.use_nodes=True
-    s=m.node_tree.nodes.get('Principled BSDF')
+    s=next(n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
     s.inputs['Base Color'].default_value=m.diffuse_color
     s.inputs['Roughness'].default_value=rough
     s.inputs['Metallic'].default_value=metal
     s.inputs['Alpha'].default_value=m.diffuse_color[3]
-    if m.diffuse_color[3]<1: m.surface_render_method='DITHERED'
+    if m.diffuse_color[3]<1:
+        valid = [i.identifier for i in m.bl_rna.properties['surface_render_method'].enum_items]
+        if 'DITHERED' in valid: m.surface_render_method='DITHERED'
     return m
 def start(name):
     scene=bpy.data.scenes.get('DesertDelivery_Assets')

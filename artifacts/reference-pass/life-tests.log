@@ -1,0 +1,76 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:95)
+         [1] _init (res://world/terrain/terrain.gd:85)
+         [2] build_terrain (res://world/island/island.gd:258)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:657)
+         [1] build (res://world/terrain/terrain.gd:504)
+         [2] build_terrain (res://world/island/island.gd:269)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 1064, "t3d_setup": 189, "t3d_maps": 1145, "crest_n": 1870, "foot_n": 2348, "t3d_import": 32 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:282)
+         [1] generate (res://world/island/island.gd:211)
+         [2] setup (res://world/world_manager.gd:32)
+         [3] _boot_world (res://core/app/game.gd:84)
+         [4] _ready (res://core/app/game.gd:63)
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[world] 25 km terrain, north viaduct 360 navigation samples
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3642 road nodes, seven-day routines
+[game] world generated in 4341 ms (7053 recipes in 396 chunks); tree 8975 nodes
+  PASS empty resident routine safely rests at home
+  PASS failed route cannot invent a completed delivery
+  PASS route destination and explicit blocked state survive persistence
+  PASS 64 individually identified residents
+  PASS all weekly schedules cover every minute and reference real stations
+  PASS every resident delivery destination is connected through roads
+  PASS traffic segments remain inside road corridor (max 1.73m from centre)
+  PASS weekly tasks repeat after Sunday
+  PASS calendar wraps to Monday of week two without resetting absolute time
+  PASS sloped verges use foot position terrain (max error 0.000m across 419 samples)
+  PASS abstract residents use real bridge decks over the seabed
+  PASS walking route reaches the actual activity station
+  PASS working at a station completes a timed work cycle
+  PASS drivers unload cargo then dispatch to another connected destination
+  PASS distant traffic advances with capped acceleration and speed
+  PASS traffic yields before crossing a pedestrian
+  PASS simultaneous perpendicular drivers both clear the junction
+  PASS junction priority preserves safe separation (4.12m)
+  PASS Harbour residents work across town and waterfront stations
+  PASS sideways collision response does not consume an unreached waypoint
+  PASS save/load restores clock, route progress and completed work
+  PASS a record beyond the spawn radius has no body
+  PASS coming inside the spawn radius builds and registers a view
+  PASS hysteresis keeps the view alive just past the spawn radius
+  PASS passing the keep margin frees and unregisters the view
+  PASS a sleeping resident never gets a body, however close the focus
+  PASS every saved Resident field survives the round trip
+  PASS advance_to lands on the next morning at 08:00
+  PASS a time skip preserves every lifetime total
+  PASS every walker starts the new day at the station their task calls for
+  PASS dismounted resident pelvis resets immediately to grounded pose
+  PASS visible boot soles touch the resident support plane (0.014m)
+  PASS resident vehicle body collides with parked player truck
+  PASS player truck body collides with resident vehicle
+  PASS player bike body collides with resident vehicle
+  PASS walking player collides with resident vehicle
+  PASS traffic sensor brakes for parked truck independent of current player focus
+LIFE TESTS: PASS (0 failures)
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

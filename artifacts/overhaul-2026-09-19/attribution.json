@@ -1,0 +1,68 @@
+[
+	{
+		"actors": 8,
+		"cpu_physics_ms": 1.60486666666667,
+		"cpu_process_ms": 22.1271111111111,
+		"draw_calls": 4642.91111111111,
+		"fps": 47.0981520255084,
+		"median_ms": 21.261,
+		"mode": "baseline",
+		"p95_ms": 22.891,
+		"render_scale": 1.0
+	},
+	{
+		"actors": 8,
+		"cpu_physics_ms": 0.398177777777778,
+		"cpu_process_ms": 20.9116333333333,
+		"draw_calls": 4628.0,
+		"fps": 51.1691875072134,
+		"median_ms": 19.598,
+		"mode": "life_frozen",
+		"p95_ms": 21.212,
+		"render_scale": 1.0
+	},
+	{
+		"actors": 8,
+		"cpu_physics_ms": 0.421527777777778,
+		"cpu_process_ms": 19.7482500000001,
+		"draw_calls": 3390.61111111111,
+		"fps": 54.9107608618061,
+		"median_ms": 18.299,
+		"mode": "life_frozen_hidden_residents",
+		"p95_ms": 19.559,
+		"render_scale": 1.0
+	},
+	{
+		"actors": 8,
+		"cpu_physics_ms": 1.53623888888889,
+		"cpu_process_ms": 21.1509166666667,
+		"draw_calls": 4188.0,
+		"fps": 46.7564529100177,
+		"median_ms": 21.521,
+		"mode": "baseline_restore",
+		"p95_ms": 22.742,
+		"render_scale": 1.0
+	},
+	{
+		"actors": 8,
+		"cpu_physics_ms": 1.66453333333333,
+		"cpu_process_ms": 19.2387222222223,
+		"draw_calls": 4188.0,
+		"fps": 51.7405967932903,
+		"median_ms": 19.379,
+		"mode": "resolution_075",
+		"p95_ms": 20.876,
+		"render_scale": 0.75
+	},
+	{
+		"actors": 8,
+		"cpu_physics_ms": 1.65885,
+		"cpu_process_ms": 21.4464777777778,
+		"draw_calls": 4188.0,
+		"fps": 46.5651838846177,
+		"median_ms": 21.58,
+		"mode": "baseline_final",
+		"p95_ms": 23.159,
+		"render_scale": 1.0
+	}
+]

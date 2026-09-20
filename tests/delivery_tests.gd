@@ -4,11 +4,16 @@ var game: Game
 var failures := 0
 var collected_events := 0
 var delivered_events := 0
+var wallet_snapshot: Dictionary = {}
 
 func _ready() -> void:
 	game=Game.current
 	Events.package_collected.connect(func(_id): collected_events+=1)
-	Events.delivery_completed.connect(func(_id,_total): delivered_events+=1)
+	Events.delivery_completed.connect(func(_id,_total):
+		delivered_events+=1
+		# A UI/event subscriber must never re-enter and pay the same handoff twice.
+		game.gm._complete_stage())
+	game.gm.wallet_changed.connect(func(_coins): wallet_snapshot=game.gm.save_state())
 	call_deferred("_run")
 
 func check(ok: bool, label: String) -> void:
@@ -65,6 +70,8 @@ func _run() -> void:
 		await settle()
 		check(gm.deliveries==index+1,"job %d dropoff"%index)
 	check(gm.stage==DeliverySystem.Stage.DONE and not gm.carrying and gm.coins==expected_coins,"all ten deliveries finish and rewards balance")
+	check(gm.receipts.size()==gm.jobs.size(),"one persisted receipt for every completed handoff")
+	check(int(wallet_snapshot.stage)==DeliverySystem.Stage.DONE and int(wallet_snapshot.job_index)==gm.jobs.size(),"wallet callback saves committed next-job state")
 	var final_state:=gm.save_state()
 	gm.load_state(final_state)
 	check(gm.stage==DeliverySystem.Stage.DONE and gm.target_location()==&"" and gm.coins==expected_coins,"completed job set reloads without a phantom target")

@@ -1,0 +1,16 @@
+# Resident geometry LOD
+
+The player remains full detail. Residents use the same live nodes, skeleton, pivots and accessories, selecting immutable full/reduced mesh siblings by visibility when camera distance exceeds 22 m and restoring full visibility below 18 m. The 4 m hysteresis avoids repeated boundary switching. Both siblings share the original skin resource and live skeleton; only one is visible. This adds 15 mesh nodes per resident. Reduced geometry preserves the reference costume and baked face; it does not claim equal close-up fidelity.
+
+Generated with isolated headless Blender from the current hero GLB using `tools/blender/npc_lod.py`. The script checks the source SHA-256 is unchanged, preserves weights/materials, and omits the importer's helper bone-display mesh. Rebuild this derivative whenever the hero geometry or rig changes. Asset budgets: 103,650 source triangles versus 13,451 reduced triangles (87.0% reduction). Surface count stays unchanged; this is a geometry reduction, not draw-call batching.
+
+Resident cosmetic updates run at up to 60 Hz nearby and 20 Hz distant, accumulating elapsed time so animation speed remains correct. The cloth bridge is flushed once after each completed pose, including occupation-specific limb edits. Collision movement and persistent simulation remain at their existing cadence. Driving/activity transitions bypass the cosmetic timer to update collider shape and visibility immediately. Player pose updates remain automatic.
+
+Appearance initialization order is deliberate: apply palette and character identity before `enable_resident_lod()`, which captures matching material overrides by source material name. Production setup follows this order. Future runtime palette edits would need to refresh the cached LOD material arrays.
+
+Headless `npc_lod_tests.gd` passes: all 15 imported mesh coordinate frames and every skin bind match the original; triangle budget; live node/attachment and pose preservation; material mapping; distance hysteresis; seated pose; unaffected player; visual cadence; and immediate driving/sleep collision/visibility transitions. Existing character-fit and pivot-skin bridge suites also pass. Logs are alongside this report.
+
+Independent controls-agent code review found no blocker in current production setup. A rendered comparison around 18–22 m and a matched benchmark remain required to evaluate popping, visible decimation and actual performance. No graphical test was run by this author and no FPS improvement is claimed here.
+
+## Native renderer regression and correction
+The first candidate swapped active MeshInstance mesh/skin resources. Root isolated a native Metal SIGBUS to enabling that path; headless tests did not catch it. The replacement constructs immutable reduced sibling mesh nodes once, shares the original skin and skeleton, and changes only visibility. Expanded tests assert immutable resources and matching sibling frames. The native Metal smoke subsequently passed eight animated rigs through eight transitions (`../performance-controls/npc-metal-smoke.log`). Root also accepted the rendered 18/22 m comparison. This closes the reproduced short smoke blocker; broader stability and measured FPS remain separate.

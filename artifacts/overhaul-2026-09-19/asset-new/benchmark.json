@@ -1,0 +1,44 @@
+{
+  "adapter": "Apple M4 Pro",
+  "character_asset": {
+    "bytes": 1150504,
+    "mesh_nodes": 13,
+    "surfaces": 42,
+    "triangles": 49429,
+    "vertices": 26654,
+    "sha256": "fc7a4ce4d4e918f5a5846e5b6b214fe1f6bb3d856f0b5bc60f212a94c041217a",
+    "revision_note": "Measured before later waist overlap and motorcycle footpeg fit adjustment"
+  },
+  "date": "2026-09-19T22:17:44",
+  "frames_per_scene": 300,
+  "process_ready_ms": 5584,
+  "renderer": "gl_compatibility",
+  "resolution": "(1600.0, 900.0)",
+  "scenes": [
+    {
+      "actors": 8,
+      "average_fps": 52.1669453540815,
+      "dressing": {
+        "instances": 0,
+        "max_instances": 63000,
+        "max_tiles": 25,
+        "pending": 0,
+        "tiles": 25
+      },
+      "max_frame_ms": 22.794,
+      "mean_draw_calls": 4618.54,
+      "mean_visible_objects": 5040.38,
+      "median_frame_ms": 19.193,
+      "node_count": 11279.0,
+      "p95_frame_ms": 21.96,
+      "p99_frame_ms": 22.719,
+      "scene": "village",
+      "static_memory_mib": 279.29779624939,
+      "video_memory_mib": 277.947194099426
+    }
+  ],
+  "shadow_distance": 320.0,
+  "vsync": "disabled",
+  "warmup_frames": 120,
+  "world_generation_ms": 4404
+}

@@ -1,0 +1,43 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+OpenGL API 4.1 Metal - 90.5 - Compatibility - Using Device: Apple - Apple M4 Pro
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:95)
+         [1] _init (res://world/terrain/terrain.gd:85)
+         [2] build_terrain (res://world/island/island.gd:258)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:657)
+         [1] build (res://world/terrain/terrain.gd:504)
+         [2] build_terrain (res://world/island/island.gd:269)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 1025, "t3d_setup": 217, "t3d_maps": 1081, "crest_n": 1870, "foot_n": 2348, "t3d_import": 34 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:282)
+         [1] generate (res://world/island/island.gd:211)
+         [2] setup (res://world/world_manager.gd:32)
+         [3] _boot_world (res://core/app/game.gd:84)
+         [4] _ready (res://core/app/game.gd:63)
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[world] 25 km terrain, north viaduct 360 navigation samples
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3642 road nodes, seven-day routines
+[game] world generated in 4188 ms (7053 recipes in 396 chunks); tree 9050 nodes
+BOTTLENECK {"draws":4308.48333333333,"fps":38.2271115169792,"median_ms":26.04,"mode":"baseline","p95_ms":27.82,"primitives":12978836.9}
+BOTTLENECK {"draws":3385.74444444444,"fps":54.2701732032578,"median_ms":18.413,"mode":"no_residents","p95_ms":19.488,"primitives":12772883.0666667}
+BOTTLENECK {"draws":1813.0,"fps":49.1829751492089,"median_ms":20.125,"mode":"no_shadows","p95_ms":21.635,"primitives":5019901.0}
+BOTTLENECK {"draws":1318.0,"fps":70.5724602735859,"median_ms":14.076,"mode":"no_chunks","p95_ms":15.31,"primitives":1578739.0}
+BOTTLENECK {"draws":4151.1,"fps":39.2408123632975,"median_ms":25.213,"mode":"no_msaa","p95_ms":26.368,"primitives":12918789.7}
+BOTTLENECK {"draws":4148.36666666667,"fps":36.5902148008232,"median_ms":26.7,"mode":"baseline_final","p95_ms":28.523,"primitives":12728680.8666667}

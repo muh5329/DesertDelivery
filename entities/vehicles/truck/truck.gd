@@ -30,7 +30,7 @@ func _ready() -> void:
 	collision_mask = 1 | 16
 	var cs := CollisionShape3D.new()
 	var shape := BoxShape3D.new(); shape.size = Vector3(1.72, 1.45, 3.55)
-	cs.shape = shape; cs.position = Vector3(0, 0.88, 0.02); add_child(cs)
+	cs.shape = shape; cs.position = Vector3(0, shape.size.y * 0.5, 0.02); add_child(cs)
 	var rack_cs := CollisionShape3D.new()
 	var rack_shape := BoxShape3D.new(); rack_shape.size = Vector3(1.76, 2.65, 1.78)
 	rack_cs.shape = rack_shape; rack_cs.position = Vector3(0, 2.20, 0.93); add_child(rack_cs)

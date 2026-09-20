@@ -1,0 +1,81 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:95)
+         [1] _init (res://world/terrain/terrain.gd:85)
+         [2] build_terrain (res://world/island/island.gd:258)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:657)
+         [1] build (res://world/terrain/terrain.gd:504)
+         [2] build_terrain (res://world/island/island.gd:269)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 1040, "t3d_setup": 189, "t3d_maps": 1103, "crest_n": 1870, "foot_n": 2348, "t3d_import": 32 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:282)
+         [1] generate (res://world/island/island.gd:211)
+         [2] setup (res://world/world_manager.gd:32)
+         [3] _boot_world (res://core/app/game.gd:84)
+         [4] _ready (res://core/app/game.gd:63)
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[world] 25 km terrain, north viaduct 360 navigation samples
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3642 road nodes, seven-day routines
+[game] world generated in 4213 ms (7053 recipes in 396 chunks); tree 9181 nodes
+  PASS database holds recipes for the whole island (7053 recipes, 396 chunks)
+  PASS locations and hubs are defined independent of loading
+  PASS hub wall geometry answers without the farm chunk loaded
+  PASS only chunks near the focus are loaded (49 of 396, radius 3)
+  PASS the chunk under the bike is loaded
+  PASS the far badlands are not loaded from the villa
+  PASS chunk_loaded events flow on the bus
+  PASS after a teleport the new chunk is loaded within a second
+  PASS the villa chunk was unloaded behind us
+  PASS chunk_unloaded events fired (49)
+  PASS loaded chunk count stays bounded (49)
+  PASS entities are registered by stable id
+  PASS a far entity drops out of the FULL tier (ABSTRACT)
+  PASS the bike stays FULL
+  PASS simulation_tier_changed events fired
+  PASS save file written
+  PASS save/load restores delivery and gun state by id
+  PASS game_saved / game_loaded events
+  PASS bike tunables come from its VehicleDefinition
+  PASS jobs come from JobDefinition resources
+  PASS every Intent field survives the scripted seam
+  PASS every named command survives the scripted seam
+  PASS reading clears the edges behind it
+  PASS each vehicle brings its own control Scheme
+  PASS the drawn ground follows the heightfield the build cut (worst 0.69 m)
+  PASS every Bridge reports a deck span that covers its raised run and its ramps (9 bridges)
+  PASS the core road network reaches the outer highlands across the north viaduct
+  PASS the Island hands the terrain its keep-clear regions (2)
+  PASS every declared Hub wall answers wall_top along its whole span (55 samples)
+  PASS the Lookout bench answers from the record the plank is built from
+  PASS every oversize Recipe stays inside the extent it declared (94 checked)
+  PASS data/island_map.png matches the contract expand.py wrote
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _check_map_contract (res://tests/architecture_tests.gd:236)
+         [1] _physics_process (res://tests/architecture_tests.gd:91)
+  PASS the map is 417 x 417 as the runtime requires
+  PASS every cell names a Biome the game knows
+  PASS decoded heights are plausible (-10.0 m to 66.9 m)
+  PASS every islet in island_meta.json converts to a point inside the world (32)
+  PASS runtime tree: WorldManager, EntityManager, Rider, ChaseCamera, GameplayManager, BikeAudio, UI, Debug, Test_architecture_tests
+ARCHITECTURE TESTS: PASS (0 failures)
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

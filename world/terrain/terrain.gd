@@ -23,9 +23,10 @@ extends Node3D
 enum Biome { SEA, LIMESTONE, FOREST, FARM, BADLANDS, TOWN, BEACH, LAKE, DUNES, MOOR, SALTFLAT }
 enum Tex { GRASS, ROCK, DIRT, SAND, CLAY, SCRUB, SOIL, SALT, CLIFF, RUBBLE, GRAVEL }
 
-const SIZE := 1248.0         # metres, square world (3x the area of the painted 720 m island)
+const SIZE := 25000.0        # physical square world extent in metres
+const CORE_SIZE := 1248.0         # metres, square world (3x the area of the painted 720 m island)
 const CELL := 3.0            # metres per grid cell
-const N := int(SIZE / CELL) + 1   # vertices per side (417)
+const N := int(CORE_SIZE / CELL) + 1   # vertices per side (417)
 const SEA_LEVEL := 0.0
 const MAP_PATH := "res://data/island_map.png"
 const TEX_DIR := "res://assets/terrain/"
@@ -36,6 +37,8 @@ const T3D_SPACING := 1.5
 const T3D_REGION := 512
 const T3D_HALF := T3D_SPACING * T3D_REGION        # 768
 const T3D_W := T3D_REGION * 2                     # 1024 px per map
+
+var expanse: Node3D
 
 var heights := PackedFloat32Array()   # N*N
 var road_dist := PackedFloat32Array() # distance (m) to nearest road centreline, clamped to 40
@@ -109,7 +112,7 @@ func _idx(i: int, j: int) -> int:
 
 
 func world_to_grid(x: float, z: float) -> Vector2:
-	return Vector2((x + SIZE * 0.5) / CELL, (z + SIZE * 0.5) / CELL)
+	return Vector2((x + CORE_SIZE * 0.5) / CELL, (z + CORE_SIZE * 0.5) / CELL)
 
 
 func _bilinear(arr: PackedFloat32Array, x: float, z: float) -> float:
@@ -123,6 +126,8 @@ func _bilinear(arr: PackedFloat32Array, x: float, z: float) -> float:
 
 ## Biome at a world position (nearest cell).
 func biome_at(x: float, z: float) -> int:
+	if expanse != null and maxf(absf(x), absf(z)) > CORE_SIZE * 0.5:
+		return expanse.biome_at(x, z)
 	var g := world_to_grid(x, z)
 	var i := clampi(int(round(g.x)), 0, N - 1)
 	var j := clampi(int(round(g.y)), 0, N - 1)
@@ -184,6 +189,8 @@ func base_height(x: float, z: float) -> float:
 ## Ground height at world XZ: Terrain3D's data once it is built (exactly what is drawn and
 ## collided with), the 3 m heightfield before that or without the plugin.
 func height_at(x: float, z: float) -> float:
+	if expanse != null and maxf(absf(x), absf(z)) > CORE_SIZE * 0.5:
+		return expanse.height_at(x, z)
 	if _t3d_data != null:
 		var h: float = _t3d_data.get_height(Vector3(x, 0.0, z))
 		if not is_nan(h): return h
@@ -228,7 +235,7 @@ func map_contract_error() -> String:
 	var parsed = JSON.parse_string(f.get_as_text())
 	if not (parsed is Dictionary): return "data/island_map.json is not a JSON object"
 	var m: Dictionary = parsed
-	if not is_equal_approx(float(m.get("size", -1.0)), SIZE): return "size %s != %s" % [m.get("size"), SIZE]
+	if not is_equal_approx(float(m.get("size", -1.0)), CORE_SIZE): return "size %s != %s" % [m.get("size"), CORE_SIZE]
 	if not is_equal_approx(float(m.get("cell", -1.0)), CELL): return "cell %s != %s" % [m.get("cell"), CELL]
 	if int(m.get("grid", -1)) != N: return "grid %s != %d" % [m.get("grid"), N]
 	if not is_equal_approx(float(m.get("height_min", 1.0)), -10.0): return "height_min %s != -10" % m.get("height_min")
@@ -242,6 +249,8 @@ func map_contract_error() -> String:
 
 
 func normal_at(x: float, z: float) -> Vector3:
+	if expanse != null and maxf(absf(x), absf(z)) > CORE_SIZE * 0.5:
+		return expanse.normal_at(x, z)
 	if _t3d_data != null:
 		var n: Vector3 = _t3d_data.get_normal(Vector3(x, 0.0, z))
 		if not is_nan(n.y): return n
@@ -252,6 +261,7 @@ func normal_at(x: float, z: float) -> Vector3:
 
 
 func road_dist_at(x: float, z: float) -> float:
+	if maxf(absf(x), absf(z)) > CORE_SIZE * 0.5: return 40.0
 	var g := world_to_grid(x, z)
 	var i := clampi(int(round(g.x)), 0, N - 1)
 	var j := clampi(int(round(g.y)), 0, N - 1)
@@ -281,7 +291,7 @@ func build() -> void:
 	road_h.resize(N * N)
 	road_dist.fill(40.0)
 	road_h.fill(0.0)
-	var half := SIZE * 0.5
+	var half := CORE_SIZE * 0.5
 	for j in range(N):
 		for i in range(N):
 			heights[_idx(i, j)] = base_height(i * CELL - half, j * CELL - half)
@@ -547,7 +557,7 @@ func _build_mesh() -> void:
 	# so the ground reads as hard-edged painted patches rather than an airbrushed gradient.
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var half := SIZE * 0.5
+	var half := CORE_SIZE * 0.5
 	var verts := PackedVector3Array(); verts.resize(N * N)
 	for j in range(N):
 		for i in range(N):
@@ -736,7 +746,7 @@ func set_view_camera(cam: Camera3D) -> void:
 ## map, blurred by a `down`x shrink (trilinear = mip averaged) and grown back bilinearly. Used for
 ## the neighbourhood fields (mean height, nearby steepness) that drive the colour-map shading.
 func _grid_field_map(arr: PackedFloat32Array, fill: float, down: int) -> Image:
-	var pad := int((T3D_HALF - SIZE * 0.5) / CELL)
+	var pad := int((T3D_HALF - CORE_SIZE * 0.5) / CELL)
 	var grid := Image.create_from_data(N, N, false, Image.FORMAT_RF, arr.to_byte_array())
 	var big := Image.create_empty(T3D_W / 2, T3D_W / 2, false, Image.FORMAT_RF)
 	big.fill(Color(fill, 0, 0, 1))
@@ -777,7 +787,7 @@ func _fine_road_dist() -> PackedFloat32Array:
 ## `set_pixel` was the bulk of the old loop's time.
 func _build_t3d_maps() -> Array:
 	# height: the 3 m grid padded into a 512 grid (-768..768 at 3 m), cubic-resampled to 1024
-	var pad := int((T3D_HALF - SIZE * 0.5) / CELL)   # 48 cells of sea rim each side: world -624..624 inside -768..768
+	var pad := int((T3D_HALF - CORE_SIZE * 0.5) / CELL)   # 48 cells of sea rim each side: world -624..624 inside -768..768
 	var grid := Image.create_from_data(N, N, false, Image.FORMAT_RF, heights.to_byte_array())
 	var big := Image.create_empty(T3D_W / 2, T3D_W / 2, false, Image.FORMAT_RF)
 	big.fill(Color(-10.5, 0, 0, 1))
@@ -813,7 +823,7 @@ func _build_t3d_maps() -> Array:
 	for b in range(Biome.size()):
 		biome_tex[b] = BIOME_TEX[b]; biome_det[b] = BIOME_DETAIL[b]
 	var sea_ctrl: float = Terrain3DUtil.as_float(base_enc[Tex.SAND])
-	var half := SIZE * 0.5
+	var half := CORE_SIZE * 0.5
 	var inv_cell := 1.0 / CELL
 	var nm1 := N - 1
 	# the palette: desaturated, warm, nothing neon (the reference lives in a narrow band of dry
@@ -1046,26 +1056,23 @@ func _build_t3d_maps() -> Array:
 	return [hmap, ctrl, cmap]
 
 
-## Texture assets, all in assets/terrain, packed / baked by world/mapgen/textures.py: seven CC0
-## ambientCG photo sets (see assets/CREDITS.md) and four procedural ones (sand, clay, soil, salt).
-## Terrain3D packs them into one texture array, so every one is 512 px RGBA8 with mipmaps.
-## `albedo_color` brings each texture to its brightest use (the reference's sunlit local colour);
-## the colour map only ever darkens or shifts from there, since it is RGBA8 and cannot exceed 1.
+## Biome paint layers share the generated gouache albedo; old packed normal maps
+## remain as quiet surface relief. Layer IDs are unchanged for existing control maps.
 func _build_texture_assets(assets: Terrain3DAssets) -> void:
 	var specs := [
-		# Tex order: name, file base, tint, uv_scale, normal depth, ao
-		["Grass", "ground015", Color(1.10, 1.00, 0.58), 0.17, 0.45, 0.5],     # dry straw, golden (the villa reference is S 0.35)
-		["Rock", "rock019", Color(1.0, 0.95, 0.86), 0.05, 0.9, 0.7],         # bedded limestone: pale (#bfb09a-class after the colour map), critique r2 item 8
-		["Dirt", "ground004", Color(0.98, 0.86, 0.62), 0.20, 0.5, 0.45],     # trodden earth: a pale dusty #c2ae8c crown between dark margins (r5 item 5: S >= 0.4, the lanes were grey-cream)
-		["Sand", "sand", Color(1.0, 0.98, 0.94), 0.22, 0.35, 0.3],
-		["Clay", "clay", Color(1, 1, 1), 0.12, 0.7, 0.5],
-		["Scrub", "ground024", Color(1.08, 0.98, 0.84), 0.12, 0.5, 0.55],    # stony plateau: warm dry earth, no longer bone-white
-		["Soil", "soil", Color(0.88, 0.70, 0.40), 0.22, 0.6, 0.5],           # vineyard earth: warm brown (#795730 H30 S0.6 V0.47 in the villa reference; r5: the r4 x band tint landed H8 V0.33, red mud - less red, brighter, the rows must be darker than it)
-		["Salt", "salt", Color(0.82, 0.83, 0.82), 0.15, 0.3, 0.2],
-		["Cliff", "rock019", Color(1.0, 0.97, 0.90), 0.13, 0.9, 0.7],        # the same pale limestone tiled 2.6x finer: patches of it on steep faces kill the stretched-streak look (r2 item 8)
-		["Rubble", "rocks002", Color(1.0, 0.96, 0.88), 0.18, 0.8, 0.8],      # talus at cliff feet
-		["Gravel", "gravel009", Color(0.86, 0.74, 0.50), 0.24, 0.5, 0.4],    # road shoulders, a shade darker than the crown (r5: straw-gold, not grey)
+		["Grass", "ground015", Color(.64,.72,.43), .12, .10, .16],
+		["Rock", "rock019", Color(.71,.70,.62), .07, .18, .20],
+		["Dirt", "ground004", Color(.72,.61,.43), .15, .08, .15],
+		["Sand", "sand", Color(.86,.80,.62), .12, .07, .10],
+		["Clay", "clay", Color(.69,.43,.29), .12, .10, .14],
+		["Scrub", "ground024", Color(.64,.65,.44), .10, .10, .16],
+		["Soil", "soil", Color(.47,.38,.25), .14, .12, .18],
+		["Salt", "salt", Color(.90,.90,.82), .12, .05, .06],
+		["Cliff", "rock019", Color(.76,.75,.66), .10, .20, .20],
+		["Rubble", "rocks002", Color(.66,.65,.53), .14, .18, .20],
+		["Gravel", "gravel009", Color(.64,.56,.40), .16, .10, .14],
 	]
+	var paper := _texture_512("res://assets/storybook/gouache_surface.png")
 	var cache: Dictionary = {}
 	for i in range(specs.size()):
 		var sp: Array = specs[i]
@@ -1073,15 +1080,15 @@ func _build_texture_assets(assets: Terrain3DAssets) -> void:
 		ta.name = sp[0]
 		ta.id = i
 		if not cache.has(sp[1]):
-			cache[sp[1]] = [_texture_512(TEX_DIR + sp[1] + "_alb_ht.png"), _texture_512(TEX_DIR + sp[1] + "_nrm_rgh.png")]
-		ta.albedo_texture = cache[sp[1]][0]
-		ta.normal_texture = cache[sp[1]][1]
+			cache[sp[1]] = _texture_512(TEX_DIR + sp[1] + "_nrm_rgh.png")
+		ta.albedo_texture = paper
+		ta.normal_texture = cache[sp[1]]
 		ta.albedo_color = sp[2]
 		ta.uv_scale = sp[3]
 		ta.normal_depth = sp[4]
 		ta.ao_strength = sp[5]
-		ta.detiling_rotation = 0.2
-		ta.detiling_shift = 0.25
+		ta.detiling_rotation = .35
+		ta.detiling_shift = .25
 		assets.set_texture(i, ta)
 
 
@@ -1091,7 +1098,7 @@ func _texture_512(path: String) -> ImageTexture:
 	var img: Image = tex.get_image()
 	if img.is_compressed(): img.decompress()
 	img.convert(Image.FORMAT_RGBA8)
-	if img.get_width() != 512: img.resize(512, 512, Image.INTERPOLATE_LANCZOS)
+	if img.get_width() != 512 or img.get_height() != 512: img.resize(512, 512, Image.INTERPOLATE_LANCZOS)
 	if not img.has_mipmaps(): img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 
@@ -1239,7 +1246,7 @@ func plant_ground_cover(seed_v: int) -> void:
 	var xf: Array = []; var cols: Array = []
 	for i in range(COVER.size()):
 		xf.append([] as Array[Transform3D]); cols.append([] as Array[Color])
-	var half := SIZE * 0.5
+	var half := CORE_SIZE * 0.5
 	var flower_ids := [3, 4, 5]
 	# patch mask (r3, RESEARCH §3.4: dry grass grows in patches at ~45 % coverage, never a lawn):
 	# a ~15 m noise per 3 m cell, sampled as one native image; cells under the threshold stay bare

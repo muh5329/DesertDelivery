@@ -1,0 +1,30 @@
+{
+	"adapter": "Apple M4 Pro",
+	"average_fps": 70.9550646306032,
+	"displacement_m": 234.142623901367,
+	"final_speed": 2.04818730700262,
+	"frames": 1800,
+	"max_ms": 29.828,
+	"median_ms": 13.921,
+	"p95_ms": 19.664,
+	"p99_ms": 26.61,
+	"renderer": "forward_plus",
+	"stalls": [],
+	"streaming": {
+		"build_ms": 349,
+		"focus": "(-8, -3)",
+		"last_build_ms": 0.004,
+		"loaded": 53,
+		"max_build_ms": 8.785,
+		"max_recipe_ms": 13.113,
+		"pending": 0,
+		"total": 396,
+		"total_build_ms": 375.392,
+		"worst_recipe": "(-326.0, 3.0)",
+		"worst_recipe_attribution": {
+			"collision_ms": 0.0,
+			"disk_load_ms": 0.0,
+			"mesh_bake_ms": 0.0
+		}
+	}
+}

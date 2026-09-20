@@ -1,0 +1,77 @@
+{
+	"adapter": "Apple M4 Pro",
+	"date": "2026-09-19T22:12:51",
+	"frames_per_scene": 300,
+	"process_ready_ms": 5589,
+	"renderer": "gl_compatibility",
+	"resolution": "(1600.0, 900.0)",
+	"scenes": [
+		{
+			"actors": 8,
+			"average_fps": 51.7654074558752,
+			"dressing": {
+				"instances": 0,
+				"max_instances": 63000,
+				"max_tiles": 25,
+				"pending": 0,
+				"tiles": 25
+			},
+			"max_frame_ms": 23.239,
+			"mean_draw_calls": 4618.41333333333,
+			"mean_visible_objects": 5038.49333333333,
+			"median_frame_ms": 19.234,
+			"node_count": 11279.0,
+			"p95_frame_ms": 21.975,
+			"p99_frame_ms": 22.998,
+			"scene": "village",
+			"static_memory_mib": 279.44323348999,
+			"video_memory_mib": 277.887455940247
+		},
+		{
+			"actors": 0,
+			"average_fps": 213.926775717029,
+			"dressing": {
+				"instances": 34567,
+				"max_instances": 63000,
+				"max_tiles": 25,
+				"pending": 0,
+				"tiles": 25
+			},
+			"max_frame_ms": 8.464,
+			"mean_draw_calls": 387.0,
+			"mean_visible_objects": 789.0,
+			"median_frame_ms": 4.361,
+			"node_count": 2381.0,
+			"p95_frame_ms": 6.158,
+			"p99_frame_ms": 6.872,
+			"scene": "wilderness",
+			"static_memory_mib": 243.343154907227,
+			"video_memory_mib": 274.405081748962
+		},
+		{
+			"actors": 0,
+			"average_fps": 184.434808750325,
+			"dressing": {
+				"instances": 55510,
+				"max_instances": 63000,
+				"max_tiles": 25,
+				"pending": 0,
+				"tiles": 25
+			},
+			"max_frame_ms": 7.969,
+			"mean_draw_calls": 486.33,
+			"mean_visible_objects": 889.33,
+			"median_frame_ms": 5.138,
+			"node_count": 2383.0,
+			"p95_frame_ms": 6.842,
+			"p99_frame_ms": 7.207,
+			"scene": "dense_meadow",
+			"static_memory_mib": 248.428063392639,
+			"video_memory_mib": 275.683341026306
+		}
+	],
+	"shadow_distance": 320.0,
+	"vsync": "disabled",
+	"warmup_frames": 120,
+	"world_generation_ms": 4403
+}

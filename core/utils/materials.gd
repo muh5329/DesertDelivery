@@ -17,6 +17,7 @@ static func solid(color: Color, rough: float = 0.75, metal: float = 0.0, emissio
 		m.emission_enabled = true
 		m.emission = emission
 		m.emission_energy_multiplier = 1.5
+	Storybook.finish(m)
 	_cache[key] = m
 	return m
 

@@ -1,0 +1,170 @@
+[
+  {
+    "asset": "courier_bike.glb",
+    "bytes": 3897712,
+    "sha256": "7545998a788787778fc36b7e63f3a2fda54d8f36801a25b9e7ecd5856be0a780",
+    "nodes": 9,
+    "primitives": 17,
+    "painted_primitives": 17
+  },
+  {
+    "asset": "courier_character.glb",
+    "bytes": 1692648,
+    "sha256": "ae6f76999d327a5aebd462258ce9a3b0f9e7e961095a7617e6beb2667a40407d",
+    "nodes": 27,
+    "primitives": 43,
+    "painted_primitives": 43
+  },
+  {
+    "asset": "courier_truck.glb",
+    "bytes": 656548,
+    "sha256": "e4c7d1a22adbe89de3e47358282f7fdea9b4e0df98c2da57bc8a0f597d8dd59a",
+    "nodes": 14,
+    "primitives": 19,
+    "painted_primitives": 0
+  },
+  {
+    "asset": "deer.glb",
+    "bytes": 123564,
+    "sha256": "b714cc0f23d43e6b28c3914171e7723b8084a7f67c256622de1f11bba7264e9e",
+    "nodes": 12,
+    "primitives": 12,
+    "painted_primitives": 12
+  },
+  {
+    "asset": "dog.glb",
+    "bytes": 119788,
+    "sha256": "ebeaee148c53c62a076bfffc286ca98d78c24e51cca385910fd58178f45422e8",
+    "nodes": 12,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "fishing_boat.glb",
+    "bytes": 15208,
+    "sha256": "10df7ba09589da471b11cfbcfa2fd4ca3f22da706a509db9ff158b2dbcc84a73",
+    "nodes": 2,
+    "primitives": 3,
+    "painted_primitives": 3
+  },
+  {
+    "asset": "gull.glb",
+    "bytes": 26936,
+    "sha256": "d8594e441e6f4ae01022e2d8701e7576a06db37203b7c8042b618d45891b4e00",
+    "nodes": 6,
+    "primitives": 4,
+    "painted_primitives": 4
+  },
+  {
+    "asset": "harbour_palm.glb",
+    "bytes": 93616,
+    "sha256": "9e37de989282dd0a57647d17fba419f5a009979823c4f1b8d3228dca0add87ef",
+    "nodes": 2,
+    "primitives": 5,
+    "painted_primitives": 0
+  },
+  {
+    "asset": "island_car.glb",
+    "bytes": 733044,
+    "sha256": "285b8b36206239f0d6e4310ed4dbe64ad3dd6531713e317637ae564f8ffee91a",
+    "nodes": 12,
+    "primitives": 24,
+    "painted_primitives": 24
+  },
+  {
+    "asset": "limestone_cliff.glb",
+    "bytes": 99188,
+    "sha256": "a742dbe5103af2f44e24609e2cc06367c5a4fa5a9e06af8782031f3f9a107d38",
+    "nodes": 2,
+    "primitives": 1,
+    "painted_primitives": 1
+  },
+  {
+    "asset": "olive_tree.glb",
+    "bytes": 608016,
+    "sha256": "ee9c78cb87196b5174f9ec9508212e63098e5c8e73220d9eb9a2753fd4f1d7c9",
+    "nodes": 2,
+    "primitives": 6,
+    "painted_primitives": 6
+  },
+  {
+    "asset": "rabbit.glb",
+    "bytes": 119828,
+    "sha256": "96bfd4192f5f684c444b1d16772e779f65fa4ca9c73c5d385a560a1c70b51d4e",
+    "nodes": 12,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "sheep.glb",
+    "bytes": 119616,
+    "sha256": "16d98236b624c4c16dbae0d1dbbbca3654e978bc65a99dd02b02163f268fee03",
+    "nodes": 12,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "town_house_1_0.glb",
+    "bytes": 866692,
+    "sha256": "8c509e1087583e9512b46212b9274de43a899c1dcdf88b6f066d0a3062a6fd02",
+    "nodes": 2,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "town_house_1_1.glb",
+    "bytes": 786280,
+    "sha256": "a15a823ce9001e1166eff141b6ca34e19eb4c01205b80a54879e9f820bed46de",
+    "nodes": 2,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "town_house_1_2.glb",
+    "bytes": 897184,
+    "sha256": "829192cbea61d1cb4dce37144e78a20cb0edbe9dc8ab0c24ee81884711f44012",
+    "nodes": 2,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "town_house_2_0.glb",
+    "bytes": 1174656,
+    "sha256": "a6c8759682eca1a1295f9151ff59ac375d758058aa240badeb623e2734cb4a7e",
+    "nodes": 2,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "town_house_2_1.glb",
+    "bytes": 1183052,
+    "sha256": "2ca07df46aaba41896f0dd4543cded13c07fada364b1378683f4ed493d33d960",
+    "nodes": 2,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "town_house_2_2.glb",
+    "bytes": 1205124,
+    "sha256": "b02dfc4fcefea83715891d89a7994afa6a5b6e4137c71f2c4726b96cae401d78",
+    "nodes": 2,
+    "primitives": 11,
+    "painted_primitives": 11
+  },
+  {
+    "asset": "village_house_1.glb",
+    "bytes": 1323660,
+    "sha256": "8ca2ce4a08f1d67fa6667c80c65f1e5806f3405fb4ee05a13ddfee7db37815a8",
+    "nodes": 2,
+    "primitives": 9,
+    "painted_primitives": 9
+  },
+  {
+    "asset": "village_house_2.glb",
+    "bytes": 2246048,
+    "sha256": "4992355bc113dd5ecca542e69c420731e35b1fa290e0d4c4a87a4673b13e306c",
+    "nodes": 2,
+    "primitives": 9,
+    "painted_primitives": 9
+  }
+]

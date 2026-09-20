@@ -1,0 +1,55 @@
+"""Rounded enamel courier truck; authored through Blender MCP, units in metres."""
+from pathlib import Path
+exec((Path('/Users/mun/Documents/Projects/DesertDelivery/tools/blender') / 'common.py').read_text())
+asset=start('StorybookTruck')
+red=material('Truck vermilion enamel',(.66,.17,.105),.72)
+cream=material('Truck warm ivory',(.89,.82,.62),.82)
+dark=material('Truck charcoal',(.065,.075,.075),.9)
+metal=material('Truck brushed brass',(.42,.39,.29),.55,.25)
+glass=material('Truck glass',(.36,.61,.62,.24),.3)
+wood=material('Truck chestnut wood',(.39,.22,.10),.94)
+lamp=material('Truck lamp ivory',(1,.83,.45),.45)
+box('Chassis',(0,.55,.04),(1.65,.23,3.62),dark,asset,.08)
+box('Rounded nose',(0,1.0,-1.12),(1.68,.75,.99),red,asset,.18)
+box('Cab back',(0,1.21,-.20),(1.62,1.21,.14),red,asset,.05)
+box('Ivory crown',(0,1.91,-.78),(1.78,.17,1.61),cream,asset,.08)
+for side in [-1,1]:
+    box('Door lower',(side*.80,1.10,-.78),(.09,.57,1.15),red,asset,.04)
+    for z in [-1.45,-.20]:
+        tube('Window pillar',[(side*.78,1.24,z),(side*.73,1.85,z+.07)],.045,cream,asset)
+    box('Side window',(side*.772,1.60,-.77),(.018,.40,1.04),glass,asset,.01)
+    box('Door handle',(side*.866,1.26,-.41),(.033,.043,.17),metal,asset,.015)
+    tube('Mirror stalk',[(side*.76,1.44,-1.37),(side*1.00,1.57,-1.35)],.018,metal,asset)
+    ell('Mirror',(side*1.02,1.59,-1.34),(.065,.12,.035),cream,asset)
+    box('Running board',(side*.84,.60,.03),(.25,.09,1.20),metal,asset,.035)
+box('Windshield',(0,1.60,-1.418),(1.43,.40,.022),glass,asset,.01)
+tube('Split windshield',[(0,1.39,-1.44),(0,1.83,-1.36)],.015,cream,asset)
+box('Grille',(0,.96,-1.631),(.68,.31,.03),dark,asset,.05)
+for y in [.85,.92,.99,1.06]: box('Grille brightwork',(0,y,-1.655),(.60,.018,.025),metal,asset,.007)
+for s in [-1,1]:
+    torus('Headlamp rim',(s*.59,1.08,-1.59),.136,.022,cream,asset,'z',32)
+    ell('Headlamp glass',(s*.59,1.08,-1.61),(.12,.12,.045),lamp,asset)
+    box('Rear lamp',(s*.69,.78,1.92),(.14,.14,.05),red,asset,.03)
+for z in [-1.76,1.95]: box('Rounded bumper',(0,.57,z),(1.86,.13,.16),cream,asset,.06)
+box('Bed',(0,.86,.95),(1.72,.13,1.83),wood,asset,.025)
+for side in [-1,1]:
+    for y in [.99,1.16]: box('Wooden side plank',(side*.85,y,.95),(.075,.14,1.87),wood,asset,.015)
+    for z in [.07,1.86]: box('Bed post',(side*.86,1.08,z),(.08,.52,.08),cream,asset,.025)
+for y in [.99,1.16]: box('Tailgate plank',(0,y,1.87),(1.73,.14,.065),wood,asset,.012)
+for i in range(8): box('Bed plank',(0,.936,.13+i*.23),(1.58,.02,.20),wood,asset,.008)
+for label,x,z in [('FL',-.88,-1.10),('FR',.88,-1.10),('RL',-.88,1.18),('RR',.88,1.18)]:
+    steer=empty('Steering'+label,asset,(x,.39,z))
+    wheel=empty('Wheel'+label,steer)
+    torus('Rounded tire',(0,0,0),.305,.085,dark,wheel,'x',40,12)
+    ell('Ivory wheel hub',(0,0,0),(.10,.208,.208),cream,wheel)
+    ell('Brass hubcap',((-.115 if x<0 else .115),0,0),(.023,.08,.08),metal,wheel)
+    for j in range(6):
+        a=j*math.tau/6
+        ell('Hub bolt',((-.105 if x<0 else .105),math.sin(a)*.13,math.cos(a)*.13),(.016,.016,.016),metal,wheel,12)
+for s in [-1,1]:
+    tube('Cargo hoop',[(s*.89,.87,1.58),(s*.89,3.72,1.58),(s*.82,3.79,1.58),(0,3.79,1.58)],.036,cream,asset)
+box('Load crossbar',(0,2.18,1.60),(1.77,.05,.05),metal,asset,.02)
+tube('Winch spindle',[(-.31,.66,-1.84),(.31,.66,-1.84)],.16,dark,asset,24)
+torus('Fairlead',(0,.66,-1.96),.13,.027,metal,asset,'z',24)
+export(asset,'courier_truck')
+bpy.ops.wm.save_as_mainfile(filepath='/Users/mun/Documents/Projects/DesertDelivery/assets/source/storybook_truck.blend')

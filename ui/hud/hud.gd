@@ -38,6 +38,8 @@ var _service_hint: Label
 var _fuel_gauge: Control
 var _engine_gauge: Control
 var _cargo_label: Label
+var _stamina_bar: ProgressBar
+var _stamina_label: Label
 
 const PANEL := Color(0.94, 0.89, 0.76, 0.95)
 const INK := Color(0.16, 0.13, 0.10)
@@ -229,6 +231,22 @@ func _build() -> void:
 	_mode_label.add_theme_color_override("font_outline_color", INK)
 	_mode_label.add_theme_constant_override("outline_size", 6)
 	root.add_child(_mode_label)
+	_stamina_label = _label("Stamina", 16, Color("f4e9cf"))
+	_stamina_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_stamina_label.position = Vector2(26, -96)
+	_stamina_label.add_theme_color_override("font_outline_color", INK)
+	_stamina_label.add_theme_constant_override("outline_size", 3)
+	root.add_child(_stamina_label)
+	_stamina_bar = ProgressBar.new()
+	_stamina_bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_stamina_bar.position = Vector2(26, -70)
+	_stamina_bar.size = Vector2(210, 14)
+	_stamina_bar.show_percentage = false
+	_stamina_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var stamina_fill := StyleBoxFlat.new(); stamina_fill.bg_color = GREEN
+	stamina_fill.set_corner_radius_all(5)
+	_stamina_bar.add_theme_stylebox_override("fill", stamina_fill)
+	root.add_child(_stamina_bar)
 
 	# --- title card (fades out)
 	_title = _label("DESERT DELIVERY", 64, Color(0.98, 0.95, 0.86))
@@ -252,7 +270,7 @@ func _build() -> void:
 	_prompt_bg.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_prompt_bg.position = Vector2(28, -174)
 	root.add_child(_prompt_bg)
-	_controls = _label("W/S ride  ·  A/D steer  ·  Space brake\nE hop off  ·  T unfold wings  ·  R recover\nJ courier counter  ·  N island journal\nTruck: Q winch  ·  G packing (while stopped)\nF5 save  ·  F9 load", 15)
+	_controls = _label("W/S ride  ·  A/D steer  ·  Space brake\nE hop off  ·  T unfold wings  ·  R recover\nB courier counter  ·  N island journal\nTruck: Q winch  ·  G packing (while stopped)\nF5 save  ·  F9 load", 15)
 	_controls.position = Vector2(14, 10)
 	_prompt_bg.add_child(_controls)
 
@@ -333,6 +351,13 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	var on_foot := rider.is_on_foot() if rider else false
 	var vehicle := _active_vehicle()
 	_on_foot = on_foot
+	_stamina_bar.visible = on_foot
+	_stamina_label.visible = on_foot
+	_prompt_bg.position.y = -260 if on_foot else -174
+	_controls.text = "WASD move · Shift sprint · Space jump\nCtrl / Q dodge · Mouse / JLIK look\nWheel zoom · F4 mayor · B counter\nE mount · N journal\nF5 save · F9 load" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB courier counter · N journal\nTruck: Q winch · G packing\nF5 save · F9 load"
+	_stamina_bar.max_value = pl.stamina_max
+	_stamina_bar.value = pl.stamina
+	_stamina_label.text = "Catch your breath — release Shift" if pl.sprint_exhausted else "Stamina  %d%%  ·  Ctrl / Q dodge" % roundi(pl.stamina / pl.stamina_max * 100.0)
 	for n in _speed_group:
 		n.visible = not on_foot
 	_crosshair.visible = on_foot and _has_gun and not pl.swimming and ((rider.is_aiming() if rider else false) or gn.is_recently_fired())

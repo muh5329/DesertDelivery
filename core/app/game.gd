@@ -38,6 +38,11 @@ var life: IslandLife
 var panels: PanelStack
 var catalogue: ResidentCatalogue
 var journey: JourneySystem
+var colony: ColonySystem
+var mayor: MayorView
+var _mayor_player_physics := false
+var _mayor_camera_physics := false
+var _mayor_hud_visible := true
 var player_controls: Controls.Keyboard
 var scripted_controls: Controls.Scripted
 
@@ -65,6 +70,8 @@ func _ready() -> void:
 	_boot_gameplay()
 	life = IslandLife.new(); life.name = "IslandLife"; world.add_child(life)
 	life.setup(world, entities)
+	colony = ColonySystem.new(); colony.name = "Colony"; add_child(colony)
+	colony.setup(self)
 	_boot_ui()
 	_wire()
 	_start()
@@ -146,6 +153,13 @@ func _boot_ui() -> void:
 	catalogue.setup(life, self)
 	journey = JourneySystem.new(); journey.name = "JourneySystem"; ui.add_child(journey)
 	journey.setup(self)
+	mayor = MayorView.new(); mayor.name = "MayorView"; ui.add_child(mayor)
+	mayor.setup(self, colony)
+	mayor.active_changed.connect(_on_mayor_active)
+	mayor.save_requested.connect(func():
+		if Saves.save_game("quick"): mayor.show_note("Colony and journey saved.")
+		else: mayor.show_note("Could not save the game.")
+	)
 	var dbg := Node.new(); dbg.name = "Debug"; add_child(dbg)
 	debug = DebugOverlay.new(); debug.name = "DebugOverlay"; dbg.add_child(debug)
 	debug.setup(self)
@@ -170,13 +184,16 @@ func _wire() -> void:
 	Saves.register("island_life", life)
 	Saves.register("catalogue", catalogue)
 	Saves.register("journey", journey)
+	Saves.register("colony", colony)
 
 
 func _start() -> void:
+	Controls.install_foot_bindings()
 	player_controls = Controls.Keyboard.new()
 	scripted_controls = Controls.Scripted.new()
 	var use_scripted := state.autotest or state.shots_dir != ""
 	rider.setup(bike, truck, player, cam, gameplay.gun, world, scripted_controls if use_scripted else player_controls)
+	rider.pointer_blocks_actions = func(): return rider.controls == player_controls and mayor.blocks_world_input()
 	if use_scripted:
 		gameplay.enable_autopilot(bike, world.terrain, scripted_controls)
 		print("[game] autopilot enabled (autotest=%s shots=%s)" % [state.autotest, state.shots_dir])
@@ -207,6 +224,7 @@ func _run_test(name: String) -> void:
 
 ## The streamer and the tiers follow whoever the player is right now.
 func _refocus(mode: int) -> void:
+	if mayor != null and mayor.active: return
 	var f: Node3D = rider.courier()
 	world.set_focus(f)
 	entities.focus = f
@@ -218,16 +236,54 @@ func use_scripted_controls() -> Controls.Scripted:
 	return scripted_controls
 
 
+func _input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.pressed or event.echo: return
+	match event.keycode:
+		KEY_F4:
+			mayor.toggle()
+		KEY_F5:
+			if Saves.save_game("quick"):
+				Events.message.emit("Game saved.", 2.0)
+				if mayor.active: mayor.show_note("Colony and journey saved.")
+		KEY_F9:
+			panels.close_all()
+			if Saves.load_game("quick"): Events.message.emit("Game loaded.", 2.0)
+			else: Events.message.emit("No save yet (F5 saves).", 2.0)
+		_:
+			return
+	get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if mayor != null and mayor.active: return
+	if event is InputEventMouseButton and event.pressed and rider.is_on_foot() and not panels.any_open() and not panels.just_closed():
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP: cam.zoom(-1)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN: cam.zoom(1)
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		player_controls.feed_mouse(event.relative)
-	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_F5:
-				if Saves.save_game("quick"): Events.message.emit("Game saved.", 2.0)
-			KEY_F9:
-				if Saves.load_game("quick"): Events.message.emit("Game loaded.", 2.0)
-				else: Events.message.emit("No save yet (F5 saves).", 2.0)
+
+
+func _on_mayor_active(active: bool) -> void:
+	if active:
+		_quit_armed = 0.0
+		panels.open(mayor)
+		_mayor_player_physics = player.is_physics_processing()
+		_mayor_camera_physics = cam.is_physics_processing()
+		_mayor_hud_visible = hud.visible
+		player.hold_controls()
+		player.set_physics_process(false)
+		cam.set_physics_process(false)
+		hud.hide()
+		catalogue.hide()
+		world.set_focus(mayor.map_focus)
+	else:
+		world.set_focus(rider.courier())
+		world.streamer.load_all_pending()
+		player.set_physics_process(_mayor_player_physics)
+		cam.set_physics_process(_mayor_camera_physics)
+		hud.visible = _mayor_hud_visible
+		catalogue.show()
+		panels.close(mayor)
 
 
 func _on_delivery(_job_id: StringName, total: int) -> void:

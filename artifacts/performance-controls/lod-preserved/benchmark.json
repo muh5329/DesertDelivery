@@ -1,0 +1,90 @@
+{
+	"adapter": "Apple M4 Pro",
+	"character_asset": {
+		"bytes": 2921388,
+		"mesh_nodes": 15,
+		"surfaces": 41,
+		"triangles": 103650,
+		"vertices": 52965
+	},
+	"date": "2026-09-20T03:14:52",
+	"frames_per_scene": 300,
+	"process_ready_ms": 5508,
+	"renderer": "forward_plus",
+	"resolution": "(1600.0, 900.0)",
+	"scenes": [
+		{
+			"actors": 8,
+			"average_fps": 49.9959836559796,
+			"dressing": {
+				"instances": 0,
+				"max_instances": 63000,
+				"max_tiles": 25,
+				"pending": 0,
+				"tiles": 25
+			},
+			"focused_frames": 0,
+			"max_frame_ms": 29.638,
+			"mean_draw_calls": 3904.23,
+			"mean_visible_objects": 5139.44,
+			"median_frame_ms": 18.288,
+			"node_count": 11485.0,
+			"p95_frame_ms": 28.285,
+			"p99_frame_ms": 29.618,
+			"sample_wall_ms": 6000.482,
+			"scene": "village",
+			"static_memory_mib": 360.651123046875,
+			"video_memory_mib": 423.066497802734
+		},
+		{
+			"actors": 0,
+			"average_fps": 217.283292508217,
+			"dressing": {
+				"instances": 34567,
+				"max_instances": 63000,
+				"max_tiles": 25,
+				"pending": 0,
+				"tiles": 25
+			},
+			"focused_frames": 0,
+			"max_frame_ms": 6.036,
+			"mean_draw_calls": 393.0,
+			"mean_visible_objects": 885.0,
+			"median_frame_ms": 4.673,
+			"node_count": 2417.0,
+			"p95_frame_ms": 5.477,
+			"p99_frame_ms": 5.903,
+			"sample_wall_ms": 1380.686,
+			"scene": "wilderness",
+			"static_memory_mib": 310.280116081238,
+			"video_memory_mib": 415.360961914062
+		},
+		{
+			"actors": 0,
+			"average_fps": 164.9092834032,
+			"dressing": {
+				"instances": 55510,
+				"max_instances": 63000,
+				"max_tiles": 25,
+				"pending": 0,
+				"tiles": 25
+			},
+			"focused_frames": 0,
+			"max_frame_ms": 7.447,
+			"mean_draw_calls": 487.403333333333,
+			"mean_visible_objects": 929.403333333333,
+			"median_frame_ms": 6.076,
+			"node_count": 2419.0,
+			"p95_frame_ms": 6.838,
+			"p99_frame_ms": 7.123,
+			"sample_wall_ms": 1819.182,
+			"scene": "dense_meadow",
+			"static_memory_mib": 315.456795692444,
+			"video_memory_mib": 416.639221191406
+		}
+	],
+	"shadow_distance": 320.0,
+	"vsync": "disabled",
+	"warmup_frames": 120,
+	"world_generation_ms": 4421
+}

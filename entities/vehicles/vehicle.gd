@@ -125,7 +125,15 @@ func apply(intent: Controls.Intent) -> void:
 
 func set_parked(v: bool) -> void:
 	parked = v
-	if v: speed = 0.0
+	if v:
+		speed = 0.0
+		if drive:
+			drive.intent = Controls.Intent.new()
+			drive.throttle = 0.0
+			drive.brake = 0.0
+			drive.steer = 0.0
+			drive.handbrake = false
+			drive.extra_velocity = Vector3.ZERO
 
 
 func place(pos: Vector3, forward: Vector3) -> void:

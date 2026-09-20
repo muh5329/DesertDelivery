@@ -25,6 +25,7 @@ func setup(g: Game) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if game.mayor != null and game.mayor.active: return
 	if not (event is InputEventKey and event.pressed and not event.echo): return
 	match event.keycode:
 		KEY_F3:

@@ -20,6 +20,9 @@ var carrying := false
 var elapsed := 0.0
 var coins := 0
 var _revision := 0
+var _transitioning := false
+## Bounded delivery receipts make payouts inspectable and persist with the wallet.
+var receipts: Array[Dictionary] = []
 var active_job_override: JobDefinition
 var handoffs_paused := false
 var _foot_package: Node3D
@@ -175,7 +178,7 @@ func _clear_zones() -> void:
 	if dropoff_zone: dropoff_zone.queue_free(); dropoff_zone = null
 
 
-func _start_job(i: int, announce: bool = true) -> void:
+func _start_job(i: int, announce: bool = true, publish: bool = true) -> void:
 	_clear_zones()
 	active_job_override = null
 	_revision += 1
@@ -187,7 +190,7 @@ func _start_job(i: int, announce: bool = true) -> void:
 	if job_index >= jobs.size():
 		stage = Stage.DONE
 		_all_done = true
-		Events.job_changed.emit(null, &"done")
+		if publish: Events.job_changed.emit(null, &"done")
 		if announce: _say("Route list complete! Visit a courier counter for another job. Total: %d packages in %s" % [deliveries, format_time(elapsed)], 12.0)
 		return
 	stage = Stage.TO_PICKUP
@@ -195,7 +198,7 @@ func _start_job(i: int, announce: bool = true) -> void:
 	vehicle.set_package_visible(false)
 	var j := current_job()
 	pickup_zone = _make_zone(db.location_pos(j.from_location), 6.0)
-	Events.job_changed.emit(j, &"pickup")
+	if publish: Events.job_changed.emit(j, &"pickup")
 	if not announce: return
 	if deliveries == 0:
 		_say("New job: collect the %s at %s" % [j.item, db.location_name(j.from_location)], 5.0)
@@ -246,13 +249,16 @@ func _process(delta: float) -> void:
 
 
 func _complete_stage() -> void:
+	if _transitioning: return
 	var j := current_job()
 	if j == null or stage == Stage.DONE: return
+	_transitioning = true
 	_in_zone = false; _zone_timer = 0.0
 	if stage == Stage.TO_PICKUP:
 		stage = Stage.TO_DROPOFF
 		carrying = true
 		parcel_condition = 1.0
+		_impact_cooldown = 0.0
 		vehicle.set_package_visible(true)
 		if pickup_zone: pickup_zone.queue_free(); pickup_zone = null
 		dropoff_zone = _make_zone(db.location_pos(j.to_location), 6.5)
@@ -264,15 +270,20 @@ func _complete_stage() -> void:
 		deliveries += 1
 		var paid := current_payout()
 		coins += paid
-		wallet_changed.emit(coins)
+		receipts.append({"job_id":String(j.id),"item":j.item,"coins":paid,"condition":parcel_condition,"elapsed":elapsed,"delivery":deliveries})
+		if receipts.size()>32: receipts.pop_front()
+		# Commit cargo and stage before publishing any transaction callbacks.
+		stage = Stage.DONE
 		carrying = false
 		vehicle.set_package_visible(false)
-		delivery_completed.emit(deliveries)
-		Events.delivery_completed.emit(j.id, deliveries)
-		_say("Delivered! +%d coins · %d completed" % [paid, deliveries], 4.0)
 		parcel_condition = 1.0
 		_cooldown = 2.5
 		_start_job(job_index + 1)
+		wallet_changed.emit(coins)
+		delivery_completed.emit(deliveries)
+		Events.delivery_completed.emit(j.id, deliveries)
+		_say("Delivered! +%d coins · %d completed" % [paid, deliveries], 4.0)
+	_transitioning = false
 
 
 func _contains_courier(zone: Area3D, courier: Node3D) -> bool:
@@ -298,13 +309,20 @@ func _sync_package_visuals() -> void:
 
 func save_state() -> Dictionary:
 	var job := current_job()
-	var data := {"job_id": String(job.id) if job else "", "job_index": job_index, "stage": stage, "deliveries": deliveries, "elapsed": elapsed, "coins": coins, "parcel_condition": parcel_condition}
+	var data := {"version":2, "receipts":receipts.duplicate(true), "job_id": String(job.id) if job else "", "job_index": job_index, "stage": stage, "deliveries": deliveries, "elapsed": elapsed, "coins": coins, "parcel_condition": parcel_condition}
 	if active_job_override:
 		data["offer"]={"kind":active_job_override.cargo_kind,"mass_kg":active_job_override.cargo_mass_kg,"reward":active_job_override.reward}
 	return data
 
 
 func load_state(d: Dictionary) -> void:
+	if _transitioning: return
+	_transitioning = true
+	receipts.clear()
+	for receipt in d.get("receipts", []):
+		if receipt is Dictionary: receipts.append(receipt.duplicate(true))
+	while receipts.size()>32: receipts.pop_front()
+	_impact_cooldown=0.0
 	deliveries = maxi(0, int(d.get("deliveries", 0)))
 	elapsed = maxf(0.0, float(d.get("elapsed", 0.0)))
 	coins = maxi(0, int(d.get("coins", 0)))
@@ -313,31 +331,33 @@ func load_state(d: Dictionary) -> void:
 		for i in range(jobs.size()):
 			if String(jobs[i].id) == String(d.job_id): index = i; break
 	_cooldown = 0.0
-	_start_job(index, false)
+	_start_job(index, false, false)
 	if stage != Stage.DONE and d.get("offer",{}) is Dictionary and not d.get("offer",{}).is_empty():
 		_apply_offer(d.offer)
-		Events.job_changed.emit(current_job(), &"pickup")
-	wallet_changed.emit(coins)
 	# Restore the stage directly: loading must never collect again, award coins, or emit
 	# package/delivery events (other systems use those events for real transactions).
 	if int(d.get("stage", Stage.TO_PICKUP)) == Stage.TO_DROPOFF and stage == Stage.TO_PICKUP:
 		stage = Stage.TO_DROPOFF; carrying = true
 		_clear_zones()
 		dropoff_zone = _make_zone(db.location_pos(current_job().to_location), 6.5)
-		Events.job_changed.emit(current_job(), &"dropoff")
 	parcel_condition = clampf(float(d.get("parcel_condition", 1.0)), 0.0, 1.0)
 	_sync_package_visuals()
+	Events.job_changed.emit(current_job(), &"done" if stage==Stage.DONE else (&"dropoff" if carrying else &"pickup"))
+	wallet_changed.emit(coins)
+	_transitioning = false
 
 
 func select_board_offer(index: int, offer: Dictionary) -> bool:
 	# Selecting a route is a reversible choice until a parcel has actually been collected.
-	if carrying or index<0 or index>=jobs.size(): return false
+	if _transitioning or carrying or index<0 or index>=jobs.size(): return false
 	var kind:=String(offer.get("kind",""))
 	if kind not in ["light","fragile","heavy"]: return false
-	_start_job(index,false)
+	_transitioning = true
+	_start_job(index,false,false)
 	_apply_offer(offer)
 	_cooldown=0.0
 	Events.job_changed.emit(current_job(), &"pickup")
+	_transitioning = false
 	return true
 
 func _apply_offer(offer: Dictionary) -> void:

@@ -21,7 +21,7 @@ glass=material('Town warm window glass',(.14,.20,.22),.25,.15)
 iron=material('Town iron rail',(.07,.10,.11),.58,.6)
 ivory=material('Town canvas cream',(.90,.86,.73),.9)
 clay=material('Town terracotta clay',(.58,.26,.14),.91)
-foliage=[material('Town foliage '+str(i),c,.9) for i,c in enumerate([(.13,.30,.045),(.28,.46,.065),(.43,.59,.11)])]
+foliage=[material('Town foliage '+str(i),c,.9) for i,c in enumerate([(.16,.26,.10),(.27,.38,.17),(.40,.49,.25)])]
 
 def arch(name,c,w,h,depth,mat,root):
     # Solid arched profile used for dark recesses and roof dormers.
@@ -136,7 +136,7 @@ def palm():
             ln=math.sin(t*math.pi*.92)*.61
             for s in [-1,1]:
                 tip=c+side*s*ln+forward*.29
-                mesh('Palm leaflets',[c-forward*.1,c+forward*.10,tip+Vector((0,-.12,0)),(c+tip)*.5+Vector((0,.035,0))],[(0,1,3),(1,2,3),(2,0,3)],foliage[(i+j)%3],root)
+                mesh('Palm leaflets',[c-forward*.18,c+forward*.18,tip+Vector((0,-.12,0)),(c+tip)*.5+Vector((0,.035,0))],[(0,1,3),(1,2,3),(2,0,3)],foliage[(i+j)%3],root)
     export(root,'harbour_palm')
 
 def car():

@@ -1,0 +1,76 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/island_map.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _load_map (res://world/terrain/terrain.gd:95)
+         [1] _init (res://world/terrain/terrain.gd:85)
+         [2] build_terrain (res://world/island/island.gd:258)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+WARNING: instance_reset_physics_interpolation() is deprecated.
+     at: _instance_reset_physics_interpolation_bind_compat_104269 (servers/rendering/rendering_server.compat.inc:62)
+     GDScript backtrace (most recent call first):
+         [0] _build_terrain3d (res://world/terrain/terrain.gd:657)
+         [1] build (res://world/terrain/terrain.gd:504)
+         [2] build_terrain (res://world/island/island.gd:269)
+         [3] generate (res://world/island/island.gd:210)
+         [4] setup (res://world/world_manager.gd:32)
+         [5] _boot_world (res://core/app/game.gd:84)
+         [6] _ready (res://core/app/game.gd:63)
+[terrain] build stages ms: { "heightfield": 1122, "t3d_setup": 261, "t3d_maps": 1138, "crest_n": 1870, "foot_n": 2348, "t3d_import": 33 }
+WARNING: Loaded resource as image file, this will not work on export: 'res://data/sea_depth.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+     at: load (core/io/image.cpp:2770)
+     GDScript backtrace (most recent call first):
+         [0] _build_sea (res://world/kit/world_kit.gd:282)
+         [1] generate (res://world/island/island.gd:211)
+         [2] setup (res://world/world_manager.gd:32)
+         [3] _boot_world (res://core/app/game.gd:84)
+         [4] _ready (res://core/app/game.gd:63)
+[town] pedestrian courtyard centres [(300.0, -245.0)]
+[world] 25 km terrain, north viaduct 360 navigation samples
+[life] 108 animals and birds, 2 sailing boats
+[life] 64 residents, 3642 road nodes, seven-day routines
+[game] world generated in 4457 ms (7053 recipes in 396 chunks); tree 9047 nodes
+  PASS dismount at standstill
+  PASS mode_changed fired once (RIDING -> ON_FOOT)
+  PASS on foot, the courier is the boy and no vehicle is active
+  PASS on foot, a parcel can still change hands
+[test] ran 16.2 m in 2.5 s (y=5.54)
+  PASS runs a sensible distance
+  PASS stays on the ground
+  PASS cannot mount from far away
+  PASS a courier standing still reads as stopped
+  PASS mount again next to the bike
+  PASS mount is refused while already riding
+  PASS back on the bike, the courier is the bike
+[test] seabed at the lake = -3.27
+[test] mode=3 y=-0.60
+  PASS enters swim state in deep water
+  PASS floats near the surface
+  PASS cannot mount while swimming
+[test] swam 59.0 m, mode=2, x=150.1 y=4.64
+  PASS swims forward
+  PASS climbs out on the beach
+  PASS pistol picked up by walking over it
+[test] cam_hit=@Area3D@186 at (-252.9874, 37.34097, -294.4405) | muzzle=(-252.7454, 40.34312, -288.36) muzzle_hit=@Area3D@186 at (-252.9874, 37.34097, -294.4405)
+  PASS pressing fire pops the aimed tin can
+  PASS ammo decrements
+  PASS rate of fire is limited
+[test] barrel·view = 0.99
+  PASS pistol barrel points along the view ray
+  PASS back on the bike
+  PASS wings deploy
+[test] mode=1 speed=43.1 alt=76.1 max_alt=76.1 dyaw=-2.64 roll=-0.36
+  PASS takes off with speed + pull-up; rider is FLYING
+  PASS nothing changes hands in mid-air, whatever the speed reads
+  PASS gains altitude but respects the ceiling
+  PASS banking right turns right (yaw decreases)
+  PASS right wing dips when steering right
+  PASS cannot hop off mid-air
+[test] landed=true after 12.2 s, alt=0.8 speed=18.4 resets=0
+  PASS lands again; rider is RIDING
+  PASS wings fold after landing
+FEATURE TESTS: PASS (0 failures)

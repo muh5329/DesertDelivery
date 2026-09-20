@@ -24,6 +24,21 @@ func _run() -> void:
 	await get_tree().physics_frame
 	life.set_physics_process(false)
 	var original:=life.save_state()
+	var empty_routine := Resident.new()
+	_check(empty_routine.task_at(0, 570).activity == "sleep", "empty resident routine safely rests at home")
+	var failed_route := life.residents[0].clone()
+	failed_route.driving = true
+	failed_route.moving = false
+	failed_route.transition(Resident.State.ROUTE_BLOCKED)
+	failed_route.route_retry = 100.0
+	var original_deliveries := failed_route.deliveries_completed
+	life._advance(failed_route, 20.0)
+	_check(failed_route.deliveries_completed == original_deliveries, "failed route cannot invent a completed delivery")
+	failed_route.destination = Vector3(23, 4, 51)
+	var restored := Resident.new()
+	restored.apply_dict(failed_route.to_dict())
+	_check(restored.destination == failed_route.destination and restored.state == Resident.State.ROUTE_BLOCKED, "route destination and explicit blocked state survive persistence")
+
 	_check(life.residents.size()==64,"64 individually identified residents")
 	var complete_days:=true
 	var connected:=true

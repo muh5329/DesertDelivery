@@ -38,6 +38,11 @@ var weekly: Array = []
 var places: Dictionary = {}
 
 ## Where he is and what he is doing.
+enum State { RESTING, TRAVELLING, WORKING, YIELDING, UNLOADING, ROUTE_BLOCKED }
+var state: int = State.RESTING
+var state_elapsed := 0.0
+var route_retry := 0.0
+
 var position := Vector3.ZERO
 var forward := Vector3.FORWARD
 var surface_normal := Vector3.UP
@@ -66,7 +71,7 @@ var deliveries_completed := 0
 
 ## What goes in the save file. One list, used by both directions — there is no second list to
 ## fall out of step with it.
-const SAVED := ["position", "forward", "route", "cursor", "task_key", "task", "place", "activity",
+const SAVED := ["state", "state_elapsed", "route_retry", "destination", "position", "forward", "route", "cursor", "task_key", "task", "place", "activity",
 	"status", "moving", "driving", "speed", "wait", "circuit", "work_progress", "blocked_time",
 	"station_validated", "distance", "completed_tasks", "deliveries_completed"]
 ## The subset that is a running total rather than a state.
@@ -101,7 +106,9 @@ func has_station(key: String) -> bool:
 ## The schedule entry in force on `day` at `minute`: the daily routine, with any weekly override
 ## for that day laid over it.
 func task_at(day: int, minute: float) -> Dictionary:
-	var result: Dictionary = daily[0]
+	if daily.is_empty(): return {"at":0,"task":"At home","place":"home","activity":"sleep"}
+	minute = fposmod(minute, 1440.0)
+	var result: Dictionary = daily[-1]
 	for entry in daily:
 		if float(entry.at) <= minute: result = entry
 	for entry in weekly:
@@ -117,7 +124,7 @@ func schedule_for(day: int) -> Array[Dictionary]:
 	for entry in daily:
 		if int(entry.at) not in boundaries: boundaries.append(int(entry.at))
 	for entry in weekly:
-		if int(entry.day) != day: continue
+		if int(entry.day) != posmod(day, 7): continue
 		for minute in [int(entry.at), int(entry.until)]:
 			if minute not in boundaries: boundaries.append(minute)
 	boundaries.sort()
@@ -147,6 +154,12 @@ func clone() -> Resident:
 	return out
 
 
+func transition(next: int) -> void:
+	if state == next: return
+	state = next
+	state_elapsed = 0.0
+
+
 # ---------------------------------------------------------------- persistence
 func to_dict() -> Dictionary:
 	var out: Dictionary = {}
@@ -161,6 +174,14 @@ func apply_dict(d: Dictionary) -> void:
 		if not d.has(key): continue
 		if key == "route": route = PackedVector3Array(d.route)
 		else: set(key, d[key])
+	if not d.has("destination"):
+		destination = route[-1] if not route.is_empty() else station(place)
+	cursor = clampi(cursor, 0, route.size())
+	state = clampi(state, State.RESTING, State.ROUTE_BLOCKED)
+	if moving and cursor >= route.size():
+		moving = false
+		transition(State.ROUTE_BLOCKED)
+	sim_elapsed = 0.0
 
 
 ## Everything a resident has *accumulated*, so a time skip can hand it back without a caller

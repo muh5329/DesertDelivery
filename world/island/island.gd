@@ -43,7 +43,7 @@ const PLACE_TABLE := {
 
 const IMG_W := 1672.0
 const IMG_H := 941.0
-const K := Terrain.SIZE / 720.0   # scale from the painting's 720 m world to this one
+const K := Terrain.CORE_SIZE / 720.0   # scale from the painting's 720 m world to this one
 var _ppm := 1.34
 var _islets: Array = []
 var _cover_seed := 0
@@ -55,7 +55,7 @@ func hub_table() -> Dictionary:
 
 ## Painting pixel -> world XZ.
 func _px(x: float, y: float) -> Vector2:
-	return Vector2(x / _ppm - Terrain.SIZE * 0.5, (y - IMG_H * 0.5) / _ppm)
+	return Vector2(x / _ppm - Terrain.CORE_SIZE * 0.5, (y - IMG_H * 0.5) / _ppm)
 
 
 func _pxs(pts: Array) -> Array:
@@ -392,7 +392,7 @@ func _gen_coast_and_islets() -> void:
 				_at(q.x, q.y, func(): _add_rock(Vector3(q.x, -s2 * 0.5, q.y), Vector3(s2, s2 * 1.4, s2), yaw2, pale, false))
 	# offshore sea stacks: pale pillars standing in the water off the western and southern coasts
 	var stacks := 0; var st_tries := 0
-	var hw := Terrain.SIZE * 0.5 - 12.0
+	var hw := Terrain.CORE_SIZE * 0.5 - 12.0
 	while stacks < 160 and st_tries < 20000:   # 160 are found long before 20 k tries
 		st_tries += 1
 		var x := rng.randf_range(-hw, hw); var z := rng.randf_range(-hw, hw)
@@ -574,7 +574,7 @@ func _scatter_biome(biome: int, count: int, min_road: float, max_slope: float, s
 	var xforms: Array[Transform3D] = []
 	var colors: Array[Color] = []
 	var tries := 0
-	var half := Terrain.SIZE * 0.5 - 12.0
+	var half := Terrain.CORE_SIZE * 0.5 - 12.0
 	while xforms.size() < count and tries < count * 30:
 		tries += 1
 		var x := rng.randf_range(-half, half)
@@ -921,7 +921,7 @@ func _villa_trees() -> void:
 
 
 func _gen_ground_cover() -> void:
-	var world := Rect2(-Terrain.SIZE * 0.5 + 10, -Terrain.SIZE * 0.5 + 10, Terrain.SIZE - 20, Terrain.SIZE - 20)
+	var world := Rect2(-Terrain.CORE_SIZE * 0.5 + 10, -Terrain.CORE_SIZE * 0.5 + 10, Terrain.CORE_SIZE - 20, Terrain.CORE_SIZE - 20)
 	# (grass itself is planted by Terrain3D's instancer: Terrain.plant_ground_cover)
 	var bush := _scatter_scrub([Terrain.Biome.FOREST, Terrain.Biome.FARM, Terrain.Biome.TOWN, Terrain.Biome.DUNES, Terrain.Biome.MOOR, Terrain.Biome.BEACH], 340, world, 1.8, 14.0, Vector2(0.5, 1.3), 0.16)
 	_scatter_records(_bush_parts(), bush[0], bush[1], 0.0)

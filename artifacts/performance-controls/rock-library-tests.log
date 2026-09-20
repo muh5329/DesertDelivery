@@ -1,0 +1,11 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS all180 baked pieces exactly match regenerated vertices/normals/colors/LOD/collision hulls
+PASS runtime cache miss loads exact disk resource
+PASS repeat request uses shared in-memory mesh
+PASS unbaked parameters fall back to deterministic generation
+PASS cache fingerprint includes effective defaults without duplicate aliases
+PASS fingerprint retains close float values that display strings alias
+PASS pre-scaled collision unchanged (concave=false)
+PASS pre-scaled collision unchanged (concave=true)
+ROCK LIBRARY failures: 0

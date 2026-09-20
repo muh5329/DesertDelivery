@@ -34,6 +34,12 @@ extends Definition
 ## How fast the steer input catches up: while steering, and while recentring (1/s).
 @export var steer_smooth_hold := 3.8
 @export var steer_smooth_free := 6.5
+## Low stick deflections stay precise while full steering keeps its turning radius.
+@export_range(0.0, 1.0) var steering_precision := 0.22
+## At cruise, settle steering more gradually to avoid sudden lane changes.
+@export_range(0.2, 1.0) var cruise_steer_response := 0.78
+@export var throttle_response := 4.5
+@export var throttle_release := 8.0
 ## Speed (m/s) at which steering reaches full authority.
 @export var yaw_speed_ref := 1.5
 ## Yaw multipliers while the handbrake is down, and while airborne.
@@ -61,6 +67,17 @@ extends Definition
 @export var hard_landing_scale := 0.7
 
 @export_group("Suspension")
+## Opt-in wheel spring solver; heavy vehicles retain their existing floor solver.
+@export var suspension_enabled := false
+@export var suspension_rest_height := .04
+@export var wheel_radius := .32
+@export var suspension_travel := .20
+@export var suspension_spring := 160.0
+@export var suspension_damping := 22.0
+@export var suspension_max_force := 220.0
+@export var tire_grip := 32.0
+@export var tire_slide_grip := 12.0
+
 ## How fast the ground normal and the body pitch ease toward the wheel rays (1/s).
 @export var normal_ease := 10.0
 @export var pitch_ease := 9.0
@@ -81,7 +98,7 @@ extends Definition
 @export var takeoff_speed := 15.0
 @export var flight_max_speed := 46.0
 @export var flight_thrust := 11.0
-@export var ceiling := 170.0
+@export var ceiling := 5000.0 # Metres above sea level; clears the outer island highlands.
 
 @export_group("Look")
 @export var body_colour := Color(0.80, 0.16, 0.14)

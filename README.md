@@ -1,18 +1,17 @@
 # Desert Delivery
 
-A small third-person motorbike courier game inspired by *Into the Wind*, set on a 1.25 km island grown from a
-reference painting, tested in **Godot 4.7** with the Forward+ renderer (Vulkan on macOS). Roads and settlements are
-generated from GDScript; the courier, motorcycle, town buildings, vehicles and wildlife use
-Blender-authored glTF assets. The ground itself is
-drawn and collided by the **Terrain3D** plugin (`addons/terrain_3d`): the generated heightfield is handed to it
-with a per-cell texture map (grass, limestone, dirt roads, sand, red clay, ploughed soil, salt) and a colour
-tint map, so it renders with real PBR textures, normal maps and a clipmap LOD instead of the old flat facets.
+A third-person courier game with a **25 km × 25 km world boundary**, a detailed 1.248 km Mediterranean settlement core, and surrounding traversable highlands. The north viaduct joins the original road network to the new landscape. The outer heightfield uses a fixed geometry budget and streamed collision; this is not 625 km² of bespoke city detail.
+
+The September 2026 overhaul adds a hand-painted, Ghibli-inspired summer palette, an ImageGen gouache surface used by terrain and object materials, a newly authored Blender delivery truck, regraded existing GLBs, and occupation-based wardrobe silhouettes for all 64 residents. The shared base character and most existing model topology remain. Godot **4.7 Forward+ (Vulkan)** is the current renderer on macOS; Terrain3D draws and collides the detailed core.
+
+The gameplay pass adds explicit player/resident states, responsive bike and truck handling, buffered/coyote jumps, safe mounting, blocked-route recovery, spatial traffic lookup, and atomic delivery payouts with saved receipts. Implementation, real screenshots, adversarial findings and remaining quality gaps are in [the overhaul review](artifacts/overhaul-2026-09-19/README.md). AAA quality has not been demonstrated.
 
 ## Run it
 
 1. Install Godot 4.7 (standard build) from https://godotengine.org/download.
 2. Open Godot → **Import** → pick `project.godot` in this folder → **Edit** → press **F5** (Play).
    Or from a terminal: `godot --path /path/to/DesertDelivery`.
+   Desktop uses Forward+; macOS selects Vulkan after full-render profiling. For older GPUs, use `godot --path /path/to/DesertDelivery --rendering-method gl_compatibility`.
    The Terrain3D GDExtension ships in `addons/terrain_3d` (binaries for macOS, Windows, Linux, iOS, Android, web);
    it does not need to be enabled as an editor plugin for the game to run. `--facet` on the command line
    (after `--`) renders the old flat-shaded terrain instead, for comparison.
@@ -35,11 +34,13 @@ tint map, so it renders with real PBR textures, normal maps and a clipmap LOD in
 ## Beyond the bike
 
 - **E** exits the current vehicle (when stopped) — walk with WASD, Shift to run, Space to jump, mouse / right stick to look. E beside either vehicle mounts it. R brings the active vehicle and rider back to the nearest road.
+- Hold Space for a higher on-foot jump; tap for a short hop. Movement follows the camera, and manual orbit keeps your chosen direction. The camera retracts around obstacles and hides the character when pushed too close.
 - **Cargo truck** — a compact red truck is parked a short walk behind the starting bike. It is slower but has a 4×6 rear packing rack for larger loads. Stop and press G, move the translucent tetromino with WASD, rotate with Z, place with Space, undo with X, and press G again to secure the load. Unsupported or overlapping pieces cannot be placed; a fuller rack adds weight and trims the truck's top speed.
 - **Winch** — while driving the truck, Q fires the front cable at a tree, rock, building, or other solid obstacle up to 38 m ahead. It reels in automatically and can pull the truck up steep walls when the anchor is high; press Q again to release it.
 - **Swim** — wade into the sea and the boy swims (slower, can't shoot); the bike auto-resets if it ends up in the water.
 - **Pistol** — an old pistol sits on a crate at the Dunes Lookout. On foot, hold RMB / LB to aim over the shoulder and F / LMB / RB to fire. Tin cans line the farm's stone wall and the lookout bench (9 total).
 - **Plane** — T / D-pad-up folds the wings out. Throttle (W) past 54 km/h, then pull back (S / ↓) to lift off. In the air the engine cruises on its own: S/↓ raises the nose, W/↑ lowers it, A/D bank, Shift boosts. To land, nose down gently and pull up just before touchdown; T folds the wings again.
+- Flight can climb to **5,000 m above sea level**, well above the outer island mountains.
 - Esc twice within 3 s quits (the first press also frees the mouse; click to re-capture).
 
 ## The loop
@@ -80,8 +81,8 @@ wheels and steering, and nearby body collisions. Wildlife includes grazing sheep
 rabbits and dogs, circling gulls, and two boats on validated water routes. Sky clouds drift
 while daylight changes with the simulation clock.
 
-These are stylized game assets inspired by the supplied references. Residents currently share
-the courier base mesh with palette/size variants; their occupations are outdoor activity
+These are stylized game assets inspired by the supplied references. Residents share
+the courier base rig with identity proportions, hair variants and occupation-specific hats, aprons, satchels and spectacles; their occupations are outdoor activity
 stations with timed work cycles, rather than enterable shops with a production economy.
 
 ## Blender assets
@@ -89,7 +90,7 @@ stations with timed work cycles, rather than enterable shops with a production e
 The assets were authored through Blender MCP. Editable sources are in `assets/source/`, with
 `.gdignore` preventing automatic Blender conversion during game import. Runtime files are
 in `assets/models/`. Reproduction scripts are in `tools/blender/`: `common.py`, `bike.py`,
-`character.py`, `island_kit.py`, `town_revision.py` and `hero_finish.py`. They use the project
+`character.py`, `island_kit.py`, `town_revision.py` and `hero_finish.py`. The new truck is generated by `storybook_truck.py`; `storybook_assets.py` applies a reproducible paint/roughness pass to the other GLBs using archived originals. The palm revision uses `town_revision.py` with broader sage fronds. The generated surface and exact ImageGen prompt are in `assets/storybook/README.md`. They use the project
 path at the top of `common.py`; update it when moving the repository. Run the generators
 through Blender in that order, with `hero_finish.py` last, then let Godot import the GLBs.
 
@@ -99,6 +100,11 @@ All checks run inside the booted game through the test runner (`--test=NAME` loa
 
 ```
 godot --headless --path . -- --autotest --deliveries=10 --maxtime=2800   # drives the whole loop, exits 0 on success
+godot --headless --path . -s tests/world_expanse_tests.gd       # extent, surface/collider agreement, tile budget
+godot --headless --path . -s tests/control_regression_tests.gd # analog, buffered/coyote jumps, controls
+godot --headless --path . -s tests/third_person_tests.gd       # movement, jump height, slopes, camera obstruction
+godot --headless --path . -s tests/bike_dynamics_tests.gd      # suspension, crest airtime, landing and timestep parity
+godot --headless --path . -s tests/streaming_budget_tests.gd   # incremental construction and collider ownership
 godot --headless --path . -- --test=architecture_tests          # streaming, world database, tiers, events, save/load
 godot --headless --path . -- --test=edge_tests                  # brake/reverse, sea reset, camera
 godot --headless --path . -- --test=feature_tests               # dismount, swim, pistol, plane
@@ -121,6 +127,8 @@ python3 reference/compare.py /tmp/x/cliff_coast.png reference/ref_cliff_coast.pn
 
 Debug keys in game: **F3** overlay (fps, chunk, loaded chunks, entities per tier, draw calls...),
 **F5/F9** quick save/load, **F6** teleport to the next hub, **F7** reload the chunk under you, **F8** toggle streaming.
+
+The latest measured frame rates, controller changes, visual reviews and limitations are in [the performance and controls report](artifacts/performance-controls/README.md).
 
 ## Layout
 

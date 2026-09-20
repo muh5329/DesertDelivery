@@ -1,0 +1,90 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS all 15 authored meshes have a reduced counterpart
+PASS roundtrip preserves mesh frame ContinuousShirt
+PASS skin bind count ContinuousShirt
+PASS skin rest unchanged ContinuousShirt/0
+PASS skin rest unchanged ContinuousShirt/1
+PASS skin rest unchanged ContinuousShirt/2
+PASS skin rest unchanged ContinuousShirt/3
+PASS skin rest unchanged ContinuousShirt/4
+PASS skin rest unchanged ContinuousShirt/5
+PASS skin rest unchanged ContinuousShirt/6
+PASS skin rest unchanged ContinuousShirt/7
+PASS skin rest unchanged ContinuousShirt/8
+PASS skin rest unchanged ContinuousShirt/9
+PASS skin rest unchanged ContinuousShirt/10
+PASS skin rest unchanged ContinuousShirt/11
+PASS skin rest unchanged ContinuousShirt/12
+PASS roundtrip preserves mesh frame ContinuousTrousers
+PASS skin bind count ContinuousTrousers
+PASS skin rest unchanged ContinuousTrousers/0
+PASS skin rest unchanged ContinuousTrousers/1
+PASS skin rest unchanged ContinuousTrousers/2
+PASS skin rest unchanged ContinuousTrousers/3
+PASS skin rest unchanged ContinuousTrousers/4
+PASS skin rest unchanged ContinuousTrousers/5
+PASS skin rest unchanged ContinuousTrousers/6
+PASS skin rest unchanged ContinuousTrousers/7
+PASS skin rest unchanged ContinuousTrousers/8
+PASS skin rest unchanged ContinuousTrousers/9
+PASS skin rest unchanged ContinuousTrousers/10
+PASS skin rest unchanged ContinuousTrousers/11
+PASS skin rest unchanged ContinuousTrousers/12
+PASS roundtrip preserves mesh frame SkinnedSuspenders
+PASS skin bind count SkinnedSuspenders
+PASS skin rest unchanged SkinnedSuspenders/0
+PASS skin rest unchanged SkinnedSuspenders/1
+PASS skin rest unchanged SkinnedSuspenders/2
+PASS skin rest unchanged SkinnedSuspenders/3
+PASS skin rest unchanged SkinnedSuspenders/4
+PASS skin rest unchanged SkinnedSuspenders/5
+PASS skin rest unchanged SkinnedSuspenders/6
+PASS skin rest unchanged SkinnedSuspenders/7
+PASS skin rest unchanged SkinnedSuspenders/8
+PASS skin rest unchanged SkinnedSuspenders/9
+PASS skin rest unchanged SkinnedSuspenders/10
+PASS skin rest unchanged SkinnedSuspenders/11
+PASS skin rest unchanged SkinnedSuspenders/12
+PASS roundtrip preserves mesh frame SkinnedTrouserStitching
+PASS skin bind count SkinnedTrouserStitching
+PASS skin rest unchanged SkinnedTrouserStitching/0
+PASS skin rest unchanged SkinnedTrouserStitching/1
+PASS skin rest unchanged SkinnedTrouserStitching/2
+PASS skin rest unchanged SkinnedTrouserStitching/3
+PASS skin rest unchanged SkinnedTrouserStitching/4
+PASS skin rest unchanged SkinnedTrouserStitching/5
+PASS skin rest unchanged SkinnedTrouserStitching/6
+PASS skin rest unchanged SkinnedTrouserStitching/7
+PASS skin rest unchanged SkinnedTrouserStitching/8
+PASS skin rest unchanged SkinnedTrouserStitching/9
+PASS skin rest unchanged SkinnedTrouserStitching/10
+PASS skin rest unchanged SkinnedTrouserStitching/11
+PASS skin rest unchanged SkinnedTrouserStitching/12
+PASS roundtrip preserves mesh frame Knee_Geometry
+PASS roundtrip preserves mesh frame Knee_001_Geometry
+PASS roundtrip preserves mesh frame ArmL_Geometry
+PASS roundtrip preserves mesh frame Forearm
+PASS roundtrip preserves mesh frame Hand_Geometry
+PASS roundtrip preserves mesh frame ArmR_Geometry
+PASS roundtrip preserves mesh frame Forearm_001
+PASS roundtrip preserves mesh frame Hand_001_Geometry
+PASS roundtrip preserves mesh frame Head_Geometry
+PASS roundtrip preserves mesh frame Torso_Geometry
+PASS roundtrip preserves mesh frame Waistband
+NPC GEOMETRY full=103650 low=13451
+PASS distant NPC under 15k triangles and at least 80% reduction
+PASS LOD never replaces live pivots or attachments
+PASS LOD switch preserves current walk pose
+PASS resident recoloring retained after surface reorder
+PASS LOD only toggles visibility: immutable buffers, original skin and identical mesh frames
+PASS 22/18m hysteresis retains reduced model
+PASS close range restores full model
+PASS hysteresis retains full model inside 22m
+PASS seated pose survives LOD switch
+PASS player keeps full geometry and automatic skin updates
+PASS distant actor uses reduced geometry and explicit skin flush
+PASS distant cosmetic pose skips intermediate physics ticks
+PASS driving transition updates collision immediately despite animation throttle
+PASS sleep and walking state transition is immediate
+NPC LOD failures: 0
