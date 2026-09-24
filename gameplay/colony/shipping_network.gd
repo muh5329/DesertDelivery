@@ -531,7 +531,16 @@ func ship_pose(s: Dictionary) -> Array:
 			return [at[0], at[1], false]
 	var p: Dictionary = ports.get(s.port, {})
 	if p.is_empty(): return [Vector2.ZERO, Vector2(0, 1), true]
-	return [p.moor, p.along, true]
+	# ships in port lie in a line along the quay, the first at the jetty
+	var k := 0
+	for o in ships:
+		if o.id == s.id: break
+		if o.port == s.port and o.state == "docked": k += 1
+	if k == 0: return [p.moor, p.along, true]
+	var slot := (k + 1) / 2 * (1 if k % 2 == 1 else -1)
+	var at: Vector2 = p.moor + (p.along as Vector2) * 38.0 * slot
+	if ground.is_valid() and not _hull_fits(at, p.along): at = p.moor + (p.moor - p.get("shore", p.moor)).normalized() * 14.0 * k
+	return [at, p.along, true]
 
 
 func tick(dt: float) -> void:
