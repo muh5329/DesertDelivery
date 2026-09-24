@@ -18,6 +18,9 @@ extends Node3D
 ## Autoloads: `Events` (EventBus) and `Saves` (SaveManager). Nothing else is global.
 
 static var current: Game
+## The UI (authored at 1600x900, canvas_items stretch) is never drawn smaller than this: a
+## 1280x720 window scales it by 0.85, not 0.8, so a 16 px label is 13.6 px on screen.
+const UI_MIN_SCALE := 0.85
 
 var cli := CliArgs.new()
 var state := GameState.new()
@@ -147,7 +150,17 @@ func _boot_gameplay() -> void:
 	gameplay.gun.audio = audio
 
 
+func _apply_ui_scale() -> void:
+	var win := get_window()
+	if win == null or DisplayServer.get_name() == "headless": return
+	var base := Vector2(ProjectSettings.get_setting("display/window/size/viewport_width", 1600), ProjectSettings.get_setting("display/window/size/viewport_height", 900))
+	var s := minf(win.size.x / base.x, win.size.y / base.y)
+	win.content_scale_factor = UI_MIN_SCALE / s if s > 0.0 and s < UI_MIN_SCALE else 1.0
+
+
 func _boot_ui() -> void:
+	_apply_ui_scale()
+	get_window().size_changed.connect(_apply_ui_scale)
 	var ui := Node.new(); ui.name = "UI"; add_child(ui)
 	hud = HUD.new(); hud.name = "HUD"; ui.add_child(hud)
 	hud.setup(bike, gameplay.delivery, cam)

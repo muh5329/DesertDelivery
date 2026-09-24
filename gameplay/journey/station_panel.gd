@@ -93,7 +93,7 @@ func _refresh() -> void:
 	var s: Dictionary = services.by_id.get(from_id, {})
 	if s.is_empty(): return
 	_title.text = String(s.name)
-	_subtitle.text = ("FUEL  ·  SHOP  ·  COACH & FERRY OFFICE" if s.kind != "counter" else "COURIER COUNTER  ·  COACH & FERRY TICKETS") + "  /  " + game.life.clock_text().to_upper()
+	_subtitle.text = ("FUEL  ·  SHOP  ·  COACH & FERRY" if s.kind != "counter" else "COURIER COUNTER  ·  TICKETS") + "  /  " + game.life.clock_text().get_slice("  ·  ", 0).to_upper()
 	var price := journey.refill_price()
 	_fuel_text.text = "Tank %d%%  ·  about %.0f km left  ·  %d coins in your wallet" % [roundi(journey.fuel_ratio * 100.0), journey.fuel_range_m() / 1000.0, game.gm.coins]
 	_fuel_button.text = "Fill tank · %d coins" % price if price > 0 else "Tank full"
@@ -104,12 +104,14 @@ func _refresh() -> void:
 		row.add_theme_constant_override("separation", 14)
 		var what := Label.new()
 		what.text = "%s  ·  %s" % ["Ferry" if d.ferry else "Coach", d.name]
-		what.custom_minimum_size = Vector2(330, 0)
+		what.custom_minimum_size = Vector2(300, 0)
 		what.add_theme_font_size_override("font_size", 19)
 		row.add_child(what)
 		var info := Label.new()
-		info.text = "%.0f km  ·  %d min" % [d.km, d.minutes] if d.open else String(d.reason)
+		info.text = "%.0f km  ·  %d min" % [d.km, d.minutes] if d.open else "Not visited yet"
+		info.tooltip_text = "" if d.open else String(d.reason)
 		info.custom_minimum_size = Vector2(250, 0)
+		info.clip_text = true
 		info.add_theme_font_size_override("font_size", 17)
 		info.add_theme_color_override("font_color", Color("5e6453"))
 		row.add_child(info)
@@ -147,7 +149,8 @@ func _build() -> void:
 	var banner := Panel.new(); banner.add_theme_stylebox_override("panel", _style(Color("7a2a1f"), Color("a9543d")))
 	_place(banner, Rect2(20, 18, W - 40, 78))
 	_title = _label("", Rect2(40, 26, 560, 38), 29, Color("fff0d2"))
-	_subtitle = _label("", Rect2(42, 62, 700, 26), 16, Color("ebcf9e"))
+	_subtitle = _label("", Rect2(42, 62, 600, 26), 16, Color("ebcf9e"))
+	_subtitle.clip_text = true
 	var close := Button.new(); close.text = "Close · B / Esc"; _place(close, Rect2(W - 200, 38, 160, 40))
 	close.add_theme_font_size_override("font_size", 16)
 	close.pressed.connect(close_panel)

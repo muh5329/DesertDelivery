@@ -112,17 +112,18 @@ func setup(p_life: IslandLife,p_game: Game) -> void:
 	day_picker=OptionButton.new(); _place(day_picker,Rect2(768,619,310,29)); day_picker.add_theme_font_size_override("font_size",16)
 	for day in IslandLife.DAYS: day_picker.add_item(day+"’s routine")
 	day_picker.select(life.day_index()); day_picker.item_selected.connect(func(_day): _show_day())
-	details=RichTextLabel.new(); _place(details,Rect2(770,659,318,96)); details.bbcode_enabled=true; details.add_theme_font_size_override("normal_font_size",14)
+	details=RichTextLabel.new(); _place(details,Rect2(770,659,318,84)); details.bbcode_enabled=true; details.add_theme_font_size_override("normal_font_size",14)
 	details.add_theme_font_size_override("bold_font_size",14); details.scroll_active=true
 	_label("Field notes",Rect2(1120,619,250,28),19)
-	_notes=TextEdit.new(); _place(_notes,Rect2(1116,659,265,96)); _notes.placeholder_text="Write a note about this person…"
+	_notes=TextEdit.new(); _place(_notes,Rect2(1116,659,265,84)); _notes.placeholder_text="Write a note about this person…"
 	_notes.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY; _notes.add_theme_font_size_override("font_size",14)
 	_notes.add_theme_stylebox_override("normal",_style(Color(.70,.64,.49,.10),Color("c4b798")))
 	_notes.text_changed.connect(func():
 		if not _editing_notes and not selected_id.is_empty(): _notes_by_id[selected_id]=_notes.text)
 	_label("N  Journal     ·     Esc  Return to island     ·     Select a day for full task times     ·     F5  Save notes & game",Rect2(149,795,1248,24),15,Color("e8dfc6"))
 	# the courier's jobs: the one in hand, and an urgent colony supply job waiting to be taken
-	_jobs=_label("",Rect2(768,762,615,26),14,Color("7a3b1c")); _jobs.clip_text=true
+	# (on the page, under the routine and the notes)
+	_jobs=_label("",Rect2(768,747,615,24),14,Color("7a3b1c")); _jobs.clip_text=true
 	clock_button=Button.new(); clock_button.theme=_theme
 	clock_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	clock_button.offset_left=-440; clock_button.offset_right=-24; clock_button.offset_top=20; clock_button.offset_bottom=62

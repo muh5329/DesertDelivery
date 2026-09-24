@@ -104,6 +104,10 @@ func _run() -> void:
 	_check(absf(bp.y - float(stop.pos.y)) < 1.2 and game.bike.grounded, "C-2: the bike stands on the apron (y %.1f vs %.1f)" % [bp.y, stop.pos.y])
 	j.fuel_ratio = 0.3
 	game.gm.coins = 200
+	for i in range(3): await get_tree().process_frame
+	var hud_hint: Label = game.hud._service_hint
+	print("  HUD hint '%s' visible %s rect %s" % [hud_hint.text, hud_hint.is_visible_in_tree(), hud_hint.get_global_rect()])
+	_check(hud_hint.text.contains("Fill up") and hud_hint.is_visible_in_tree() and get_viewport().get_visible_rect().encloses(hud_hint.get_global_rect()), "C-2: the HUD tells the courier he can fill up here (%s)" % hud_hint.text)
 	var hint := j.interaction_hint()
 	var ok := j.open_counter()
 	_check(hint.contains("Fill up") and ok and is_equal_approx(j.fuel_ratio, 1.0) and game.gm.coins < 200, "C-2: B at a service stop fills the tank for coins (%s; coins %d)" % [hint, game.gm.coins])

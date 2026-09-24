@@ -125,8 +125,9 @@ func setup(p_game: Node3D, p_colony: Node) -> void:
 	entry.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	entry.offset_left = -96
 	entry.offset_right = 96
-	entry.offset_top = 60
-	entry.offset_bottom = 98
+	# below the HUD's objective banner (its dark backing ends at ~72 px)
+	entry.offset_top = 80
+	entry.offset_bottom = 116
 	entry.pressed.connect(toggle)
 	add_child(entry)
 	root = Control.new()
@@ -146,6 +147,7 @@ func setup(p_game: Node3D, p_colony: Node) -> void:
 	stock_label = label(branding,"",13,Color("e5d6b7"))
 	stock_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	stock_label.clip_text = true
+	stock_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	colony_picker = OptionButton.new(); colony_picker.focus_mode = Control.FOCUS_NONE
 	colony_picker.custom_minimum_size = Vector2(210, 34)
 	colony_picker.size_flags_vertical = Control.SIZE_SHRINK_CENTER

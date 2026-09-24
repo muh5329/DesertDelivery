@@ -55,11 +55,18 @@ func setup(p_gun: GunSystem, p_vitals: PlayerVitals, p_camera: Camera3D, p_rider
 	Events.clip_pinged.connect(func(): _ping_t = 1.0)
 
 
+## Is a fight on (hit lately, or armed men alert near the courier)? Tips stay quiet then.
+func in_fight() -> bool:
+	if vitals == null: return false
+	if vitals.health.since_hit < 6.0: return true
+	return vitals.director != null and rider != null and vitals.director.threat_near(rider.courier().global_position, 120.0)
+
+
 func _label(text: String, size: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
 	if font: l.add_theme_font_override("font", font)
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", maxi(size, 16))
 	l.add_theme_color_override("font_color", col)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
@@ -130,7 +137,7 @@ func _build() -> void:
 	# health, bottom left above the stamina bar
 	_health_label = _label("Health", 16, Color("f4e9cf"))
 	_health_label.add_theme_color_override("font_outline_color", INK)
-	_health_label.add_theme_constant_override("outline_size", 3)
+	_health_label.add_theme_constant_override("outline_size", 6)
 	_health_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_health_label.position = Vector2(26, -148)
 	add_child(_health_label)

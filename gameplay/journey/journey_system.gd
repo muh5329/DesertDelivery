@@ -347,7 +347,7 @@ func _build_ui() -> void:
 	_travel_button=_button("Coach & ferry",Rect2(867,529,198,46)); _travel_button.pressed.connect(_open_travel)
 	for button in [_fuel_button,_reserve_button,_upgrade_button,_rest_button,_travel_button]: button.add_theme_font_size_override("font_size",16)
 	_status=_label("",Rect2(57,600,1008,57),17); _status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	_label("B / Esc  Return to the road     ·     F5  Save journey     ·     Engine upgrades improve your bike’s performance",Rect2(55,666,1010,26),16,Color("6d6654"))
+	_label("B / Esc  Return to the road     ·     F5  Save journey     ·     Engine upgrades improve your bike’s performance",Rect2(55,656,1010,26),16,Color("6d6654"))
 
 func _refresh_ui() -> void:
 	if _opened_hub==&"": return

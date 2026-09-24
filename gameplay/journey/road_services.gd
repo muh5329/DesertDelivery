@@ -468,7 +468,7 @@ func _build(s: Dictionary) -> Node3D:
 	root.add_child(body)
 	var depth: float = maxf(0.6, float(s.pos.y) - float(s.get("low", s.pos.y)) + 0.6)
 	var top := 0.03
-	_box(root, body, Vector3(APRON_LENGTH, depth, APRON_DEPTH), Vector3(0, top - depth * 0.5, 0), _mat("apron", Color(0.33, 0.33, 0.32), 0.92))
+	_box(root, body, Vector3(APRON_LENGTH, depth, APRON_DEPTH), Vector3(0, top - depth * 0.5, 0), _mat("apron", Color(0.5, 0.49, 0.46), 0.9))
 	# kerb along the far side and painted bay lines
 	_box(root, null, Vector3(APRON_LENGTH, 0.16, 0.3), Vector3(0, top + 0.08, APRON_DEPTH * 0.5 - 0.15), _mat("kerb", Color(0.78, 0.76, 0.7)))
 	for x in [-9.0, -3.0, 3.0, 9.0]:
