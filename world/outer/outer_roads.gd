@@ -102,7 +102,8 @@ func _register(pts: PackedVector3Array, spans: Array) -> int:
 ## decks meet edge to edge at the same height. Drawn and built like any other bridge (render and
 ## collision only: the core exit stays the navigation road).
 const SEAM_START_WIDTH := 6.5
-var seams: Array = []                 # [{id, road (core road index), from, pts}]
+const SEAM_BANK := 14.0
+var seams: Array = []                 # [{id, road (core road index), from (its bridgehead sample), bank_from, pts}]
 
 
 func _core_seams() -> void:
@@ -123,19 +124,45 @@ func _core_seams() -> void:
 			if b.road != core or b.to < cs.size() - 3: continue
 			start = mini(start, (b.deck_span(terrain) as Vector2i).x)
 		if start >= cs.size() - 2: continue
-		# samples every ~4 m from the bridgehead to the seam, the last exactly on the spoke's start
+		# the deck also covers the last SEAM_BANK m of the bank: the core's cut leaves bumps of 0.2-0.4 m
+		# at the bridgehead (the north exit's 20 % ramp threw the bike 0.4 s into the air there)
+		var bank_end := start
+		var back := 0.0
+		while start > 0 and back < SEAM_BANK:
+			back += cs[start].distance_to(cs[start - 1]); start -= 1
+		# samples every 2 m on the bank, ~4 m over the water, the last exactly on the spoke's start
 		var pts := PackedVector3Array(); var acc := 4.0
+		var bank := 0
 		for k in range(start, cs.size() - 1):
 			if k > start: acc += cs[k].distance_to(cs[k - 1])
-			if acc >= 4.0: pts.append(cs[k]); acc = 0.0
+			if acc >= (2.0 if k <= bank_end + 4 else 4.0):
+				pts.append(cs[k]); acc = 0.0
+				if k <= bank_end + 4: bank = pts.size()
 		if pts.size() > 1 and pts[pts.size() - 1].distance_to(p0) < 2.0: pts.remove_at(pts.size() - 1)
 		pts.append(p0)
 		if pts.size() < 3: continue
-		# on the bank the deck lies on the core's ground (no lip where the dirt road meets it)
-		for k in range(pts.size() - 1):
-			var g := terrain.height_at(pts[k].x, pts[k].z)
-			if absf(pts[k].y - g) > 0.8: break
-			pts[k].y = g if k == 0 else maxf(pts[k].y, g)
+		# on the bank the deck rides just over the core's ground: the upper envelope of the road's
+		# profile and the ground across the carriageway, starting flush with the dirt road (no lip);
+		# past a bump it comes down at most 3 % (over the water it may stand a little above the core
+		# bridge's level, it meets the spoke's deck at the seam), and its dips are filled, so the
+		# ride has no crest sharper than the ramp's own
+		var n := pts.size()
+		for k in range(mini(bank, n - 1)):
+			var q := pts[k]
+			var a := pts[maxi(k - 1, 0)]; var b := pts[mini(k + 1, n - 1)]
+			var tan := Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
+			var rt := Vector3(-tan.z, 0.0, tan.x)
+			var hi := q.y
+			for u: float in [-1.0, 0.0, 1.0]:
+				for v: float in [-1.0, 0.0, 1.0]:
+					var c := q + tan * u + rt * v
+					hi = maxf(hi, terrain.height_at(c.x, c.z))
+			pts[k].y = terrain.height_at(q.x, q.z) if k == 0 else hi + 0.03
+		for k in range(maxi(bank, 1), n - 1):
+			pts[k].y = maxf(pts[k].y, pts[k - 1].y - 0.03 * pts[k].distance_to(pts[k - 1]))
+		for _pass in range(12):
+			for k in range(1, mini(bank, n - 1)):
+				pts[k].y = maxf(pts[k].y, 0.5 * (pts[k - 1].y + pts[k + 1].y))
 		var L := 0.0
 		for k in range(1, pts.size()): L += pts[k].distance_to(pts[k - 1])
 		var full: float = e.width
@@ -149,8 +176,9 @@ func _core_seams() -> void:
 		var sp: PackedVector3Array = e.pts
 		var tail := p0 + (sp[1] - p0).normalized() * 0.6
 		roads.append({"id": "seam.%s" % e.id, "cls": "highway", "kind": 0, "width": full, "pts": pts, "bridge": br,
-			"bridges": [[0, pts.size() - 1]], "nav": -1, "from": "", "to": "", "widths": widths, "seam": true, "tail": tail})
-		seams.append({"id": "seam.%s" % e.id, "road": core, "from": start, "pts": pts})
+			"bridges": [[0, pts.size() - 1]], "nav": -1, "from": "", "to": "", "widths": widths, "seam": true, "tail": tail,
+			"rail_from": maxi(bank - 3, 0)})
+		seams.append({"id": "seam.%s" % e.id, "road": core, "from": bank_end, "bank_from": start, "pts": pts})
 
 
 ## A road that joins another starts (or ends) on the parent's centre line; its ribbon is trimmed
@@ -593,7 +621,9 @@ func _build_bridge(e: Dictionary, a: int, b: int) -> void:
 	var faces := PackedVector3Array()
 	var lamps: Array[Transform3D] = []
 	if stone: _masonry_bridge(m, C, Rt, foot, hw, faces)
-	else: _concrete_bridge(m, C, Rt, foot, hw, faces)
+	# (a core seam's deck has no parapets on the bank: a rider cutting the bend onto it must not
+	# meet the end of a barrier)
+	else: _concrete_bridge(m, C, Rt, foot, hw, faces, maxi(int(e.get("rail_from", 0)) - a, 0))
 	for k in range(n):
 		if k % 12 == 6 and length > 200.0:
 			var side := 1.0 if (k / 12) % 2 == 0 else -1.0
@@ -617,11 +647,12 @@ func _build_bridge(e: Dictionary, a: int, b: int) -> void:
 
 
 ## Deck collision (top at the sample heights) and the parapets' inner faces up to `ph`.
-static func _deck_faces(C: PackedVector3Array, Rt: PackedVector3Array, hw: float, inset: float, ph: float, faces: PackedVector3Array) -> void:
+static func _deck_faces(C: PackedVector3Array, Rt: PackedVector3Array, hw: float, inset: float, ph: float, faces: PackedVector3Array, rail_from := 0) -> void:
 	for k in range(C.size() - 1):
 		var l0 := C[k] - Rt[k] * hw; var r0 := C[k] + Rt[k] * hw
 		var l1 := C[k + 1] - Rt[k + 1] * hw; var r1 := C[k + 1] + Rt[k + 1] * hw
 		faces.append_array(PackedVector3Array([l0, r0, r1, l0, r1, l1]))
+		if k < rail_from: continue
 		for side: float in [-1.0, 1.0]:
 			var e0: Vector3 = C[k] + Rt[k] * side * (hw - inset); var e1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - inset)
 			var up := Vector3(0, ph, 0)
@@ -732,9 +763,9 @@ func _pier_box(m: ArchMesh, c: Vector3, rt: Vector3, half_across: float, along: 
 
 
 ## Parapet walls on both deck edges: outer and inner faces, a coping on top.
-static func _parapets(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, hw: float, thick: float, h: float, wall: Color, cope: Color) -> void:
+static func _parapets(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, hw: float, thick: float, h: float, wall: Color, cope: Color, rail_from := 0) -> void:
 	for side: float in [-1.0, 1.0]:
-		for k in range(C.size() - 1):
+		for k in range(rail_from, C.size() - 1):
 			var o0: Vector3 = C[k] + Rt[k] * side * hw; var o1: Vector3 = C[k + 1] + Rt[k + 1] * side * hw
 			var i0: Vector3 = C[k] + Rt[k] * side * (hw - thick); var i1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - thick)
 			var up := Vector3(0, h, 0)
@@ -749,7 +780,7 @@ static func _parapets(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array
 			_q2(m, o0c + up - cu, o1c + up - cu, o1c + up, o0c + up)
 
 
-func _concrete_bridge(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, foot: PackedFloat32Array, hw: float, faces: PackedVector3Array) -> void:
+func _concrete_bridge(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, foot: PackedFloat32Array, hw: float, faces: PackedVector3Array, rail_from := 0) -> void:
 	var n := C.size()
 	var conc := Color(0.8, 0.79, 0.76)
 	var girder := 2.1
@@ -773,16 +804,16 @@ func _concrete_bridge(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array
 			if h > 1.0:
 				_wall_pier(m, C[k], Rt[k], hw, foot[k], C[k].y - girder, conc)
 	# barriers: a concrete safety kerb with a steel rail on posts
-	_parapets(m, C, Rt, hw, 0.45, 0.85, Color(0.84, 0.83, 0.8), Color(0.86, 0.85, 0.82))
+	_parapets(m, C, Rt, hw, 0.45, 0.85, Color(0.84, 0.83, 0.8), Color(0.86, 0.85, 0.82), rail_from)
 	m.layer = float(ArchMaterials.IRON) + 0.3; m.tint = Color(0.62, 0.64, 0.66)
 	for side: float in [-1.0, 1.0]:
-		for k in range(n - 1):
+		for k in range(rail_from, n - 1):
 			var p0 := C[k] + Rt[k] * side * (hw - 0.22) + Vector3(0, 1.1, 0); var p1 := C[k + 1] + Rt[k + 1] * side * (hw - 0.22) + Vector3(0, 1.1, 0)
 			_q2(m, p0, p1, p1 + Vector3(0, 0.12, 0), p0 + Vector3(0, 0.12, 0))
 			if k % 1 == 0:
 				var c := C[k] + Rt[k] * side * (hw - 0.22)
 				m.cbox(c + Vector3(0, 0.98, 0), Vector3(0.08, 0.26, 0.08))
-	_deck_faces(C, Rt, hw, 0.45, 1.2, faces)
+	_deck_faces(C, Rt, hw, 0.45, 1.2, faces, rail_from)
 
 
 func _wall_pier(m: ArchMesh, c: Vector3, rt: Vector3, hw: float, y0: float, y1: float, conc: Color) -> void:
