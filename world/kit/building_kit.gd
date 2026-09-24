@@ -916,8 +916,32 @@ static func build_lod(plots: Array) -> Mesh:
 	return mesh
 
 
-const LOD_ROOF := {7: Color(0.66, 0.36, 0.24), 8: Color(0.36, 0.36, 0.37), 16: Color(0.86, 0.84, 0.8), 1: Color(0.94, 0.93, 0.9)}
-const LOD_WALL := {2: Color(0.6, 0.59, 0.57), 3: Color(0.8, 0.77, 0.7), 4: Color(0.62, 0.34, 0.24), 5: Color(0.8, 0.72, 0.6), 6: Color(0.8, 0.84, 0.9), 9: Color(0.5, 0.4, 0.3)}
+## m-6: the far silhouettes' colours are the detailed buildings' own albedo, in LINEAR light (the
+## LOD material takes vertex colours as linear, like arch.gdshader's tint): per layer the mean of
+## the albedo map and the mean of the map x its tint mask (facades.py layers, measured from
+## assets/buildings/*_alb.png), so mean(alb x mix(1, tint, mask)) = MEAN + (tint - 1) x MASKED.
+## The old table held sRGB-looking values read as linear: pale salmon roofs and chalky walls, a
+## visible LOD line across every town seen from the air.
+const LAYER_MEAN := [Color(0.765, 0.736, 0.679), Color(0.854, 0.848, 0.825), Color(0.295, 0.279, 0.252), Color(0.578, 0.538, 0.456),
+	Color(0.35, 0.161, 0.102), Color(0.604, 0.477, 0.318), Color(0.822, 0.807, 0.735), Color(0.37, 0.107, 0.039),
+	Color(0.151, 0.146, 0.144), Color(0.195, 0.136, 0.091), Color(0.752, 0.75, 0.713), Color(0.003, 0.003, 0.004),
+	Color(0.012, 0.012, 0.013), Color(0.655, 0.619, 0.536), Color(0.749, 0.745, 0.707), Color(0.842, 0.822, 0.742), Color(0.658, 0.622, 0.554)]
+const LAYER_MASKED := [Color(0.765, 0.736, 0.679), Color(0.854, 0.848, 0.825), Color(0.18, 0.171, 0.155), Color(0.552, 0.513, 0.435),
+	Color(0.223, 0.078, 0.042), Color(0.604, 0.477, 0.318), Color(0.206, 0.205, 0.197), Color(0.269, 0.077, 0.028),
+	Color(0.052, 0.05, 0.05), Color(0.195, 0.135, 0.091), Color(0.744, 0.743, 0.708), Color(0.0, 0.0, 0.0),
+	Color(0.005, 0.005, 0.006), Color(0.655, 0.619, 0.536), Color(0.737, 0.736, 0.701), Color(0.421, 0.411, 0.371), Color(0.658, 0.622, 0.554)]
+## the shader's weathering on average (grime at the foot, eave shadow, streaks; moss on roofs) and
+## the maps' cavity AO, which the far box has no texels for
+const LOD_WALL_WEAR := 0.84
+const LOD_ROOF_WEAR := 0.8
+const LOD_ROOF := {7: Color(0.296, 0.086, 0.031), 8: Color(0.121, 0.117, 0.115), 16: Color(0.526, 0.498, 0.443), 1: Color(0.683, 0.678, 0.66)}
+
+
+## The mean albedo (linear) of `layer` under `tint`.
+static func lod_albedo(layer: int, tint: Color) -> Color:
+	layer = clampi(layer, 0, LAYER_MEAN.size() - 1)
+	var m: Color = LAYER_MEAN[layer]; var a: Color = LAYER_MASKED[layer]
+	return Color(m.r + (tint.r - 1.0) * a.r, m.g + (tint.g - 1.0) * a.g, m.b + (tint.b - 1.0) * a.b)
 
 
 static func lod_plot(m: ArchMesh, p: Dictionary) -> void:
@@ -938,7 +962,7 @@ static func lod_plot(m: ArchMesh, p: Dictionary) -> void:
 	m.box(Vector3(-w * 0.5, yb, -d * 0.5), Vector3(w * 0.5, top, d * 0.5), 63 - 8)
 	var rl := int(q.roof_layer)
 	var rc: Color = LOD_ROOF.get(rl, col)
-	if rl == L.ROOF_TILE or rl == L.SLATE: rc = rc * (q.roof_tint as Color)
+	if rl == L.ROOF_TILE or rl == L.SLATE: rc = lod_albedo(rl, q.roof_tint as Color) * LOD_ROOF_WEAR
 	m.tint = rc
 	var k := tan(float(q.pitch))
 	match q.roof:
@@ -946,7 +970,7 @@ static func lod_plot(m: ArchMesh, p: Dictionary) -> void:
 			pass
 		"barrel":
 			var span := minf(w, d)
-			m.tint = Color(0.94, 0.93, 0.9)
+			m.tint = LOD_ROOF[1]   # whitewashed barrel vault
 			if w <= d:
 				for s: float in [-1.0, 1.0]:
 					F.quad_out(m, Vector3(-w * 0.5 * s, H, d * 0.5), Vector3(0, H + span * 0.28, d * 0.5), Vector3(0, H + span * 0.28, -d * 0.5), Vector3(-w * 0.5 * s, H, -d * 0.5), Vector3(-s, 1, 0))
@@ -977,8 +1001,4 @@ static func lod_plot(m: ArchMesh, p: Dictionary) -> void:
 
 
 static func lod_colour(mat: Array) -> Color:
-	var layer := int(mat[0])
-	var tint: Color = mat[1]
-	if layer == L.AZULEJO: return Color(0.9, 0.9, 0.9).lerp(tint, 0.35)
-	if LOD_WALL.has(layer): return LOD_WALL[layer] * tint
-	return Color(0.9, 0.89, 0.86) * tint
+	return lod_albedo(int(mat[0]), mat[1] as Color) * LOD_WALL_WEAR
