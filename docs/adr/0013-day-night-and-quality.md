@@ -20,7 +20,10 @@ had no fallback.
 
 **One clock, one state, pushed everywhere.** `DayNight` (world/sky, a child of the Environment)
 takes the hour from `IslandLife` and computes the sun and a full moon on the celestial sphere
-(latitude 38°, late summer: sunrise ~6:20, sunset ~19:40). Every look value is a key frame by the
+(latitude 45.7°, declination 10°, late summer: sunrise ~6:19, sunset ~19:41). The two angles are
+chosen so that at `DayNight.REFERENCE_HOUR` (14:44) the sun stands exactly where the art passes put
+it (`Atmosphere.sun_elevation_deg` 48°, `sun_yaw_deg` -40°): the reference look is that afternoon,
+and `tests/view.gd` (the `reference/compare.py` renders) pins that hour. Every look value is a key frame by the
 *sun's elevation* (night, blue hour, sunset, golden hour, day = `WorldKit.Atmosphere` unchanged),
 so dawn and dusk share one palette and the day look the art passes tuned is untouched. The state
 goes to:
@@ -66,8 +69,8 @@ the default, tuned for the M4 Pro at a Retina window.
   the shader fails to compile.
 - Real light is budgeted: a street far from the camera glows but lights nothing. The pool's
   budget is the only knob; shadows from lamps are off (the headlight's are a preset).
-- The sun no longer sits at the reference's fixed yaw: the reference look is the afternoon
-  (~15:00-16:00, sun WSW); the morning light comes from the east.
+- The sun no longer sits at the reference's fixed yaw except at 14:44 (REFERENCE_HOUR); the
+  morning light comes from the east. Reference comparisons must pin that hour (view.gd does).
 - DayNight owns the Environment's ambient, fog colour, exposure and the sky's colours: tune the
   day look in `WorldKit.Atmosphere`, the rest in `DayNight.KEYS`.
 

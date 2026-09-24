@@ -170,7 +170,7 @@ dn_windows={
 }
 dn_sun_dir={
 "type": "vec3",
-"value": Vector3(-0.52, 0.588, 0.62)
+"value": Vector3(-0.43, 0.743, 0.513)
 }
 
 [rendering]

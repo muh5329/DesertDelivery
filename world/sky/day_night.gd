@@ -22,9 +22,13 @@ signal changed
 ## The running game's cycle (vehicle lamps, fires and tools read it; null before the world boots).
 static var now: DayNight
 
-const LATITUDE := 38.0          # degrees: a Mediterranean island
-const DECLINATION := 12.0       # late summer; the moon (full) sits opposite at -DECLINATION
-const SOLAR_NOON := 13.0        # summer time: noon at 13:00, sunrise ~6:20, sunset ~19:40
+## The latitude and declination are chosen so that at REFERENCE_HOUR the sun stands exactly where
+## the art passes put it (WorldKit.Atmosphere: 48 deg up, yaw -40 = south-west), so the reference
+## look (reference/compare.py, tests/view.gd pins this hour) is the afternoon of the running day.
+const LATITUDE := 45.7          # degrees: a northern Mediterranean island
+const DECLINATION := 10.0       # late summer; the moon (full) sits opposite at -DECLINATION
+const SOLAR_NOON := 13.0        # summer time: noon at 13:00, sunrise ~6:19, sunset ~19:41
+const REFERENCE_HOUR := 14.728  # 14:44: the sun at Atmosphere.sun_elevation_deg / sun_yaw_deg (within 0.03 deg)
 
 ## Key frames by sun elevation (degrees). Colours are sRGB (as the sky/Atmosphere use them).
 ## sky_* = the sky shader's gradient, glow = the sun-side lobe, sun = the direct light,

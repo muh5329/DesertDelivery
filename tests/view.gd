@@ -22,6 +22,9 @@ func _ready() -> void:
 	game.bike.visible = false
 	game.player.visible = false
 	var args := OS.get_cmdline_user_args()
+	# the reference look is the afternoon: pin the clock where the sun is Atmosphere's (--hour=H overrides)
+	if lvl.day_night and not args.any(func(a: String) -> bool: return a.begins_with("--hour=")):
+		lvl.day_night.pin_hour(DayNight.REFERENCE_HOUR)
 	if "--nofog" in args:
 		for c in lvl.environment.get_children():
 			if c is WorldEnvironment: c.environment.fog_enabled = false
