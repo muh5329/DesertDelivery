@@ -368,6 +368,9 @@ void fragment() {
 	vec3 bt = normalize(cross(t, n));
 	vec3 nw = normalize(n + (t * tn.x - bt * tn.y) * dn);
 	ALBEDO = col;
+	// under the canopy the ground sees mostly the blue sky ambient and went slate-grey: the light
+	// that reaches a forest floor is green-gold, bounced off the leaves and the litter
+	EMISSION = col * vec3(0.16, 0.13, 0.07) * litter * (1.0 - smoothstep(150.0, 600.0, dist));
 	ROUGHNESS = clamp(rough, 0.35, 1.0);
 	SPECULAR = 0.3;
 	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);

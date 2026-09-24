@@ -324,6 +324,9 @@ def layout_sarmada(town, ctx):
     m0 = mole0 + inl * 25.0
     town.fill.append([(m0 - ax * 9).tolist(), (m0 + ax * 9).tolist(), (mole1 + ax * 9).tolist(), (mole1 - ax * 9).tolist()])
     mi = town.add_street("quay", 10.0, [mole0 + inl * 6, mole1]); set_rule(town, mi, ("flat", 2.4))
+    # the mole is walled in stone on both sides (quay walls, bollards, boats moored along it)
+    town.quay_edges.append([(mole0 + ax * 7.5).tolist(), (mole1 + ax * 7.5).tolist()])
+    town.quay_edges.append([(mole1 - ax * 7.5).tolist(), (mole0 - ax * 7.5).tolist()])
     town.landmarks.append({"id": "sarmada.lighthouse", "kind": "lighthouse", "pos": mole1 + sea * 4, "yaw_deg": 0.0})
     town.port = {"berth": (mole0 + mole1) * 0.5 - ax * 24, "heading_deg": math.degrees(math.atan2(-sea[0], -sea[1]))}
     # ---- walls, towers and gates (the kit builds them from these plots)

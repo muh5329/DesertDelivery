@@ -119,7 +119,7 @@ void fragment() {
 			// Lisbon calcada: small white limestone cubes (the sett texture's grain only) with black
 			// basalt waves laid through them, crisp-edged
 			float lum = dot(texture(sett_tex, wpos.xz / 1.6).rgb, vec3(0.33));
-			col = vec3(0.86, 0.84, 0.79) * (0.72 + 0.55 * lum) * (0.94 + 0.12 * n1);
+			col = vec3(0.84, 0.82, 0.77) * (0.8 + 0.34 * lum) * (0.94 + 0.12 * n1);
 			float wave = sin(along * 0.42 + sin(across * 0.21) * 2.2);
 			float band = 1.0 - smoothstep(0.2, 0.26, abs(wave));
 			col = mix(col, vec3(0.11, 0.11, 0.12) * (0.8 + 0.5 * lum), band);

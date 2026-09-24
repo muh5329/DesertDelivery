@@ -333,8 +333,8 @@ void fragment() {
 		vec2 fuv = vec2(dot(wpos.xz, fd) / 40.0 - TIME * length(flow) / 40.0, dot(wpos.xz, vec2(-fd.y, fd.x)) / 5.0);
 		// sparse: a few thin lines where two noise bands agree, faint, gone past a few hundred metres
 		float ln = texture(foam_noise, fuv).r * texture(foam_noise, fuv * vec2(0.37, 0.61) + 0.3).r;
-		float lines = smoothstep(0.43, 0.47, ln) * lines_w * (1.0 - smoothstep(80.0, 400.0, surf_d));
-		foam = max(foam, lines * 0.18);
+		float lines = smoothstep(0.45, 0.5, ln) * lines_w * (1.0 - smoothstep(60.0, 300.0, surf_d));
+		foam = max(foam, lines * 0.08);
 		col *= 1.0 - 0.05 * smoothstep(0.4, 0.6, texture(foam_noise, fuv * vec2(0.3, 0.5) + 0.5).r) * lines_w;
 	}
 	// far coasts: the surf line from the height map where the depth buffer's foam has faded out

@@ -62,6 +62,21 @@ over the lagoon bridges: Campo Real (the plains) → Puerto Alto (over the estua
 → Isola Serena (over the causeway) → Valdoro (up the switchbacks in the north).
 Signposts at each hub and at every outer junction point the way; F6 teleports to the next hub.
 
+## The country
+
+Beyond the lagoon: the alpine range with its dammed lake, snowfields and pine forests in stands and
+glades (shrubs, ferns and fallen trunks underneath, meadows in flower above); rivers running from the
+mountains to the lagoon, the estuary and the sea, bridged where the roads cross; the green farmland of
+the east with its hedged parcels, vineyards, hay and orchards; the south's red-banded mesas and
+canyons, dry wadis lined with oleander and tamarisk, dark gravel plains, a sand sea of dunes east of
+the mesas and irrigated palm oases down the Rambla to Sarmada; the rugged west with dry-stone field
+walls. Masonry arch bridges and a stone causeway carry the country roads, concrete viaducts the
+highways; the roads have shoulders, kilometre stones, delineators, bend chevrons and lit approaches to
+the towns. The towns' plazas have fountains, planted trees, benches, lamps, markets and cafe tables;
+the ports have stone quays, bollards, moored and bobbing boats, jetties, cranes, nets and moles with
+their lighthouses; Valdoro's slopes are terraced. On Forward+ the look adds SSAO, SSIL, a thin
+volumetric fog and four shadow cascades (`--nopost` turns the post stack off to compare).
+
 ## Places
 
 Eight hubs with delivery rings — Villa Rosa, Hilltop Farm, the Harbour, Dunes Lookout, San Telmo Monastery,
@@ -119,7 +134,7 @@ All checks run inside the booted game through the test runner (`--test=NAME` loa
 ```
 godot --headless --path . -- --autotest --deliveries=10 --maxtime=2800   # drives the whole loop, exits 0 on success
 godot --headless --path . -- --test=outer_world_tests           # outer world: data, surface == collision, roads, towns, plots, budgets
-godot --headless --path . -s tests/control_regression_tests.gd # analog, buffered/coyote jumps, controls
+godot --headless --path . -- --test=control_regression_tests    # analog, buffered/coyote jumps, controls
 godot --headless --path . -s tests/third_person_tests.gd       # movement, jump height, slopes, camera obstruction
 godot --headless --path . -s tests/bike_dynamics_tests.gd      # suspension, crest airtime, landing and timestep parity
 godot --headless --path . -s tests/streaming_budget_tests.gd   # incremental construction and collider ownership

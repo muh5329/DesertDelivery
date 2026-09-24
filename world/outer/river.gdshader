@@ -65,10 +65,12 @@ void fragment() {
 	col = mix(col, sky, fres * 0.25);
 	col = mix(col, foam_col, foam);
 	ALBEDO = col;
-	// no screen-space reflections on a transparent surface: a glossy one mirrors only the pale sky
-	// (the river read as a concrete channel), so the gloss stays low and the albedo carries it
+	// no screen-space reflections on a transparent surface: the engine's specular mirrors only the
+	// blurred sky radiance, and at the rider's grazing angles its Fresnel turned the whole river into
+	// a flat pale-grey slab (a concrete channel). Specular off (F0 = 0 also zeroes Godot's f90); the
+	// small hand-made sky Fresnel above is all the reflection the river keeps
 	ROUGHNESS = mix(0.32, 0.6, foam);
-	SPECULAR = 0.08;
+	SPECULAR = 0.0;
 	// fade into the banks: no hard edge where the ribbon meets the ground
 	ALPHA = clamp(0.35 + smoothstep(0.0, 0.25, thick) + foam, 0.0, 1.0);
 }
