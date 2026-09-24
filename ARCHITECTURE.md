@@ -30,6 +30,11 @@ res://
 │   │                        (ArchStyles plans, ArchFacade walls/openings/roofs, ArchModules instanced pieces,
 │   │                        ArchSpecial towers/churches/walls/gates, ArchMaterials + arch.gdshader, ArchMesh)
 │   ├── island/              island.gd (the generator for THIS island: hubs, places, roads, biomes)
+│   ├── life/                IslandLife (the 64 residents, drivers, the clock), Resident, ResidentActor, ViewPool,
+│   │                        RoadNavigation, CharacterLook, IslandWildlife; the outer world's life (ADR 0012):
+│   │                        OuterLife -> TownFolk (TownPopulation per town: spots, walking graph, people;
+│   │                        Townsperson records; pooled TownBody views), OuterTraffic + TrafficModels,
+│   │                        OuterBoats
 │   └── mapgen/              extract.py (painting → 720 m map), expand.py (→ 1248 m world + new land), textures.py,
 │                            outer.py (+ outer_*.py: the outer world → data/outer; outer_water.py rivers, wadis,
 │                            erg, oases; outer_props.py town dressing), outer_textures.py,
@@ -52,6 +57,7 @@ res://
 │   ├── weapons/             gun.gd (GunSystem: the M1 Garand), garand_model.gd, mesh_kit.gd, weapon_materials.gd, weapon_audio.gd
 │   ├── combat/              encounter_director.gd (camps, ambushes), camp_kit.gd, player_vitals.gd, health.gd, combat_fx.gd
 │   └── colony/              colony_system.gd (ColonySystem: core residents' jobs, areas, sites, roads, the save),
+│                            urgent_supply.gd (UrgentSupply: short colonies post optional truck jobs),
 │                            the colony sim (ADR 0011): economy_catalog.gd (goods, buildings, ships, colonies),
 │                            colony_town.gd (ColonyTown: one colony's rules), colony_economy.gd (ColonyEconomy:
 │                            towns, charters, placement, the 4 Hz tick, saves), shipping_network.gd (water grid,
@@ -230,6 +236,26 @@ PX=.. PY=.. PZ=.. godot --headless --path . -- --test=near_probe --nostream
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast,villa --out=DIR   # reference spots (reference/spots.json)
 ```
 
+## Life in the outer world
+
+`IslandLife` owns `OuterLife` (ADR 0012): `TownFolk`, `OuterTraffic`, `OuterBoats`. All three
+cost nothing far from the viewer (the camera, or the courier):
+
+- **Townsfolk** — per plan town a `TownPopulation` (generated on a worker thread within 1.6 km:
+  spots, a street walking graph clear of plots and props, ~0.7 people a plot with trades from
+  their work spots and a daily routine). Within ~0.5 km the town is *active*: people are placed by
+  the routine (spread over frames), a slice of them is re-checked each frame, a due one asks for a
+  route (worker batches) and walks it; positions are functions of the clock. Views: the 160
+  nearest get a pooled `TownBody` (RiderModel, `manual_meshes`), the 40 nearest may draw the near
+  mesh; meshes are `PersonBuilder` parts built and committed on workers (`request_part`,
+  `poll_parts`).
+- **Traffic** — `OuterTraffic` spawns 300-600 m out (150 m behind the camera), routes on
+  `RoadNavigation` to town / hamlet gates, lanes and limits per road class, following, junction
+  yielding, stops for the courier; kinematic colliders on layer 16; gone beyond 900 m.
+- **Boats** — `OuterBoats`: per harbour moorings, fishing grounds and water routes (A* on a 20 m
+  grid, planned on a worker within 3.2 km), boats and fishers drawn within 1.6 km; positions by
+  the clock.
+
 ## Colonies and shipping
 
 `Colony` (ColonySystem, a child of Game) owns `Economy` (ColonyEconomy): a `ColonyTown` record per
@@ -238,7 +264,9 @@ worker thread at boot, routes, lanes and ships as records) and `ColonyViews` (wh
 viewer). The economy ticks at 4 Hz by rates, loaded or not; porters' trips and ships' positions
 are records the views read. Registered with `Saves` as `colony` (version 2). The Mayor view (F4)
 is the UI; pirates come from the EncounterDirector's camps (`camp_cleared` recomputes raid risk).
-See ADR 0011.
+`UrgentSupply` (in the economy) posts an optional truck job when a founded town colony runs short
+of food or goods; `DeliverySystem.start_extra_job` runs it on top of the route and resumes the
+route after. See ADR 0011.
 
 ## Combat
 
@@ -251,6 +279,8 @@ courier); enemies never touch the Rider or the HUD. Sight and cover rays share a
 physics frame across all enemies. Tiers: FULL = physics + 10 Hz AI, REDUCED = kinematic
 (ground-snapped, no `move_and_slide`) + 3 Hz AI, below that frozen; camps despawn at 320 m anyway.
 `encounters.add_camp(id, kind, pos, facing, size)` is the whole API a world needs to place a camp.
+Enemies are townsfolk bodies: `EnemyOutfit.look_for(kind, seed)` (CharacterLook styles `bandit` /
+`pirate`, eight pinned variants per kind prebuilt at boot) plus the outfit's gear on the pivots.
 
 ## Adding an NPC or a car (the point of all this)
 

@@ -21,7 +21,8 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   Dunes Lookout (where the old pistol lay) and camp **ammo crates** refill it. **Tin cans** on the
   farm wall and the lookout bench are practice targets.
 - **Spread** — the half-angle of the shot cone: hip vs aimed, plus movement, air and **bloom**.
-- **Bandit / Pirate** — an `Enemy`: bandits (dusters, hats, lever rifles, revolvers) hold
+- **Bandit / Pirate** — an `Enemy` (a townsfolk body in the `bandit` / `pirate` style, EnemyOutfit's
+  gear on top): bandits (dusters, hats, lever rifles, revolvers) hold
   **camps** inland and **roadblocks** on the highways; pirates (headscarves, striped shirts,
   carbines) hold **coves** on the shore. AI states: IDLE, SUSPICIOUS, COMBAT (cover, peek, flank),
   SEARCH, FLEE (morale broke), DEAD.
@@ -141,6 +142,24 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Prop** — a piece of town dressing (`plan.json` town `props`: kind, x, y, z, yaw, variant) placed
   by `world/mapgen/outer_props.py` and built by `OuterProps` / `ArchProps`. **Terraces** — Valdoro's
   dry-stone terrace walls along the slope's contours.
+
+## Outer life (ADR 0012)
+
+- **Townsperson** — one ambient person of an outer town or hamlet (`Townsperson`): seed, trade,
+  home, work spot, daily routine. Not a resident, not a colonist; nothing about him is saved.
+- **Town population** — a town's spots, walking graph and townspeople (`TownPopulation`), made
+  from its plan record. A town is **prepared** (generated) within 1.6 km of the viewer and
+  **active** (routines running, bodies drawn) within ~0.5 km.
+- **Spot** — a place a townsperson can be: a **door** (home), a **stall** (vendor behind, shoppers
+  in front), a **shop** door, a **seat** (bench, cafe chair), a **chat** spot (plaza, fountain), a
+  **mend** / **fish** / **dock** spot on the quay, a **field** or **barn** spot.
+- **Routine** — `[minute, spot, activity]` entries: home (indoors, no body), work, rest, shop.
+- **Body** — a pooled `TownBody` drawing one townsperson near the viewer.
+- **Traffic** — the vehicles on the outer roads round the viewer (`OuterTraffic`): car, lorry,
+  bus, tractor, donkey cart. A **gate** is where a town's main street meets the country road.
+- **Fishing boat** — a boat of an outer harbour (`OuterBoats`): mooring, trip out, fishing ground.
+- **Urgent supply job** — an optional truck delivery a short colony posts (`UrgentSupply`):
+  "Urgent: 20 bread to Isola Serena", taken with U.
 
 ## Colonies (ADR 0011)
 

@@ -32,6 +32,7 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 | Fire / release truck winch (driving the truck) | Q | RB |
 | Toggle truck cargo packing (while stopped) | G | — |
 | Island journal | N | — |
+| Take an urgent colony supply job | U | — |
 | Close journal / quit | Esc | B closes journal |
 
 ## Beyond the bike
@@ -83,6 +84,27 @@ Eight hubs with delivery rings — Villa Rosa, Hilltop Farm, the Harbour, Dunes 
 the Marble Quarry, Cala Blanca and the Salinas — and nine more named places to find: the Town Square and the
 Lighthouse on the town island, the Hamlet by the bay, Windmill Ridge, the Hill Chapel, the Refugio on the pass,
 the Lakeside Camp, the Bodega and Torre Vieja (the old fort on the southern headland).
+
+## Life in the country
+
+The towns and hamlets are lived in: about 1,200 townsfolk (Puerto Alto ~460, Sarmada and Campo
+Real ~200, Valdoro ~120, Isola Serena ~110, a hamlet 4-10), each dressed in the town's style and
+working a trade that fits the place — vendors behind the market stalls, shopkeepers sweeping
+their doorsteps, dockworkers carrying crates along the quays, fishers mending nets and fishing off
+the quay, farmers hoeing the gardens and working at the barns, shepherds and woodcutters in
+Valdoro, porters and weavers in Sarmada's souk. They keep a daily routine on the island clock
+(home, work, lunch on a bench or at a cafe table, back to work, an errand, the evening on the
+plaza, home at night) and walk the streets between, never through the buildings. Cars, lorries
+and country buses run on the highways, tractors and donkey carts on the country roads and tracks,
+in their lanes, at the road's speed, yielding at junctions and stopping for you; fishing boats
+leave the harbours of Puerto Alto, Sarmada and Isola Serena for their grounds and come home.
+Bandits and pirates are townsfolk-style people too (dusters, bandanas over the face, wide hats;
+headscarves, striped shirts, sashes, earrings). All of it only exists near you (ADR 0012).
+
+When a colony you founded runs short of food (or goods), it posts an **urgent supply job** on
+the HUD — "URGENT · 20 bread → Isola Serena · +64 coins · U to take it". Press **U** to take it:
+collect the load with the cargo truck where it is sold, deliver it for the bonus, and your route
+resumes where it was.
 
 ## Colonies and shipping lanes
 
@@ -211,6 +233,8 @@ godot --headless --path . -- --test=colony_system_tests         # core colony jo
 godot --headless --path . -- --test=colony_economy_tests        # chains, needs/growth, placement, charters, views, tick budget, saves
 godot --headless --path . -- --test=shipping_tests              # sea routes over water, round trips, far ships, pirates, saves
 godot --headless --path . -- --test=mayor_view_tests            # Mayor view modal, pages, ghost, switcher, projection
+godot --headless --path . -- --test=town_life_tests             # townsfolk, traffic, boats, new-look enemies, urgent supply jobs
+xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=town_life_view --out=/tmp/life   # towns, souk, harbour, highway, camps
 xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=colony_shots --out=/tmp/colony   # Mayor view, ships, district
 godot --path . -- --test=catalogue_view --out=/tmp/journal.png   # actual UI checks and two viewport captures
 godot --path . -- --test=town_world_view --out=/tmp/town         # streamed street and aerial captures
