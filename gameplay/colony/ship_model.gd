@@ -147,7 +147,7 @@ func _build_meshes() -> Array:
 	for j in range(U):
 		var a: Vector3 = rings[0][j]; var b: Vector3 = rings[0][j + 1]
 		var col := boot if a.y < 0.25 else topside
-		MeshBits.quad(st, Vector3(-a.x, a.y, a.z), Vector3(-b.x, b.y, b.z), b, a, col)
+		MeshBits.quad(st, a, b, Vector3(-b.x, b.y, b.z), Vector3(-a.x, a.y, a.z), col)
 	# deck and bulwarks
 	var deck := Color("a7865a")
 	for i in range(S):
@@ -165,7 +165,9 @@ func _build_meshes() -> Array:
 				MeshBits.quad(st, b, a, a + up, b + up, strake)
 				MeshBits.quad(st, a, b, b + up, a + up, Color("d8cdb2"))
 			# the cap rail
-			MeshBits.quad(st, a + up, b + up, b + up + Vector3(-0.14 * side, 0.02, 0), a + up + Vector3(-0.14 * side, 0.02, 0), Color("6b4a2e"))
+			var ia := a + up + Vector3(-0.14 * side, 0.02, 0); var ib := b + up + Vector3(-0.14 * side, 0.02, 0)
+			if side > 0: MeshBits.quad(st, a + up, b + up, ib, ia, Color("6b4a2e"))
+			else: MeshBits.quad(st, a + up, ia, ib, b + up, Color("6b4a2e"))
 	var sails: SurfaceTool = null
 	if type == "coaster": _coaster(st)
 	else:

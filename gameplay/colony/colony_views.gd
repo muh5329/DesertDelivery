@@ -463,7 +463,7 @@ func _sync_buoys(v: Vector3) -> void:
 				var p: Vector2 = at[0]; var d: Vector2 = at[1]
 				var side := d.orthogonal() * 22.0
 				for k in [1.0, -1.0]:
-					var q := p + side * k
+					var q: Vector2 = p + side * k
 					if sh.navigable(q): _buoy_points.append([Vector3(q.x, 0.0, q.y), k > 0.0])
 				s += BUOY_SPACING
 	var mm := _buoys.multimesh

@@ -1,17 +1,19 @@
 class_name MeshBits
 extends RefCounted
 ## Vertex-coloured primitives appended to a SurfaceTool (TRIANGLES), so a ship or a building
-## yard is one mesh and one draw call. Faces wind for Godot's default back-face culling.
+## yard is one mesh and one draw call. Callers list a face's corners counter-clockwise as seen
+## from outside; Godot's front faces wind clockwise, so they are emitted reversed
+## (tests/mesh_winding_probe.gd checks this against BoxMesh).
 
 
 static func quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: Color) -> void:
 	st.set_color(col)
-	for p in [a, b, c, a, c, d]: st.add_vertex(p)
+	for p in [a, c, b, a, d, c]: st.add_vertex(p)
 
 
 static func tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, col: Color) -> void:
 	st.set_color(col)
-	for p in [a, b, c]: st.add_vertex(p)
+	for p in [a, c, b]: st.add_vertex(p)
 
 
 static func box(st: SurfaceTool, xf: Transform3D, size: Vector3, col: Color) -> void:
