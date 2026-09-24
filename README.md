@@ -69,6 +69,66 @@ the Marble Quarry, Cala Blanca and the Salinas — and nine more named places to
 Lighthouse on the town island, the Hamlet by the bay, Windmill Ridge, the Hill Chapel, the Refugio on the pass,
 the Lakeside Camp, the Bodega and Torre Vieja (the old fort on the southern headland).
 
+## Colonies and shipping lanes
+
+A build-and-manage layer over the courier game (ADR 0011). The villa on the core island is a colony
+from the start; each of the five towns becomes available when you first ride into it, and a
+**founding charter** (120 coins, from your delivery wallet) raises a colony hall with a warehouse
+beside the port (or plaza), brings five settlers and a starter stock of planks, stone blocks,
+tools and food. Colonies pay taxes into your wallet in proportion to their size and happiness.
+
+- **Build** inside a colony's area (320 m round its hall; the whole core island for the villa) on
+  dry, flat ground clear of roads, streets, plots, landmarks and delivery rings — the ghost turns
+  red and the footer says why. Buildings are the towns' own architecture (the architecture kit in
+  the colony's style) with a working yard (log piles, fish racks, salt pans, vats, a forge, dye
+  frames, a slipway...), and rise on a staked foundation and a scaffold before they open.
+- **Produce**: raw goods depend on the land — timber, stone and ore at Valdoro; grain at Campo
+  Real; olives and grapes on the core; fish on the coasts; salt, cotton and dates at Sarmada —
+  so the chains need trade. Each producer's porter walks its goods to the nearest warehouse and
+  brings back inputs; near you they are real townsfolk carrying crates.
+- **People**: colonists take jobs by themselves, eat (bread, fish, preserved fish, dates, olives,
+  berries — variety helps), want goods (cloth, tools, olive oil, wine) and houses. Happiness
+  follows; happy, housed colonies grow (a new colonist in the town's dress), hungry ones shrink.
+- **Ships**: a shipyard at a port colony lays down a *motor coaster* (40 units, fast) or a
+  *topsail schooner* (90 units, needs cloth for sails). A **lane** joins two port colonies (the core
+  harbour, Puerto Alto, Sarmada, Isola Serena) with cargo rules — "load up to 40 grain at Puerto
+  Alto, unload at Isola Serena; return with 30 fish". Ships follow sea routes computed over the
+  real water (out of the lagoon through the estuary, between red and green channel buoys), moor
+  alongside timber jetties at the berths (sails struck), load and unload, and loop. Far ships sail
+  by the clock; near ones are modelled ships with a wake. A lane passing
+  an uncleared **pirate cove** risks a raid each leg (part of the cargo lost, you are told); clear
+  the cove and the risk is gone.
+
+| Raw | Where | Processing | Makes |
+| --- | --- | --- | --- |
+| Timber (woodcutter's lodge) | Valdoro, Campo Real, core | Sawmill | 2 timber -> 2 planks |
+| Stone (quarry) | Valdoro, Puerto Alto, core | Mason's yard | 2 stone -> 2 blocks |
+| Ore (mine) | Valdoro | Smithy | 2 ore + 1 plank -> 1 tools |
+| Grain (farm) | Campo Real | Flour mill, bakery | 3 grain -> 2 flour; 2 flour -> 4 bread |
+| Olives (grove) | core, Isola Serena, Campo Real | Olive press | 3 olives -> 1 oil |
+| Grapes (vineyard) | core, Isola Serena | Winery | 3 grapes -> 1 wine |
+| Fish (fishing hut, by the water) | coasts | Smokehouse | 2 fish + 1 salt -> 3 preserved fish |
+| Salt (salt pans, by the water) | Sarmada, Puerto Alto, core | | |
+| Cotton (field) | Sarmada | Weaver | 2 cotton -> 1 cloth |
+| Dates (palm grove) | Sarmada | | food |
+
+Houses: cottage (4 colonists), townhouse (8). Storage: warehouse (+800 capacity). Port: shipyard.
+Costs, workers, cycle times and storage are in `gameplay/colony/economy_catalog.gd`.
+
+### Mayor view (F4, on foot)
+
+| Action | Mouse | Keys |
+| --- | --- | --- |
+| Switch colony (the camera flies there) | colony list, top bar | — |
+| Colony overview: population, needs, happiness, stock, buildings, notices, charter | **Colony** tab | — |
+| Place a building | **Build** tab, pick one, click the map | **R** rotates, **Esc** cancels |
+| Inspect a building (workers, flow, buffers, efficiency, pause, demolish) | click it (Select) | — |
+| Ships, lanes, cargo rules, raid risk, trip log | **Trade** tab | — |
+| Pan / zoom / rotate the map | right-drag / wheel | WASD / — / Q, E |
+| Colony speed 1x / 2x / 4x, pause | top bar | — |
+| Core island residents' jobs, resource areas, paths | **Jobs**, **Areas**, **Paths** tabs | — |
+| Save / leave | top bar | F5 / F4 or Esc |
+
 ## Island life and journal
 
 Press **N** to open the parchment field journal. Search or sort the 64 named residents,
@@ -132,6 +192,11 @@ xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=combat_vi
 godot --headless --path . -- --test=truck_tests                 # mount, Tetris rack, winch pull / wall climb
 godot --headless --path . -- --test=delivery_tests              # all handoffs, wallet, loaded stage, on-foot / truck
 godot --headless --path . -- --test=life_tests                  # routines, navigation, grounding and collisions
+godot --headless --path . -- --test=colony_system_tests         # core colony jobs, orders, roads, save v2 / v1 migration
+godot --headless --path . -- --test=colony_economy_tests        # chains, needs/growth, placement, charters, views, tick budget, saves
+godot --headless --path . -- --test=shipping_tests              # sea routes over water, round trips, far ships, pirates, saves
+godot --headless --path . -- --test=mayor_view_tests            # Mayor view modal, pages, ghost, switcher, projection
+xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=colony_shots --out=/tmp/colony   # Mayor view, ships, district
 godot --path . -- --test=catalogue_view --out=/tmp/journal.png   # actual UI checks and two viewport captures
 godot --path . -- --test=town_world_view --out=/tmp/town         # streamed street and aerial captures
 godot --path . -- --test=life_view --out=/tmp/residents          # real working resident and driver views

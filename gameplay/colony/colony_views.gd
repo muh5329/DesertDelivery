@@ -23,6 +23,7 @@ var econ: ColonyEconomy
 var buildings: Dictionary = {}     # building id -> {node, key}
 var people: Dictionary = {}        # colonist id -> {node, model, crate}
 var ships: Dictionary = {}         # ship id -> ShipModel
+var jetties: Dictionary = {}       # colony id -> Node3D (the timber jetty at a port's mooring)
 var map_root: Node3D
 var map_active := false
 var map_colony := ""
@@ -31,6 +32,7 @@ var build_count := 0               # BuildingKit builds done (perf tools)
 var _queue: Array = []
 var _paths: Dictionary = {}        # building id -> PackedVector3Array (door to storage)
 var _bodies: Dictionary = {}
+var _route_budget := 1
 var _t := 0.0
 var _people_plan: Array = []
 var _yard_mat: StandardMaterial3D
@@ -104,6 +106,7 @@ func _process(delta: float) -> void:
 		_sync_ships(v)
 	_sync_buoys(v)
 	if not _queue.is_empty(): _build_next()
+	_route_budget = 1
 	_update_people(v, delta)
 	_update_ships(delta)
 	if map_active: _update_map()
@@ -184,7 +187,7 @@ func build_node(t: ColonyTown, b: Dictionary) -> Node3D:
 	var seed := absi(String(b.id).hash())
 	if drop > 0.12:
 		var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		MeshBits.box(st, Transform3D(Basis(), Vector3(0, -(drop + 0.5) * 0.5 + 0.02, 0)), Vector3(w + yard + 0.6, drop + 0.5, d + 2.2), Color("9c8b70"))
+		MeshBits.box(st, Transform3D(Basis(), Vector3(0, -(drop + 0.5) * 0.5 + 0.02, 0)), Vector3(w + yard + 0.6, drop + 0.5, d + 2.2), Color("7d6f58"))
 		st.generate_normals()
 		var terrace := MeshInstance3D.new(); terrace.name = "Terrace"; terrace.mesh = st.commit(); terrace.material_override = _yard_mat
 		node.add_child(terrace)
@@ -307,13 +310,18 @@ func _porter_pose(e: Dictionary) -> Array:
 	return [at, dir.normalized() if dir.length() > 0.01 else Vector3.FORWARD, moving, not (carry.load as Dictionary).is_empty()]
 
 
+## The porter's walk from its door to the storage door: the colony's own route finder (roads and
+## paths preferred, round obstacles), at most one new route a frame; a straight, grounded line
+## meanwhile or where no route is found.
 func _path_for(t: ColonyTown, b: Dictionary) -> PackedVector3Array:
 	if _paths.has(b.id): return _paths[b.id]
 	var a := door(t, b)
 	var s := t.storage_for(b)
 	var z := door(t, s) if not s.is_empty() else t.hall
 	var path := PackedVector3Array()
-	if econ.system != null and econ.system.roads != null and a.distance_to(z) < 240.0:
+	var solve := _route_budget > 0
+	if solve and econ.system != null and econ.system.roads != null and a.distance_to(z) < 240.0:
+		_route_budget -= 1
 		path = econ.system.roads.route(a, z)
 	if path.size() < 2:
 		path = PackedVector3Array()
@@ -324,7 +332,7 @@ func _path_for(t: ColonyTown, b: Dictionary) -> PackedVector3Array:
 			path.append(p)
 	else:
 		path.insert(0, a)
-	_paths[b.id] = path
+	if solve: _paths[b.id] = path
 	return path
 
 
@@ -379,6 +387,19 @@ func _update_people(v: Vector3, delta: float) -> void:
 # ------------------------------------------------------------------ ships
 func _sync_ships(v: Vector3) -> void:
 	var sh := econ.shipping
+	for cid in sh.ports:
+		var port: Dictionary = sh.ports[cid]
+		var m: Vector2 = port.moor
+		var near := Vector2(v.x, v.z).distance_to(m) < SHIP_RADIUS
+		if near and not jetties.has(cid):
+			var j := jetty(port)
+			if j != null: add_child(j); jetties[cid] = j
+			else: jetties[cid] = null
+		elif not near and jetties.has(cid):
+			if jetties[cid] != null:
+				for body in (jetties[cid] as Node3D).find_children("*", "StaticBody3D", true, false): _bodies.erase(body.get_instance_id())
+				jetties[cid].queue_free()
+			jetties.erase(cid)
 	var cand: Array = []
 	for s in sh.ships:
 		if s.state == "building" or not sh.ports.has(s.port): continue
@@ -438,6 +459,47 @@ func _update_ships(_delta: float) -> void:
 		m.docked = xf[2]
 		m.speed = 0.0 if m.docked else econ.shipping.speed(s)
 		m.set_cargo(econ.shipping.cargo_units(s), econ.shipping.capacity(s))
+
+
+## A timber jetty from the shore to a T-head alongside the mooring, on piles, with bollards; the
+## courier can walk it. None where the mooring is at an existing quay (the core harbour).
+func jetty(port: Dictionary) -> Node3D:
+	var moor: Vector2 = port.moor; var shore: Vector2 = port.get("shore", moor); var along: Vector2 = port.along
+	if moor.distance_to(shore) < 7.0: return null
+	var out := (moor - shore).normalized()
+	var deck := 1.25
+	var head := moor - out * 5.9
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var wood := Color("7a5a3a"); var plank := Color("a5825a"); var dark := Color("4a3a2a")
+	var body := StaticBody3D.new(); body.name = "JettyBody"; body.collision_layer = 1; body.collision_mask = 0
+	var node := Node3D.new(); node.name = "Jetty_" + String(port.id)
+	var add_deck := func(c: Vector2, dir: Vector2, length: float, width: float) -> void:
+		var yaw := atan2(dir.x, dir.y)
+		var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(c.x, deck - 0.15, c.y))
+		MeshBits.box(st, xf, Vector3(width, 0.3, length), plank)
+		var cs := CollisionShape3D.new(); var shape := BoxShape3D.new(); shape.size = Vector3(width, 0.3, length)
+		cs.shape = shape; cs.transform = xf; body.add_child(cs)
+		# piles every 4 m down both edges
+		var side := dir.orthogonal()
+		var k := -length * 0.5
+		while k <= length * 0.5 + 0.01:
+			for sgn in [-1.0, 1.0]:
+				var p: Vector2 = c + dir * k + side * sgn * (width * 0.5 - 0.15)
+				MeshBits.cyl(st, Transform3D(Basis(), Vector3(p.x, deck - 2.9, p.y)), 0.16, 5.4, wood, 6)
+			k += 4.0
+	# the walk from the shore to the head, and the head alongside the ship
+	var walk_len := shore.distance_to(head)
+	add_deck.call((shore + head) * 0.5 - out * 1.0, out, walk_len + 2.0, 2.8)
+	add_deck.call(head, along, 26.0, 4.2)
+	# bollards and a rail on the seaward edge's ends
+	for t in [-11.0, -4.0, 4.0, 11.0]:
+		var p: Vector2 = head + along * t + out * 1.7
+		MeshBits.cyl(st, Transform3D(Basis(), Vector3(p.x, deck + 0.3, p.y)), 0.18, 0.6, dark, 8)
+	st.generate_normals()
+	var mi := MeshInstance3D.new(); mi.name = "Deck"; mi.mesh = st.commit(); mi.material_override = _yard_mat
+	node.add_child(mi); node.add_child(body)
+	_bodies[body.get_instance_id()] = true
+	return node
 
 
 # ------------------------------------------------------------------ buoys
@@ -505,9 +567,14 @@ func _update_map() -> void:
 		_rebuild_lanes()
 	elif absf(map_zoom - _map_lanes_zoom) > _map_lanes_zoom * 0.15:
 		_rebuild_lanes()
+	# map labels keep ~a line of text on screen at any zoom (the camera is orthographic)
+	var px := map_zoom * 0.0009
+	for l in _labels.get_children():
+		(l as Label3D).pixel_size = px
+		(l as Label3D).position.y = float(l.get_meta("y", 0.0)) + map_zoom * 0.03
 	var mm := _ship_markers.multimesh
 	var n := 0
-	var sc := clampf(map_zoom / 60.0, 1.0, 40.0)
+	var sc := maxf(map_zoom * 0.0022, 1.2)          # ~30 px on screen at any zoom
 	for s in econ.shipping.ships:
 		if s.state == "building" or n >= mm.instance_count: continue
 		var xf := ship_transform(s)
@@ -527,7 +594,7 @@ func _lane_color(lid: String) -> Color:
 func _rebuild_lanes() -> void:
 	_map_lanes_zoom = map_zoom
 	for c in _lane_meshes.get_children(): c.queue_free()
-	var width := clampf(map_zoom * 0.006, 1.5, 60.0)
+	var width := clampf(map_zoom * 0.008, 1.5, 60.0)
 	for i in range(econ.shipping.lanes.size()):
 		var l: Dictionary = econ.shipping.lanes[i]
 		var r := econ.shipping.route(l.from, l.to)
@@ -550,11 +617,11 @@ func _rebuild_static_overlay() -> void:
 		var label := Label3D.new()
 		var state := "colony · %d people · %d%% happy" % [t.colonists.size(), int(t.happiness)] if t.founded else ("charter %d coins" % econ.charter_cost(cid) if t.discovered else "not yet visited")
 		label.text = "%s\n%s" % [t.display_name, state]
-		label.fixed_size = true; label.pixel_size = 0.0011; label.font_size = 28; label.outline_size = 10
+		label.font_size = 28; label.outline_size = 10
 		label.no_depth_test = true; label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.modulate = Color("f6ce75") if cid == map_colony else (Color("f1e5ca") if t.founded else Color("c9c0a8"))
 		label.outline_modulate = Color("203d39")
-		label.position = t.hall + Vector3(0, 30, 0)
+		label.position = t.hall; label.set_meta("y", t.hall.y)
 		_labels.add_child(label)
 		if cid != map_colony: continue
 		# the build area
@@ -577,11 +644,11 @@ func _rebuild_static_overlay() -> void:
 			var threat := false
 			for l in econ.shipping.lanes:
 				if camp.id in econ.shipping.lane_threats(l): threat = true
-			var label := Label3D.new(); label.text = "☠ pirate cove" + (" - raids lanes" if threat else "")
-			label.fixed_size = true; label.pixel_size = 0.0011; label.font_size = 24; label.outline_size = 8
+			var label := Label3D.new(); label.text = "Pirate cove" + (" - raids the lanes" if threat else "")
+			label.font_size = 24; label.outline_size = 8
 			label.no_depth_test = true; label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			label.modulate = Color("e0735f") if threat else Color("c9a08a")
-			label.position = camp.pos + Vector3(0, 20, 0)
+			label.position = camp.pos; label.set_meta("y", camp.pos.y)
 			_labels.add_child(label)
 	if lines > 0:
 		im.surface_end()

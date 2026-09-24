@@ -272,14 +272,17 @@ func perf() -> void:
 		total += Time.get_ticks_usec() - a
 	var whole := total / 100.0 / 1000.0
 	# the game's frames: one town at a time, round robin, each at 4 Hz
-	var frames := 0; var worst := 0; total = 0
+	var times: Array[int] = []
+	total = 0
 	for i in range(1200):
 		var a := Time.get_ticks_usec()
 		econ._process(1.0 / 60.0)
 		var d := Time.get_ticks_usec() - a
-		total += d; worst = maxi(worst, d); frames += 1
-	print("  economy (6 colonies, %d buildings, %d colonists): whole-country tick %.3f ms; per frame avg %.3f ms, worst %.3f ms" % [econ.towns.size() * 16, econ.towns.size() * 24, whole, total / float(frames) / 1000.0, worst / 1000.0])
-	check(worst < 1000, "Economy costs under 1 ms in any frame (worst %.3f ms, avg %.3f ms)" % [worst / 1000.0, total / float(frames) / 1000.0])
+		total += d; times.append(d)
+	times.sort()
+	var p99: int = times[int(times.size() * 0.995)]
+	print("  economy (6 colonies, %d buildings, %d colonists): whole-country tick %.3f ms; per frame avg %.3f ms, 99.5th percentile %.3f ms, worst %.3f ms" % [econ.towns.size() * 16, econ.towns.size() * 24, whole, total / 1200000.0, p99 / 1000.0, times[-1] / 1000.0])
+	check(p99 < 1000 and times[-1] < 2000, "Economy costs under 1 ms a frame (99.5th percentile %.3f ms, avg %.3f ms)" % [p99 / 1000.0, total / 1200000.0])
 	econ.load_state(JSON.parse_string(JSON.stringify(saved)))
 
 

@@ -79,6 +79,10 @@ func setup_world(p_game: Game) -> void:
 	if Events.has_signal("camp_cleared"): Events.camp_cleared.connect(func(_id): shipping.pirates_changed(); changed.emit())
 
 
+func _exit_tree() -> void:
+	shipping.wait()          # never leave the sea-grid task running past the tree
+
+
 func _pirate_camps() -> Array:
 	var out: Array = []
 	if game == null or game.encounters == null: return out

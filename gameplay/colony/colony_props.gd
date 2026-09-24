@@ -35,7 +35,7 @@ static func yard(prop: String, w: float, d: float, seed: int) -> ArrayMesh:
 	var cx := (x0 + x1) * 0.5
 	var z0 := -d * 0.5 + 0.4; var z1 := d * 0.5 - 0.4
 	# a trodden earth yard under everything
-	B.quad(st, Vector3(x0, 0.04, z0), Vector3(x0, 0.04, z1), Vector3(x1, 0.04, z1), Vector3(x1, 0.04, z0), Color("a38a66") if not prop in FIELD_PROPS else Color("8a6f4c"))
+	B.quad(st, Vector3(x0, 0.04, z0), Vector3(x0, 0.04, z1), Vector3(x1, 0.04, z1), Vector3(x1, 0.04, z0), Color("8c7556") if not prop in FIELD_PROPS else Color("7a6044"))
 	match prop:
 		"logs": _logs(st, rng, cx, z0, z1, x1)
 		"quarry": _quarry(st, rng, cx, x0, x1, z0, z1)

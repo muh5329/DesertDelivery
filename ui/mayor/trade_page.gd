@@ -120,7 +120,7 @@ func _editor(parent: VBoxContainer) -> void:
 	var pick_row := T.row(parent)
 	var f := _port_picker(ports, from_id, func(cid): from_id = cid; view.build_page())
 	var t := _port_picker(ports, to_id, func(cid): to_id = cid; view.build_page())
-	pick_row.add_child(f); T.label(pick_row, "to", 13, T.MUTED); pick_row.add_child(t)
+	pick_row.add_child(f); T.label(pick_row, "to", 13, T.MUTED).autowrap_mode = TextServer.AUTOWRAP_OFF; pick_row.add_child(t)
 	f.size_flags_horizontal = Control.SIZE_EXPAND_FILL; t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rule_editor(parent, "Load at %s" % e.town(from_id).display_name.get_slice(" (", 0), out_rule, true)
 	_rule_editor(parent, "Return from %s with" % e.town(to_id).display_name.get_slice(" (", 0), back_rule, false)

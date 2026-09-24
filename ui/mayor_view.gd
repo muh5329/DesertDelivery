@@ -144,7 +144,8 @@ func setup(p_game: Node3D, p_colony: Node) -> void:
 	stock_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	stock_label.clip_text = true
 	colony_picker = OptionButton.new(); colony_picker.focus_mode = Control.FOCUS_NONE
-	colony_picker.custom_minimum_size = Vector2(230, 34)
+	colony_picker.custom_minimum_size = Vector2(210, 34)
+	colony_picker.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	colony_picker.item_selected.connect(func(i: int): select_colony(EconomyCatalog.COLONIES.keys()[i], true))
 	colony_picker.tooltip_text = "Switch colony (the camera flies there)."
 	bar.add_child(colony_picker)
@@ -391,6 +392,7 @@ func _page_colony() -> void:
 		if b.get("virtual", false): continue
 		var bid: String = b.id
 		var bb := button(content, "%s · %s" % [EconomyCatalog.building(b.type).name, t.status(b)], func(): inspect(bid, true))
+		bb.clip_text = true; bb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		bb.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		bb.add_theme_font_size_override("font_size", 13)
 	T.rule(content)
@@ -415,6 +417,7 @@ func _page_build() -> void:
 			var afford := t.can_afford(def.cost) and e.coins() >= int(def.coins)
 			var flow := EconomyCatalog.describe_flow(def)
 			var b := button(content, "%s · %s" % [def.name, EconomyCatalog.describe_cost(def.cost, int(def.coins))], func(): set_tool("place:" + type))
+			b.clip_text = true; b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.add_theme_font_size_override("font_size", 13)
 			b.disabled = not ok

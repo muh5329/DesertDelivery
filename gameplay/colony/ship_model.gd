@@ -82,7 +82,9 @@ func _process(delta: float) -> void:
 	var sway := 1.0 if docked else 0.6
 	position.y = WATERLINE + sin(_t * 0.9 + _seed) * 0.12 * sway
 	hull.rotation = Vector3(sin(_t * 0.7 + _seed) * 0.012 + (-0.01 if speed > 1.0 else 0.0), 0, sin(_t * 0.55 + _seed * 0.3) * 0.03 * sway)
-	if canvas: canvas.rotation = hull.rotation
+	if canvas:
+		canvas.rotation = hull.rotation
+		canvas.visible = not docked          # sails struck and furled in port
 	cargo_node.rotation = hull.rotation
 	var way := clampf(speed / 14.0, 0.0, 1.0)
 	wake.visible = way > 0.05
@@ -159,10 +161,10 @@ func _build_meshes() -> Array:
 			var a := Vector3(h0 * side, f0, _z(t0)); var b := Vector3(h1 * side, f1, _z(t1))
 			var up := Vector3(0, 0.85, 0)
 			if side > 0:
-				MeshBits.quad(st, a, b, b + up, a + up, strake)
+				MeshBits.quad(st, a, b, b + up, a + up, topside)
 				MeshBits.quad(st, b, a, a + up, b + up, Color("d8cdb2"))
 			else:
-				MeshBits.quad(st, b, a, a + up, b + up, strake)
+				MeshBits.quad(st, b, a, a + up, b + up, topside)
 				MeshBits.quad(st, a, b, b + up, a + up, Color("d8cdb2"))
 			# the cap rail
 			var ia := a + up + Vector3(-0.14 * side, 0.02, 0); var ib := b + up + Vector3(-0.14 * side, 0.02, 0)
@@ -230,6 +232,7 @@ func _schooner(st: SurfaceTool, sails: SurfaceTool) -> void:
 	var bf := _freeboard(1.0)
 	MeshBits.cyl(st, Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-78)), Vector3(0, bf + 0.9, bz - 3.0)), 0.16, 8.0, spar, 8)
 	var sprit_end := Vector3(0, bf + 1.8, bz - 6.8)
+	MeshBits.spar(st, Vector3(0, bf + 1.2, bz - 0.5), sprit_end + Vector3(0, 0.15, 1.5), 0.2, Color("e3d8bc"), 8)
 	# masts: fore (shorter) and main
 	var masts := [[-length * 0.18, 17.0, 7.5], [length * 0.14, 20.0, 9.5]]
 	for m in masts:
@@ -240,6 +243,7 @@ func _schooner(st: SurfaceTool, sails: SurfaceTool) -> void:
 		# boom and gaff
 		var boom_y := base + 1.6
 		MeshBits.cyl(st, Transform3D(Basis(Vector3.RIGHT, deg_to_rad(90)), Vector3(0.0, boom_y, z + boom * 0.5)), 0.12, boom, spar, 6)
+		MeshBits.cyl(st, Transform3D(Basis(Vector3.RIGHT, deg_to_rad(90)), Vector3(0.0, boom_y + 0.28, z + boom * 0.5)), 0.26, boom - 0.6, Color("e3d8bc"), 8)
 		var gaff_a := Vector3(0, base + h * 0.72, z + 0.2)
 		var gaff_b := Vector3(0, base + h * 0.86, z + boom * 0.85)
 		MeshBits.spar(st, gaff_a, gaff_b, 0.1, spar)

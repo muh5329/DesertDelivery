@@ -87,15 +87,18 @@ static func heading(parent: Node, text: String) -> Label:
 	return l
 
 
-static func button(parent: Node, text: String, action: Callable, size := 14) -> Button:
+## A journal button. `clip`: trim long text with an ellipsis (full-width list rows); otherwise
+## the button is as wide as its text (rows of buttons, the top bar).
+static func button(parent: Node, text: String, action: Callable, size := 14, clip := false) -> Button:
 	var node := Button.new()
 	node.text = text
 	node.custom_minimum_size.y = 30
 	node.add_theme_font_size_override("font_size", size)
 	node.pressed.connect(action)
 	node.focus_mode = Control.FOCUS_NONE
-	node.clip_text = true
-	node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	if clip:
+		node.clip_text = true
+		node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	parent.add_child(node)
 	return node
 

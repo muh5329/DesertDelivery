@@ -213,7 +213,14 @@ func add_port(colony_id: String, berth: Vector3, heading_deg: float, quay_edges:
 	if moor == Vector2.INF: return false
 	var path := _harbour_path(moor)
 	if path.is_empty(): return false
-	ports[colony_id] = {"id": colony_id, "berth": berth, "heading": deg_to_rad(heading_deg), "moor": moor, "along": axis,
+	# the shore behind the mooring (where a jetty out to the ship starts), walking back to the berth
+	var shore := moor
+	if ground.is_valid() and moor.distance_to(b) > 1.0:
+		var back := (b - moor).normalized()
+		for k in range(0, int(moor.distance_to(b)) + 40, 2):
+			var q := moor + back * k
+			if float(ground.call(q.x, q.y)) > 0.3: shore = q; break
+	ports[colony_id] = {"id": colony_id, "berth": berth, "heading": deg_to_rad(heading_deg), "moor": moor, "along": axis, "shore": shore,
 		"approach": path[path.size() - 1], "approach_path": path}
 	_routes.clear()
 	return true
@@ -344,9 +351,26 @@ func route(from_id: String, to_id: String) -> Dictionary:
 	pts.append_array(pulled)
 	var tail := PackedVector2Array(b.approach_path); tail.reverse()
 	pts.append_array(tail)
+	pts = _shortcut(pts)
 	pts = _smooth(pts)
 	_routes[key] = _measure(pts)
 	return _routes[key]
+
+
+## Straighten over real water: from each point, jump to the furthest of the next few within
+## 2.5 km that a straight line over water reaches (removes the dog-legs where a harbour approach
+## meets the sea grid).
+func _shortcut(pts: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array([pts[0]])
+	var i := 0
+	while i < pts.size() - 1:
+		var best := i + 1
+		for j in range(mini(pts.size() - 1, i + 8), i + 1, -1):
+			if pts[i].distance_to(pts[j]) > 2500.0: continue
+			if _line_nav(pts[i], pts[j]) or _segment_wet(pts[i], pts[j], -1.2):
+				best = j; break
+		out.append(pts[best]); i = best
+	return out
 
 
 ## Round the corners: each interior vertex becomes two points `cut` metres back along its edges
