@@ -1112,11 +1112,17 @@ def _bridge_mask(r):
     return br
 
 
+# how far each pass moves a profile toward the ground: where two roads pull on each other the
+# highway gives least (it keeps its smooth profile), the lesser road takes its heights
+RELAX_STIFF = {"highway": 0.4, "road": 1.0, "street": 1.0, "track": 1.0}
+
+
 def carve_net(h, net, rivers):
     """Carve every road into `h` (bridge spans excepted), lower the ground under the decks, recut
     the river channels. Returns (h2, dist to the nearest carved road, its half width)."""
     dist = np.full(h.shape, 1e9); yt = np.zeros(h.shape); hw = np.zeros(h.shape)
-    for r in net.roads:
+    roads = net.roads
+    for r in roads:
         P = r["pts"]; y = r["y"]
         ok = np.ones(len(P) - 1, np.uint8)
         for a, b in r["bridges"]: ok[max(a, 0):b] = 0
@@ -1126,7 +1132,7 @@ def carve_net(h, net, rivers):
     # under the decks: the ground at most (deck - clearance), the clearance ramping in from the
     # abutments; only cells nearer the deck than any carved road (a road under a bridge keeps its bed)
     db = np.full(h.shape, 1e9); ytb = np.zeros(h.shape); hwb = np.zeros(h.shape)
-    for r in net.roads:
+    for r in roads:
         P = r["pts"]; y = r["y"]
         for a, b in r["bridges"]:
             if b <= a: continue
@@ -1147,7 +1153,7 @@ def carve_net(h, net, rivers):
     return h2, dist, hw
 
 
-def relax_profiles(h2, flat, micro, net):
+def relax_profiles(h2, flat, micro, net, fit=True):
     """Fit every road's profile to the surface the grid now holds (bridge decks and pinned ends
     stay), within the road's grade limit. Returns the worst |surface - profile| before the fit."""
     byid = {r["id"]: r for r in net.roads}
@@ -1170,7 +1176,9 @@ def relax_profiles(h2, flat, micro, net):
             elif r.get("pinned", (True, True))[0 if end == 0 else 1]:
                 fixed[end] = float(y[end])
         # over-relaxed a little: two roads pulling on each other's ground meet in fewer passes
-        target = np.where(near, y, s + RELAX_OVER * (s - y))
+        if not fit: continue
+        k_move = RELAX_STIFF.get(r["class"], 1.0) * (1.0 + RELAX_OVER)
+        target = np.where(near, y, y + k_move * (s - y))
         c = CLASSES[r["class"]]
         g = ROAD_GMAX.get(r["id"], c["gmax"])
         r["y"] = R.lipschitz_profile(target, 4.0, g, fixed, None)
@@ -1182,10 +1190,9 @@ def stage_carve(h, net, flat, rivers, micro):
         h2, dist, hw = carve_net(h, net, rivers)
         fm = np.clip(1.0 - (dist - (hw + 5.0)) / 10.0, 0, 1)
         fl = np.round(np.clip(np.maximum(flat, fm), 0, 1) * 255) / 255
-        if it == RELAX_PASSES: break
-        worst, at = relax_profiles(h2.astype(np.float32).astype(np.float64), fl, micro, net)
+        worst, at = relax_profiles(h2.astype(np.float32).astype(np.float64), fl, micro, net, it < RELAX_PASSES)
         log("carve pass %d: worst ground/profile mismatch %.2f m at %s" % (it, worst, at))
-        if worst < RELAX_TOL: break
+        if worst < RELAX_TOL or it == RELAX_PASSES: break
     flat[:] = np.maximum(flat, fm)
     return h2
 
