@@ -40,6 +40,8 @@ var _last_intent: Controls.Intent = Controls.Intent.new()
 var _aiming := false
 var _foot := Controls.Foot.new()
 var pointer_blocks_actions: Callable
+## Knocked out / respawning: every intent is dropped until this clears (PlayerVitals owns it).
+var hold := false
 
 
 func _init() -> void:
@@ -120,6 +122,7 @@ func _physics_process(delta: float) -> void:
 	# The active Scheme comes from whatever is being controlled — no Context, no vehicle state
 	# travelling backwards through the seam.
 	var i := controls.read(_foot if is_on_foot() else vehicle.control_scheme(), delta)
+	if hold: i = Controls.Intent.new()
 	if pointer_blocks_actions.is_valid() and pointer_blocks_actions.call():
 		i.commands.erase(Controls.FIRE)
 	_last_intent = i
@@ -143,10 +146,15 @@ func _physics_process(delta: float) -> void:
 	else:
 		player.apply(i)
 		cam.look(i.look)
-		_aiming = i.aim and gun.has_gun and mode == Mode.ON_FOOT
+		# the Garand: hold aim to shoulder it (tight over-the-shoulder view), fire from the
+		# hip otherwise; reload any time on foot (a part-empty clip pings out first)
+		_aiming = i.aim and gun.has_gun and mode == Mode.ON_FOOT and not gun.reloading
+		gun.set_aim(_aiming)
 		cam.set_aiming(_aiming)
 		player.aiming = _aiming or gun.is_recently_fired()
 		player.aim_pitch = cam.pitch()
+		if i.pressed(Controls.RELOAD) and mode == Mode.ON_FOOT:
+			gun.try_reload()
 		if i.pressed(Controls.FIRE):
 			gun.try_fire(true)
 
@@ -218,6 +226,24 @@ func request_reset() -> void:
 	message.emit("Back on the road.", 2.0)
 
 
+## After being knocked out: the active vehicle and the boy come back together at a road
+## point, riding if he was riding (never mid-air), on his feet beside it otherwise.
+func respawn_at(pos: Vector3, forward: Vector3) -> void:
+	if is_riding():
+		vehicle.place(pos + Vector3.UP * 0.1, forward)
+		if mode == Mode.FLYING: _set_mode(Mode.RIDING)
+	else:
+		vehicle.set_parked(false)
+		vehicle.place(pos + Vector3.UP * 0.1, forward)
+		vehicle.set_parked(true)
+		var side := forward.cross(Vector3.UP).normalized()
+		var p := pos + side * 1.8
+		p.y = world.probe(p + Vector3(0, 0.6, 0)).height + 0.05
+		player.place(p, forward)
+		if mode == Mode.SWIMMING: _set_mode(Mode.ON_FOOT)
+	cam.snap_to_target()
+
+
 func _set_mode(to: int) -> void:
 	if to == mode: return
 	var from := mode
@@ -236,6 +262,7 @@ func _set_vehicle(to: Vehicle) -> void:
 ## The choreography of a transition lives here and nowhere else.
 func _apply_mode_effects(to: int) -> void:
 	_aiming = false
+	gun.set_aim(false)
 	player.aiming = false
 	player.apply(Controls.Intent.new())
 	cam.set_aiming(false)

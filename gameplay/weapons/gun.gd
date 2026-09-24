@@ -1,39 +1,95 @@
 class_name GunSystem
 extends Node3D
-## A pistol hidden at the Dunes Lookout. Once picked up (walk over it on foot) the boy can fire it
-## on foot: hitscan from the camera, muzzle flash, tracer, dust puff, and tin-can targets that pop
-## off the fences at the farm and the lookout. Score is shown in the HUD.
+## The courier's M1 Garand: his primary weapon from the first minute. Semi-automatic, fed by
+## 8-round en-bloc clips — the 8th shot throws the empty clip out with the famous "ping", a
+## reload presses a fresh clip in and the bolt slams home; a part-empty clip can be ejected
+## (and its loose rounds kept) with a manual reload. Hitscan down the crosshair with spread
+## (hip vs. aimed, movement, bloom), damage falling off with range, headshots x2.5, a tracer,
+## muzzle flash and smoke, and an impact per surface. The tin cans at the farm wall and the
+## lookout bench are still there for practice; the crate at the Dunes Lookout (where the old
+## pistol used to lie) is now a cache of clips.
+##
+## Interface (the Rider, HUD, tests and the encounter director use these):
+##   try_fire(on_foot) -> bool      try_reload() -> bool      set_aim(bool)
+##   current_spread() -> float      (degrees, half-angle)     add_ammo(clips, rounds) -> int
+##   ammo / max_ammo / reserve_clips / loose_rounds / reloading / reload_progress()
+##   signals fired, clip_pinged, reloaded, hit_confirmed(id, headshot, killed), target_hit(h, t)
 
 signal picked_up
 signal fired
+signal clip_pinged
+signal reloaded
+signal hit_confirmed(entity_id: StringName, headshot: bool, killed: bool)
 signal target_hit(hit: int, total: int)
 signal message(text: String, duration: float)
+
+const CLIP := 8
+const MAX_RESERVE := 12
+const TARGET_LAYER := 8
+const HURTBOX_LAYER := 32
+const SHOT_MASK := 1 | 2 | TARGET_LAYER | 16 | HURTBOX_LAYER
+const RANGE := 400.0
+const DAMAGE := 60.0
+const HEADSHOT := 2.5
+const FALLOFF_START := 60.0       # full damage to here (m) ...
+const FALLOFF_END := 300.0        # ... then linearly down to FALLOFF_MIN at this range
+const FALLOFF_MIN := 0.55
+const COOLDOWN := 0.14            # semi-auto: as fast as the trigger resets, not faster
+const RELOAD_TIME := 1.9
+const SPREAD_HIP := 2.6           # degrees, half-angle of the shot cone
+const SPREAD_ADS := 0.22
+const SPREAD_MOVE_HIP := 1.6      # extra at walking speed (scales with speed)
+const SPREAD_MOVE_ADS := 0.7
+const SPREAD_AIR := 3.0
+const BLOOM_HIP := 0.9            # per shot, decays at BLOOM_DECAY deg/s
+const BLOOM_ADS := 0.35
+const BLOOM_DECAY := 5.0
+const RECOIL_ADS := 0.032         # camera kick (rad), recovered by the camera
+const RECOIL_HIP := 0.05
+const LOUDNESS := 110.0           # enemies hear the shot inside this radius
 
 var db: WorldDatabase
 var world: WorldManager
 var entities: EntityManager
-var hit_ids: Array[StringName] = []   # stable ids of popped cans (saved)
 var player: Player
 var camera: ChaseCamera
-var has_gun := false
+var fx: CombatFx
+var sounds: WeaponAudio
+var audio: Node                    # the engine audio (kept for compatibility; unused)
+
+var has_gun := true
+var ammo := CLIP
+var max_ammo := CLIP
+var reserve_clips := 4
+var loose_rounds := 0
+var reloading := false
+var ads := false
+var ads_blend := 0.0
+var bloom := 0.0
+var shots_fired := 0
+var shots_hit := 0
+var clips_pinged := 0
+var hit_ids: Array[StringName] = []     # stable ids of popped cans (saved)
 var targets_hit := 0
 var targets_total := 0
-var ammo := 12
-var max_ammo := 12
-var _reload_t := 0.0
-var _cooldown := 0.0
-var _pickup: Area3D
-var _pistol: Node3D
-var _flash: MeshInstance3D
-var _flash_t := 0.0
-var _tracers: Array = []
-var _aim_t := 0.0
-var _targets: Array = []
-var _pickup_rot := 0.0
-var audio: Node
+var cache_taken := false
 var debug_last := ""
+var last_shot: Dictionary = {}
 
-const TARGET_LAYER := 8
+var held: GarandModel
+var slung: GarandModel
+var _reload_t := 0.0
+var _reload_steps := {}
+var _hand_clip: Node3D
+var _cooldown := 0.0
+var _aim_t := 0.0
+var _auto_reload_t := -1.0
+var _sway_t := 0.0
+var _targets: Array = []
+var _cache: Area3D
+var _cache_rot := 0.0
+var _flying: Array = []          # ejected clips: [node, velocity, spin, age, bounced]
+var _rng := RandomNumberGenerator.new()
 
 
 func setup(p_world: WorldManager, p_entities: EntityManager, p_player: Player, p_cam: ChaseCamera) -> void:
@@ -43,73 +99,110 @@ func setup(p_world: WorldManager, p_entities: EntityManager, p_player: Player, p
 	player = p_player
 	camera = p_cam
 	message.connect(func(t, d): Events.message.emit(t, d))
-	_build_pickup()
+	fx = CombatFx.new(); fx.name = "CombatFx"; add_child(fx)
+	sounds = WeaponAudio.new(); sounds.name = "WeaponAudio"; add_child(sounds)
+	held = GarandModel.new()
+	slung = GarandModel.new(); slung.set_sling(true)
+	player.model.attach_long_gun(held, slung)
+	_hand_clip = GarandModel.make_clip(true)
+	_hand_clip.visible = false
+	player.model.hand_l.add_child(_hand_clip)
+	_hand_clip.position = Vector3(0.0, -0.10, -0.03)
+	_sync_models()
+	_build_cache()
 	_build_targets()
-	_pistol = _make_pistol()
-	_pistol.visible = false
-	player.model.hand_r.add_child(_pistol)
-	_pistol.position = Vector3(0, -0.02, -0.06)
-	_pistol.rotation_degrees = Vector3(-90, 0, 0)
-	_flash = Mats.sphere(0.09, Mats.solid(Color(1.0, 0.85, 0.4), 0.3, 0.0, Color(1.0, 0.7, 0.2)), Vector3(0, 0.07, -0.2), Vector3(1, 1, 1.6), 8)
-	_flash.visible = false
-	_pistol.add_child(_flash)
 
 
-func _make_pistol() -> Node3D:
-	var n := Node3D.new()
-	var steel := Mats.solid(Color(0.22, 0.23, 0.26), 0.45, 0.6)
-	var grip := Mats.solid(Color(0.45, 0.30, 0.18), 0.8)
-	n.add_child(Mats.box(Vector3(0.035, 0.05, 0.19), steel, Vector3(0, 0.06, -0.06)))   # slide
-	n.add_child(Mats.cylinder(0.012, 0.16, steel, Vector3(0, 0.055, -0.08), Vector3(90, 0, 0), 8))
-	n.add_child(Mats.box(Vector3(0.03, 0.10, 0.04), grip, Vector3(0, -0.01, 0.02), Vector3(15, 0, 0)))   # grip
-	n.add_child(Mats.box(Vector3(0.012, 0.03, 0.015), steel, Vector3(0, 0.02, -0.04)))  # trigger
-	return n
+## A slung Garand on another RiderModel (the courier on the bike).
+func dress_rider(model: RiderModel) -> void:
+	if model == null or model.torso == null: return
+	var g := GarandModel.new(); g.set_sling(true); g.set_loaded(CLIP)
+	model.attach_long_gun(null, g)
 
 
-func _build_pickup() -> void:
+# ---------------------------------------------------------------------------- the cache
+func _build_cache() -> void:
 	var pos: Vector3 = db.location_pos(&"dunes_lookout") + Vector3(-3.5, 0.0, 2.5)
 	pos.y = world.terrain.height_at(pos.x, pos.z)
-	_pickup = Area3D.new()
-	_pickup.name = "PistolPickup"
-	_pickup.collision_layer = 0
-	_pickup.collision_mask = 4
-	_pickup.position = pos
+	_cache = Area3D.new()
+	_cache.name = "AmmoCache"
+	_cache.collision_layer = 0
+	_cache.collision_mask = 4
+	_cache.position = pos
 	var cs := CollisionShape3D.new()
 	var sh := SphereShape3D.new(); sh.radius = 1.3
 	cs.shape = sh; cs.position = Vector3(0, 0.8, 0)
-	_pickup.add_child(cs)
-	# a wooden crate with the pistol on top and a soft glow so it can be found
-	_pickup.add_child(Mats.box(Vector3(0.9, 0.6, 0.9), Mats.solid(Color(0.55, 0.36, 0.22), 0.85), Vector3(0, 0.3, 0)))
-	var p := _make_pistol()
-	p.name = "Display"
-	p.position = Vector3(0, 0.66, 0)
-	p.rotation_degrees = Vector3(0, 30, 0)
-	p.scale = Vector3(1.6, 1.6, 1.6)
-	_pickup.add_child(p)
+	_cache.add_child(cs)
+	# an ammunition crate with a bandolier of clips on top and a soft glow so it can be found
+	var crate := Mats.box(Vector3(0.9, 0.6, 0.9), Mats.solid(Color(0.40, 0.42, 0.28), 0.85), Vector3(0, 0.3, 0))
+	crate.set_meta("surface", &"wood")
+	_cache.add_child(crate)
+	_cache.add_child(Mats.box(Vector3(0.92, 0.05, 0.3), Mats.solid(Color(0.85, 0.8, 0.6), 0.9), Vector3(0, 0.42, 0)))
+	var disp := Node3D.new(); disp.name = "Display"
+	disp.position = Vector3(0, 0.72, 0)
+	for i in range(3):
+		var c := GarandModel.make_clip(true)
+		c.position = Vector3((i - 1) * 0.06, 0, 0)
+		c.scale = Vector3.ONE * 1.8
+		disp.add_child(c)
+	_cache.add_child(disp)
 	var glow_mat := StandardMaterial3D.new()
-	glow_mat.albedo_color = Color(0.6, 0.9, 1.0, 0.25)
+	glow_mat.albedo_color = Color(1.0, 0.85, 0.5, 0.22)
 	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	glow_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	glow_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var beam := Mats.cylinder(0.5, 14.0, glow_mat, Vector3(0, 7.0, 0), Vector3.ZERO, 10, 0.1)
 	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_pickup.add_child(beam)
-	_pickup.body_entered.connect(_on_pickup_body)
-	entities.register(_pickup, &"pickup.pistol", &"pickup")
+	_cache.add_child(beam)
+	_cache.body_entered.connect(_on_cache_body)
+	entities.register(_cache, &"pickup.ammo.dunes_lookout", &"pickup")
 
 
-func _on_pickup_body(body: Node) -> void:
-	if has_gun or body != player: return
-	has_gun = true
-	_pistol.visible = true
-	_pickup.queue_free()
-	_pickup = null
+func _on_cache_body(body: Node) -> void:
+	if cache_taken or body != player: return
+	_take_cache()
+	var got := add_ammo(4)
+	sounds.play(&"pickup")
 	picked_up.emit()
 	Events.gun_picked_up.emit()
-	message.emit("You found an old pistol! On foot: aim with the camera, F / left-click to fire. Pop the tin cans!", 7.0)
+	message.emit("A cache of Garand clips! +%d clips. Hold RMB to aim, LMB / F to fire, V to reload." % got, 6.0)
 
 
+func _take_cache() -> void:
+	cache_taken = true
+	if _cache:
+		_cache.queue_free()
+		_cache = null
+
+
+## Where the ammo cache is, or null once it has been emptied.
+func pickup_position() -> Variant:
+	return _cache.global_position if _cache else null
+
+
+## Legacy tool hook (the pistol used to be granted): hand over the cache's clips.
+func grant() -> void:
+	if not cache_taken: _on_cache_body(player)
+
+
+## Full clips (and loose rounds) into the pouch. Returns the clips actually taken.
+func add_ammo(clips: int, rounds: int = 0) -> int:
+	var before := reserve_clips
+	reserve_clips = mini(MAX_RESERVE, reserve_clips + maxi(clips, 0))
+	loose_rounds += maxi(rounds, 0)
+	_pack_loose()
+	return reserve_clips - before
+
+
+func _pack_loose() -> void:
+	while loose_rounds >= CLIP and reserve_clips < MAX_RESERVE:
+		loose_rounds -= CLIP
+		reserve_clips += 1
+	loose_rounds = mini(loose_rounds, CLIP - 1)
+
+
+# ---------------------------------------------------------------------------- tin cans
 func _build_targets() -> void:
 	# tin cans: one row on top of the farm's stone wall, one on the lookout bench —
 	# the hubs say where those surfaces are
@@ -123,22 +216,20 @@ func _build_targets() -> void:
 	for i in range(4):
 		spots.append(lookout.bench_top(0.2 + i * 0.2)); ids.append(StringName("can.dunes_lookout.%d" % i))
 	for si in range(spots.size()):
-		var s: Vector3 = spots[si]
-		var top := 0.0
 		var t := Area3D.new()
 		t.collision_layer = TARGET_LAYER
 		t.collision_mask = 0
-		t.position = s
+		t.position = spots[si]
+		t.set_meta("surface", &"metal")
 		var can := Node3D.new()
 		can.name = "Can"
-		can.position = Vector3(0, top, 0)
 		var tin := Mats.solid(Color(0.75, 0.78, 0.80), 0.35, 0.7)
 		can.add_child(Mats.cylinder(0.11, 0.26, tin, Vector3(0, 0.13, 0), Vector3.ZERO, 10))
 		can.add_child(Mats.box(Vector3(0.23, 0.12, 0.02), Mats.solid(Color(0.85, 0.25, 0.2), 0.7), Vector3(0, 0.13, -0.105)))
 		t.add_child(can)
 		var cs := CollisionShape3D.new()
 		var sh := CylinderShape3D.new(); sh.radius = 0.16; sh.height = 0.34
-		cs.shape = sh; cs.position = Vector3(0, top + 0.17, 0)
+		cs.shape = sh; cs.position = Vector3(0, 0.17, 0)
 		t.add_child(cs)
 		entities.register(t, ids[si], &"target")
 		_targets.append(t)
@@ -148,81 +239,6 @@ func _build_targets() -> void:
 ## Remaining tin cans (read-only view for the HUD, tests and tools).
 func targets() -> Array:
 	return _targets.duplicate()
-
-
-## Where the pistol can be picked up, or null once it has been.
-func pickup_position() -> Variant:
-	return _pickup.global_position if _pickup else null
-
-
-## Where the barrel points (world space).
-func barrel_direction() -> Vector3:
-	return -_pistol.global_transform.basis.z
-
-
-## Give the boy the pistol without walking over the crate (tools / debug).
-func grant() -> void:
-	_on_pickup_body(player)
-
-
-func is_recently_fired() -> bool:
-	return _aim_t > 0.0
-
-
-func can_fire(on_foot: bool) -> bool:
-	return has_gun and on_foot and not player.swimming and _cooldown <= 0.0 and ammo > 0
-
-
-func try_fire(on_foot: bool) -> bool:
-	if not can_fire(on_foot):
-		if has_gun and on_foot and player.swimming:
-			message.emit("Can't shoot while swimming.", 1.5)
-		elif has_gun and on_foot and ammo <= 0 and _reload_t <= 0.0:
-			_reload_t = 1.2
-			message.emit("Reloading...", 1.0)
-		elif has_gun and not on_foot:
-			message.emit("Hop off the bike (E) to use the pistol.", 2.0)
-		return false
-	ammo -= 1
-	_cooldown = 0.22
-	_aim_t = 2.0
-	player.aiming = true
-	# hitscan: camera ray through the crosshair finds the aim point, then a second ray from
-	# the muzzle to that point so the tracer leaves the barrel and nearby cover still blocks
-	var ray: Dictionary = camera.view_ray()
-	var from: Vector3 = ray.origin
-	var dir: Vector3 = ray.direction
-	var to := from + dir * 160.0
-	var space := player.get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | TARGET_LAYER)
-	q.collide_with_areas = true
-	q.collide_with_bodies = true
-	q.exclude = [player.get_rid()]
-	var hit := space.intersect_ray(q)
-	var aim_point: Vector3 = hit.position if hit else to
-	var muzzle: Vector3 = _flash.global_position
-	var q2 := PhysicsRayQueryParameters3D.create(muzzle, aim_point + (aim_point - muzzle).normalized() * 0.5, 1 | TARGET_LAYER)
-	q2.collide_with_areas = true
-	q2.collide_with_bodies = true
-	q2.exclude = [player.get_rid()]
-	var hit2 := space.intersect_ray(q2)
-	var end := aim_point
-	debug_last = "cam_hit=%s at %s | muzzle=%s muzzle_hit=%s at %s" % [hit.collider.name if hit else "none", aim_point, muzzle, hit2.collider.name if hit2 else "none", hit2.position if hit2 else Vector3.ZERO]
-	if hit2:
-		end = hit2.position
-		var col: Object = hit2.collider
-		if col is Area3D and col in _targets:
-			_pop_target(col)
-		else:
-			_impact_puff(hit2.position, hit2.normal)
-	camera.shake(0.35)
-	_muzzle_and_tracer(end)
-	if audio: audio.play_shot()
-	fired.emit()
-	if ammo == 0:
-		_reload_t = 1.2
-		message.emit("Reloading...", 1.0)
-	return true
 
 
 func _pop_target(t: Area3D) -> void:
@@ -235,7 +251,7 @@ func _pop_target(t: Area3D) -> void:
 	tw.tween_property(can, "position", can.position + Vector3(randf_range(-1, 1), 2.2, randf_range(-1, 1)), 0.6).set_ease(Tween.EASE_OUT)
 	tw.tween_property(can, "rotation", Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6)), 0.6)
 	tw.chain().tween_property(can, "position:y", 0.12, 0.5).set_ease(Tween.EASE_IN)
-	_impact_puff(t.global_position + can.position, Vector3.UP)
+	fx.impact(t.global_position + Vector3(0, 0.15, 0), Vector3.UP, &"metal")
 	var cid: StringName = t.get_meta("entity_id", &"")
 	hit_ids.append(cid)
 	target_hit.emit(targets_hit, targets_total)
@@ -246,74 +262,313 @@ func _pop_target(t: Area3D) -> void:
 		message.emit("Ping! %d / %d cans" % [targets_hit, targets_total], 1.5)
 
 
-func _impact_puff(pos: Vector3, normal: Vector3) -> void:
-	var puff := Mats.sphere(0.18, Mats.solid(Color(0.85, 0.78, 0.62), 1.0), pos + normal * 0.1, Vector3.ONE, 8)
-	add_child(puff)
-	var tw := create_tween()
-	tw.tween_property(puff, "scale", Vector3(2.2, 2.2, 2.2), 0.35)
-	tw.parallel().tween_property(puff, "transparency", 1.0, 0.35)
-	tw.tween_callback(puff.queue_free)
+# ---------------------------------------------------------------------------- aiming
+## The Rider says whether the aim button is held (on foot) every tick.
+func set_aim(on: bool) -> void:
+	ads = on and not reloading
 
 
-func _muzzle_and_tracer(end: Vector3) -> void:
-	_flash.visible = true
-	_flash_t = 0.06
-	var start: Vector3 = _flash.global_position
-	var d := end - start
-	var len := d.length()
-	if len < 0.5: return
-	var tr := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.012; cm.bottom_radius = 0.012; cm.height = len; cm.radial_segments = 4
-	tr.mesh = cm
-	tr.material_override = Mats.solid(Color(1.0, 0.9, 0.6), 0.5, 0.0, Color(1.0, 0.8, 0.4))
-	tr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(tr)
-	var y := d.normalized()
-	var helper := Vector3.RIGHT if absf(y.dot(Vector3.RIGHT)) < 0.9 else Vector3.FORWARD
-	var x := helper.cross(y).normalized()
-	var z := x.cross(y).normalized()
-	tr.global_transform = Transform3D(Basis(x, y, z), (start + end) * 0.5)
-	var tw := create_tween()
-	tw.tween_property(tr, "transparency", 1.0, 0.12)
-	tw.tween_callback(tr.queue_free)
+## The current shot cone, half-angle in degrees: hip or aimed, plus movement, air and bloom.
+func current_spread() -> float:
+	var move := clampf(player.speed() / maxf(player.walk_speed, 0.1), 0.0, 1.8)
+	var s := lerpf(SPREAD_HIP, SPREAD_ADS, ads_blend)
+	s += lerpf(SPREAD_MOVE_HIP, SPREAD_MOVE_ADS, ads_blend) * move
+	if not player.is_on_floor() and not player.swimming: s += SPREAD_AIR
+	return s + bloom
 
 
+## Where the barrel points (world space).
+func barrel_direction() -> Vector3:
+	return -held.get_node("Muzzle").global_transform.basis.z
+
+
+func muzzle_position() -> Vector3:
+	return held.get_node("Muzzle").global_position
+
+
+func is_recently_fired() -> bool:
+	return _aim_t > 0.0
+
+
+func reload_progress() -> float:
+	return clampf(_reload_t / RELOAD_TIME, 0.0, 1.0) if reloading else 0.0
+
+
+func can_fire(on_foot: bool) -> bool:
+	return has_gun and on_foot and not player.swimming and _cooldown <= 0.0 and ammo > 0 and not reloading
+
+
+# ---------------------------------------------------------------------------- firing
+func try_fire(on_foot: bool) -> bool:
+	if not can_fire(on_foot):
+		if has_gun and on_foot and player.swimming:
+			message.emit("Can't shoot while swimming.", 1.5)
+		elif has_gun and on_foot and ammo <= 0 and not reloading and _cooldown <= 0.0:
+			sounds.play(&"dry")
+			_cooldown = 0.25
+			if not try_reload(): message.emit("Out of clips — look for ammo crates at camps.", 2.5)
+		elif has_gun and not on_foot:
+			message.emit("Hop off (E) to use the Garand.", 2.0)
+		return false
+	# the rifle comes up instantly for a snap shot, so the muzzle is where the model shows it
+	if player.model.gun_raise < 0.9: player.model.snap_long_gun(player.aim_pitch)
+	ammo -= 1
+	shots_fired += 1
+	_cooldown = COOLDOWN
+	_aim_t = maxf(_aim_t, 1.6)
+	player.aiming = true
+	var spread := current_spread()
+	# hitscan: the camera ray through the crosshair (inside the spread cone) finds the aim point;
+	# a second ray from the muzzle to that point so nearby cover still blocks and the tracer
+	# leaves the barrel
+	var ray: Dictionary = camera.view_ray()
+	var from: Vector3 = ray.origin
+	var dir: Vector3 = _cone(ray.direction, spread)
+	var space := player.get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * RANGE, SHOT_MASK)
+	q.collide_with_areas = true
+	q.exclude = [player.get_rid()]
+	var hit := space.intersect_ray(q)
+	var aim_point: Vector3 = hit.position if hit else from + dir * RANGE
+	var muzzle := muzzle_position()
+	var q2 := PhysicsRayQueryParameters3D.create(muzzle, aim_point + (aim_point - muzzle).normalized() * 0.5, SHOT_MASK)
+	q2.collide_with_areas = true
+	q2.exclude = [player.get_rid()]
+	var hit2 := space.intersect_ray(q2)
+	var end := aim_point
+	last_shot = {"spread": spread, "from": muzzle, "to": aim_point, "collider": "", "surface": &"", "damage": 0.0, "headshot": false}
+	if hit2:
+		end = hit2.position
+		_resolve_hit(hit2, muzzle)
+	debug_last = "cam_hit=%s at %s | muzzle=%s muzzle_hit=%s at %s" % [hit.collider.name if hit else "none", aim_point, muzzle, hit2.collider.name if hit2 else "none", hit2.position if hit2 else Vector3.ZERO]
+	# recoil, flash, smoke, tracer, sound; the bolt cycles
+	var kick := lerpf(RECOIL_HIP, RECOIL_ADS, ads_blend)
+	camera.kick(kick, _rng.randf_range(-0.3, 0.3) * kick)
+	player.model.recoil = 1.0
+	held.cycle()
+	bloom += lerpf(BLOOM_HIP, BLOOM_ADS, ads_blend)
+	var mx: Transform3D = held.get_node("Muzzle").global_transform
+	fx.muzzle(mx)
+	fx.tracer(muzzle, end)
+	sounds.play(&"garand_shot", null, -2.0, _rng.randf_range(0.97, 1.03))
+	Events.shot_fired.emit(muzzle, &"player", LOUDNESS)
+	fired.emit()
+	if ammo == 0:
+		_ping_clip()
+		if reserve_clips > 0: _auto_reload_t = 0.45
+		else: message.emit("Ping! Out of clips.", 2.0)
+	_sync_models()
+	return true
+
+
+func _cone(dir: Vector3, spread_deg: float) -> Vector3:
+	var r := deg_to_rad(spread_deg) * sqrt(_rng.randf())
+	var a := _rng.randf() * TAU
+	var side := dir.cross(Vector3.UP)
+	if side.length_squared() < 1e-4: side = dir.cross(Vector3.RIGHT)
+	side = side.normalized()
+	var up := side.cross(dir).normalized()
+	return (dir + (side * cos(a) + up * sin(a)) * tan(r)).normalized()
+
+
+func damage_at(distance: float) -> float:
+	var k := clampf((distance - FALLOFF_START) / (FALLOFF_END - FALLOFF_START), 0.0, 1.0)
+	return DAMAGE * lerpf(1.0, FALLOFF_MIN, k)
+
+
+func _resolve_hit(hit: Dictionary, muzzle: Vector3) -> void:
+	var col: Object = hit.collider
+	last_shot.collider = String(col.name) if col is Node else ""
+	if col is Area3D and col in _targets:
+		shots_hit += 1
+		_pop_target(col)
+		return
+	if col is Area3D and col.has_meta("hurtbox"):
+		var victim: Object = col.get_meta("hurtbox")
+		if is_instance_valid(victim) and victim.has_method("take_hit"):
+			var head: bool = col.get_meta("zone", &"body") == &"head"
+			var dmg := damage_at(muzzle.distance_to(hit.position)) * (HEADSHOT if head else 1.0)
+			var killed: bool = victim.take_hit(dmg, head, hit.position, muzzle, &"player")
+			shots_hit += 1
+			last_shot.damage = dmg
+			last_shot.headshot = head
+			var vid: StringName = (victim as Node).get_meta("entity_id", &"") if victim is Node else &""
+			hit_confirmed.emit(vid, head, killed)
+			Events.target_damaged.emit(vid, dmg, head, killed)
+			sounds.play(&"kill" if killed else &"hit", null, -6.0)
+			fx.impact(hit.position, hit.normal, &"cloth")
+			last_shot.surface = &"cloth"
+			return
+	var surface := CombatFx.surface_of(col)
+	last_shot.surface = surface
+	fx.impact(hit.position, hit.normal, surface)
+
+
+## The 8th round is gone: the empty en-bloc clip is thrown out of the receiver with its ping.
+func _ping_clip() -> void:
+	clips_pinged += 1
+	var c := GarandModel.make_clip(false)
+	add_child(c)
+	c.global_transform = held.get_node("Ejection").global_transform
+	var b := held.global_transform.basis
+	var vel := b.y * _rng.randf_range(3.0, 3.8) + b.x * _rng.randf_range(0.4, 0.9) + b.z * 0.5
+	_flying.append([c, vel, Vector3(_rng.randf_range(-18, 18), _rng.randf_range(-8, 8), _rng.randf_range(-18, 18)), 0.0, false])
+	sounds.play(&"ping", held.get_node("Ejection").global_position, 2.0)
+	clip_pinged.emit()
+	Events.clip_pinged.emit()
+
+
+# ---------------------------------------------------------------------------- reloading
+## Press a fresh clip in. A part-empty clip is ejected first (ping!) and its rounds pocketed.
+func try_reload() -> bool:
+	if reloading or not has_gun: return false
+	if ammo >= CLIP:
+		return false
+	if reserve_clips <= 0:
+		message.emit("No clips left.", 1.5)
+		return false
+	if ammo > 0:
+		loose_rounds += ammo
+		ammo = 0
+		_ping_clip()
+		_pack_loose()
+	reloading = true
+	ads = false
+	_reload_t = 0.0
+	_reload_steps = {}
+	_auto_reload_t = -1.0
+	_aim_t = maxf(_aim_t, RELOAD_TIME + 0.3)
+	_sync_models()
+	return true
+
+
+func _update_reload(delta: float) -> void:
+	_reload_t += delta
+	var t := _reload_t
+	var m := player.model
+	# the left hand leaves the handguard, brings a clip over the receiver, thumbs it down,
+	# then knocks the operating rod handle to let the bolt slam home, and returns
+	var over := Transform3D(Basis.from_euler(Vector3(-1.2, 0.2, 0.0)), Vector3(0.0, 0.14, -0.33))
+	var press := Transform3D(Basis.from_euler(Vector3(-1.4, 0.2, 0.0)), Vector3(0.0, 0.09, -0.35))
+	var handle := Transform3D(Basis.from_euler(Vector3(-1.0, -0.6, 0.3)), Vector3(0.07, 0.06, -0.47))
+	if t < 0.35:
+		m.left_grip_weight = smoothstep(0.0, 0.35, t)
+		m.left_grip_override = over
+	elif t < 0.8:
+		m.left_grip_weight = 1.0
+		m.left_grip_override = over.interpolate_with(press, smoothstep(0.35, 0.7, t))
+	elif t < 1.25:
+		m.left_grip_weight = 1.0
+		m.left_grip_override = press.interpolate_with(handle, smoothstep(0.85, 1.2, t))
+	else:
+		m.left_grip_override = handle
+		m.left_grip_weight = 1.0 - smoothstep(1.35, RELOAD_TIME - 0.1, t)
+	_hand_clip.visible = t > 0.15 and t < 0.72
+	if t >= 0.72 and not _reload_steps.has("in"):
+		_reload_steps["in"] = true
+		held.clip.visible = true
+		sounds.play(&"clip_in", held.get_node("Ejection").global_position)
+	if t >= 1.32 and not _reload_steps.has("bolt"):
+		_reload_steps["bolt"] = true
+		sounds.play(&"bolt", held.get_node("Ejection").global_position)
+		player.model.recoil = 0.35
+		reserve_clips -= 1
+		ammo = CLIP
+		_sync_models()
+	if t >= RELOAD_TIME:
+		reloading = false
+		m.left_grip_weight = 0.0
+		_hand_clip.visible = false
+		reloaded.emit()
+
+
+func _sync_models() -> void:
+	if held: held.set_loaded(ammo)
+	if held and reloading and _reload_steps.has("in"): held.clip.visible = true
+	if slung: slung.set_loaded(maxi(ammo, 1))
+
+
+# ---------------------------------------------------------------------------- per frame
 func _process(delta: float) -> void:
 	if _cooldown > 0.0: _cooldown -= delta
-	if _reload_t > 0.0:
-		_reload_t -= delta
-		if _reload_t <= 0.0:
-			ammo = max_ammo
-	if _flash_t > 0.0:
-		_flash_t -= delta
-		if _flash_t <= 0.0: _flash.visible = false
+	bloom = move_toward(bloom, 0.0, BLOOM_DECAY * delta)
+	ads_blend = move_toward(ads_blend, 1.0 if ads else 0.0, delta * 6.0)
 	if _aim_t > 0.0:
 		_aim_t -= delta
-		if _aim_t <= 0.0: player.aiming = false
-	if _pickup:
-		_pickup_rot += delta
-		var disp := _pickup.get_node_or_null("Display")
+		if _aim_t <= 0.0 and player.aiming and not ads: player.aiming = false
+	if _auto_reload_t >= 0.0:
+		_auto_reload_t -= delta
+		if _auto_reload_t < 0.0: try_reload()
+	if reloading: _update_reload(delta)
+	# the pose: shouldered when aiming, at the hip for snap shots and reloads; walking sways it
+	var m := player.model
+	m.gun_ads = 1.0 if ads else 0.0
+	_sway_t += delta
+	var mv := clampf(player.speed() / maxf(player.walk_speed, 0.1), 0.0, 1.8)
+	var breathe := 0.004 + (1.0 - ads_blend) * 0.004
+	m.sway = Vector2(sin(_sway_t * 5.8) * 0.018 * mv + sin(_sway_t * 0.9) * breathe,
+		absf(sin(_sway_t * 11.6)) * 0.012 * mv + sin(_sway_t * 1.3) * breathe * 0.8)
+	_update_flying(delta)
+	if _cache:
+		_cache_rot += delta
+		var disp := _cache.get_node_or_null("Display")
 		if disp:
-			disp.rotation.y = _pickup_rot
-			disp.position.y = 0.72 + sin(_pickup_rot * 2.0) * 0.06
+			disp.rotation.y = _cache_rot
+			disp.position.y = 0.78 + sin(_cache_rot * 2.0) * 0.05
 
 
-func set_visible_on_player(v: bool) -> void:
-	if _pistol: _pistol.visible = v and has_gun
+func _update_flying(delta: float) -> void:
+	for i in range(_flying.size() - 1, -1, -1):
+		var e: Array = _flying[i]
+		var node: Node3D = e[0]
+		e[3] += delta
+		if not is_instance_valid(node):
+			_flying.remove_at(i); continue
+		var v: Vector3 = e[1]
+		v.y -= 9.8 * delta
+		var p := node.global_position + v * delta
+		var ground := world.terrain.height_at(p.x, p.z) + 0.01
+		if p.y < ground:
+			p.y = ground
+			if not e[4]:
+				e[4] = true
+				v = Vector3(v.x * 0.35, absf(v.y) * 0.3, v.z * 0.35)
+				e[2] = e[2] * 0.4
+			else:
+				v = Vector3.ZERO
+				e[2] = Vector3.ZERO
+		e[1] = v
+		node.global_position = p
+		node.rotate_x(e[2].x * delta); node.rotate_y(e[2].y * delta); node.rotate_z(e[2].z * delta)
+		if e[3] > 6.0:
+			node.queue_free()
+			_flying.remove_at(i)
 
 
-# ---------------------------------------------------------------- persistence
+func set_visible_on_player(_v: bool) -> void:
+	# the rifles live on the courier's model: they show and hide with him
+	pass
+
+
+# ---------------------------------------------------------------------------- persistence
 func save_state() -> Dictionary:
-	return {"has_gun": has_gun, "ammo": ammo, "hit": hit_ids.duplicate()}
+	return {"version": 2, "has_gun": has_gun, "ammo": ammo, "reserve_clips": reserve_clips, "loose_rounds": loose_rounds,
+		"cache_taken": cache_taken, "hit": hit_ids.duplicate()}
 
 
 func load_state(d: Dictionary) -> void:
-	if bool(d.get("has_gun", false)) and not has_gun:
-		has_gun = true
-		_pistol.visible = true
-		if _pickup: _pickup.queue_free(); _pickup = null
-	ammo = int(d.get("ammo", ammo))
+	has_gun = bool(d.get("has_gun", true))
+	var legacy := int(d.get("version", 1)) < 2
+	# the old pistol held 12: a legacy save keeps what fits in one clip, and the crate it
+	# was found on (now the ammo cache) stays emptied if the pistol had been picked up
+	ammo = clampi(int(d.get("ammo", CLIP)), 0, CLIP)
+	reserve_clips = clampi(int(d.get("reserve_clips", reserve_clips)), 0, MAX_RESERVE)
+	loose_rounds = clampi(int(d.get("loose_rounds", 0)), 0, CLIP - 1)
+	var taken := bool(d.get("cache_taken", legacy and bool(d.get("has_gun", false))))
+	if taken and not cache_taken: _take_cache()
+	reloading = false
+	_reload_t = 0.0
+	_sync_models()
 	for cid in d.get("hit", []):
 		for t in _targets.duplicate():
 			if t.get_meta("entity_id", &"") == StringName(cid):
