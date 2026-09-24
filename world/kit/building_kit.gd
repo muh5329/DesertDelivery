@@ -57,7 +57,7 @@ static func build_group(parent: Node3D, plots: Array, origin: Vector3) -> void:
 		var xf := Transform3D(Basis(UP, yaw_of(p)), Vector3(float(p.x), float(p.y), float(p.z)) - origin)
 		build_plot(c, p, xf)
 	var t1 := Time.get_ticks_usec()
-	c.bake_modules(2)
+	c.bake_modules(4)
 	last_keys = c.inst.keys()
 	c.finish(parent)
 	var t2 := Time.get_ticks_usec()
@@ -285,6 +285,10 @@ static func house(c: ArchCtx, p: Dictionary, q: Dictionary) -> void:
 	_roofscape(c, q, w, d, H, top, roof_top, party, flat, ph, zf)
 	if stair: _ext_stair(c, q, w, d, zf, ys, fh)
 	if q.get("staddles", false):
+		# a stone pad down to the ground on slopes, the staddles stand on it
+		m.xf = c.bxf
+		m.layer = _plinth_layer(q); m.tint = _plinth_tint(q)
+		m.box(Vector3(-w * 0.5 + 0.1, yb, -d * 0.5 + 0.1), Vector3(w * 0.5 - 0.1, 0.05, d * 0.5 - 0.1), 63 - 8)
 		for sx: float in [-1.0, 0.0, 1.0]:
 			for sz: float in [-1.0, 1.0]:
 				c.place(M.staddle(lift), Transform3D(Basis(), Vector3(sx * (w * 0.5 - 0.4), 0.0, sz * (d * 0.5 - 0.4))))

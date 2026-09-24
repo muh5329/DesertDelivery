@@ -1427,24 +1427,26 @@ func _add_cylinder_body(parent: Node3D, radius: float, height: float, pos: Vecto
 	cs.shape = sh; cs.position = Vector3(0, height * 0.5, 0); sb.add_child(cs); sb.position = pos; parent.add_child(sb)
 
 
+## A house of the core island, built by the architecture kit (BuildingKit, style "core":
+## whitewash, blue shutters, terracotta). Town houses (the TOWN biome and the harbour square) are
+## taller with roof terraces; village houses have a gabled roof whose ridge runs front to back.
+## The front faces local -Z. Collision keeps its old footprint: a box from 3 m below the pad to the
+## eaves, and the roof prism or the terrace slab on top.
 func _house(parent: Node3D, pos: Vector3, rot_y: float, w: float, d: float, floors: int, wall: Color = STONE, roof_col: Color = TERRACOTTA) -> Node3D:
 	var n := Node3D.new()
 	n.position = pos; n.rotation_degrees.y = rot_y; parent.add_child(n)
 	var town := terrain != null and (terrain.biome_at(pos.x, pos.z) == Terrain.Biome.TOWN or Vector2(pos.x, pos.z).distance_to(Vector2(-340, 438)) < 44.0)
-	var variation := posmod(int(round(pos.x * 7.0 + pos.z * 13.0)), 7)
-	var style := 2 if variation == 0 else (1 if variation <= 2 else 0)
-	var asset := "town_house_%d_%d" % [mini(floors, 2), style] if town else "village_house_%d" % mini(floors, 2)
-	var model := IslandArt.instantiate(asset)
-	model.scale = Vector3(w / 6.0, float(floors) / mini(floors, 2), d / 6.0)
-	n.add_child(model)
 	if town: _town_foundation(n, w, d)
-	for mi in model.find_children("*", "MeshInstance3D", true, false):
-		for index in range(mi.mesh.get_surface_count()):
-			var source: Material = mi.get_surface_override_material(index)
-			if source is StandardMaterial3D and "plaster" in source.resource_name:
-				var tint: StandardMaterial3D = source.duplicate()
-				tint.albedo_color = wall
-				mi.set_surface_override_material(index, tint)
+	var lowest := pos.y
+	if terrain != null:
+		for c in [Vector2(-w, -d), Vector2(w, -d), Vector2(-w, d), Vector2(w, d), Vector2.ZERO]:
+			var q: Vector3 = n.transform * Vector3(c.x * 0.5, 0, c.y * 0.5)
+			lowest = minf(lowest, _ground(q.x, q.z))
+	var roof_tint := Color(clampf(roof_col.r / 0.72, 0.3, 1.5), clampf(roof_col.g / 0.40, 0.3, 1.5), clampf(roof_col.b / 0.27, 0.3, 1.5))
+	var plot := {"id": "core", "style": "core", "kind": "house", "x": 0.0, "y": 0.0, "z": 0.0, "yaw": 180.0, "w": w, "d": d,
+		"floors": floors, "seed": posmod(int(round(pos.x * 7.0 + pos.z * 13.0)) * 7919 + floors, 2147483000),
+		"tags": ["terrace"] if town else [], "ground_min": lowest - pos.y, "wall": wall, "roof": roof_tint, "party": [false, false]}
+	BuildingKit.build_local(n, plot, false)
 	var sb := StaticBody3D.new(); sb.collision_layer = 1
 	var cs := CollisionShape3D.new(); var shape := BoxShape3D.new()
 	shape.size = Vector3(w, floors * 3.1 + 3.0, d)

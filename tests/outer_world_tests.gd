@@ -190,6 +190,7 @@ func _run() -> void:
 	for c in game.world.streamer.loaded.values():
 		built += c.find_children("PlaceholderBuildings", "MeshInstance3D", true, false).size()
 		built += c.find_children("Plots*", "", true, false).size()
+		built += c.find_children("Buildings", "MeshInstance3D", true, false).size()      # BuildingKit
 	_check(built > 3, "town plots are built by the streamer near %s (%d groups)" % [plan.towns[0].id, built])
 	var hidden := 0
 	for c in game.world.streamer.loaded.keys():

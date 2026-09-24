@@ -121,18 +121,23 @@ func finish(parent: Node3D, name_prefix: String = "Buildings") -> void:
 		var mesh := ArchModules.mesh(key)
 		mm.mesh = mesh
 		mm.instance_count = xfs.size()
-		# the bounds, set now: the server computes them lazily and culling / extent checks need them
+		# the bounds, set now (the server computes them lazily); the node sits at its instances' centre (a node parked at the group origin would claim to
+		# reach it, and the headless server reports no MultiMesh bounds at all)
 		var mab := mesh.get_aabb()
 		var box := (xfs[0] as Transform3D) * mab
+		for i in range(1, xfs.size()): box = box.merge((xfs[i] as Transform3D) * mab)
+		var centre := box.get_center()
 		for i in range(xfs.size()):
-			mm.set_instance_transform(i, xfs[i])
-			if i > 0: box = box.merge((xfs[i] as Transform3D) * mab)
+			var t: Transform3D = xfs[i]
+			mm.set_instance_transform(i, Transform3D(t.basis, t.origin - centre))
 			mm.set_instance_custom_data(i, cus[i])
 			mm.set_instance_color(i, walls[i])
+		box.position -= centre
 		mm.custom_aabb = box
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = key.get_slice("|", 0)
 		mmi.multimesh = mm
+		mmi.position = centre
 		mmi.material_override = mat
 		if not ArchModules.shadows.get(key, false):
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

@@ -43,6 +43,7 @@ var locations: Array[StringName] = []
 var names: Dictionary = {}          # id -> display name
 var _mat_cache: StandardMaterial3D
 var _lamp_mm_mesh: ArrayMesh
+var _kit_methods: Dictionary = {}
 
 
 func setup(p_outer: OuterWorld, p_db: WorldDatabase, p_kit: WorldKit) -> void:
@@ -51,6 +52,7 @@ func setup(p_outer: OuterWorld, p_db: WorldDatabase, p_kit: WorldKit) -> void:
 	if ResourceLoader.exists(KIT_PATH):
 		var s = load(KIT_PATH)
 		if s is Script: building_kit = s
+	if _kit_has("warm"): building_kit.call("warm")      # decode the kit's textures in the background
 	lod_root = Node3D.new(); lod_root.name = "TownSilhouettes"; add_child(lod_root)
 	var plan: Dictionary = outer.ground.plan
 	for group in ["towns", "hamlets"]:
@@ -68,9 +70,9 @@ func setup(p_outer: OuterWorld, p_db: WorldDatabase, p_kit: WorldKit) -> void:
 ## Does the architecture kit script define this (static) function?
 func _kit_has(method: String) -> bool:
 	if building_kit == null: return false
-	for m in building_kit.get_script_method_list():
-		if m.name == method: return true
-	return false
+	if _kit_methods.is_empty():
+		for m in building_kit.get_script_method_list(): _kit_methods[m.name] = true
+	return _kit_methods.has(method)
 
 
 # ---------------------------------------------------------------- towns
@@ -81,6 +83,8 @@ func _define_town(t: Dictionary) -> void:
 	var id := StringName(t.id)
 	db.add_location(id, pos, Vector3(0, 0, 1), t.name)
 	locations.append(id)
+	# party walls: which sides of each plot touch a neighbour (rows share walls, no eaves there)
+	if _kit_has("annotate"): building_kit.call("annotate", t.plots)
 	# plots per chunk, in groups
 	var per_chunk: Dictionary = {}
 	for p: Dictionary in t.plots:
@@ -435,6 +439,9 @@ func _landmark_building(parent: Node3D, origin: Vector3, pos: Vector3, yaw: floa
 		lo = minf(lo, outer.height_at(pos.x + c.x * 0.5, pos.z + c.y * 0.5))
 	var plot := {"id": "landmark", "style": style, "kind": kind, "x": pos.x, "z": pos.z, "y": g, "ground_min": lo, "yaw": yaw,
 		"w": w, "d": d, "floors": floors, "seed": int(absf(pos.x * 13.0 + pos.z)), "tags": []}
+	if _kit_has("build_group"):
+		building_kit.call("build_group", parent, [plot], origin)
+		return
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var body := StaticBody3D.new(); body.collision_layer = 1
 	_placeholder(st, plot, origin, body)

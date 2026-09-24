@@ -199,7 +199,7 @@ func _check_recipe_extents() -> void:
 		checked += 1
 		if reach - r.radius > worst_over:
 			worst_over = reach - r.radius
-			worst_name = "%.0f m built, %.0f m declared at (%.0f, %.0f)" % [reach, r.radius, r.pos.x, r.pos.y]
+			worst_name = "%.0f m built, %.0f m declared at (%.0f, %.0f): %s" % [reach, r.radius, r.pos.x, r.pos.y, _worst_node]
 	kit.sink = previous_sink
 	scratch.queue_free()
 	_check(checked > 0 and worst_over <= 0.0,
