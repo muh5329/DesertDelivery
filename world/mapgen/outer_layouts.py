@@ -399,6 +399,7 @@ def layout_sarmada(town, ctx):
             for p in made:
                 p["floors"] = fl_at(np.array([p["x"], p["z"]]))
                 if p["floors"] <= 1 or rng.random() < 0.35: p["tags"] = [tg for tg in p["tags"] if tg != "terrace"]
+                sarmada_tone(p, rng)
     for side in (1, -1):
         town.line_plots(pz, side, None, (8, 14), (10, 14), land, setback=0.5, floors=2, kinds=["shop", "market_hall", "house"], tags=["arcade", "shopfront"])
     for side in (1, -1):
@@ -407,6 +408,28 @@ def layout_sarmada(town, ctx):
     # the oasis palm grove north-west of the walls (dressing reads it from the plan)
     town.landmarks.append({"id": "sarmada.oasis", "kind": "oasis", "pos": mc + ay * (D / 2 + 260) - ax * 220, "yaw_deg": 0.0, "radius": 190.0})
     town.landmarks.append({"id": "sarmada.watchtower", "kind": "watchtower", "pos": mc + ax * (W / 2 + 320) + ay * 120, "yaw_deg": 0.0})
+
+
+# the medina's limewash and adobe by quarter (M-10): the kit picks a Sarmada house's wall from its
+# seed (70 % limewash, 30 % adobe in four tones); the generator picks the seed for the tone it wants
+# (world/mapgen/godot_rng.py replays the kit's draws). Quarters of ~70 m lean to one tone.
+SARMADA_TONES = ["white", "sand", "ochre", "rose"]          # limewash; SARMADA_OCHRE 1|3, 0, 2
+SARMADA_MIX = [0.34, 0.26, 0.22, 0.18]
+
+
+def sarmada_tone(p, rng):
+    import godot_rng as GR
+    q = (int(math.floor(p["x"] / 70.0)), int(math.floor(p["z"] / 70.0)))
+    lean = (q[0] * 7919 + q[1] * 104729) % 4
+    w = np.array(SARMADA_MIX) * 0.6; w[lean] += 0.4
+    want = SARMADA_TONES[int(rng.choice(4, p=w / w.sum()))]
+    for _ in range(80):
+        s = int(rng.integers(1, 2 ** 31 - 1))
+        cls, i = GR.sarmada_wall(s, p["floors"])
+        tone = "white" if cls == "white" else ("sand" if i in (1, 3) else ("ochre" if i == 0 else "rose"))
+        if tone == want:
+            p["seed"] = s; p["_tone"] = tone
+            return
 
 
 # ------------------------------------------------------------------ Campo Real

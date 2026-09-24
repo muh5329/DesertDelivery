@@ -383,7 +383,9 @@ func _define_landmark(lm: Dictionary) -> void:
 		"oasis", "windmill_site": return
 	if kind in ["lighthouse", "castle_ruin", "monastery", "chapel", "viewpoint", "hut", "watchtower", "dam", "gatehouse"]:
 		var lid := StringName(String(lm.id).replace(".", "_"))
-		db.add_location(lid, pos, Vector3(0, 0, 1), _landmark_name(lm))
+		# the ring at the road's end; the building stands beside it (outer.py site_landmarks)
+		var ring := Vector3(lm.ring[0], lm.ring[1], lm.ring[2]) if lm.has("ring") else pos
+		db.add_location(lid, ring, Vector3(0, 0, 1), _landmark_name(lm))
 		names[lm.id] = _landmark_name(lm)
 	if lm.get("plot", false): return           # built by its plot (Puerto Alto's lighthouse on the mole)
 	db.add(pos.x, pos.z, func(): _build_landmark(kit.sink, kind, pos, yaw), reach)

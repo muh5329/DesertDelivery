@@ -1243,6 +1243,51 @@ def finalise_heights(h, flat, micro, net, towns):
             t.plaza = [round(float(pz[0]), 2), round(float(surface_at(h, flat, micro, [pz[0]], [pz[1]])[0]), 2), round(float(pz[1]), 2)]
 
 
+# the landmarks at the tracks' ends: the building stands beside the road's end, not on it (the
+# road used to end at its centre: the bike rode into the gatehouse, the lighthouse, the castle ruin;
+# road.south_plateau starts on the castle track's end). Footprint radius by kind (outer_towns.gd).
+LANDMARK_R = {"gatehouse": 7.0, "hut": 6.0, "viewpoint": 3.5, "chapel": 11.0, "lighthouse": 6.0,
+              "castle_ruin": 27.0, "watchtower": 4.5, "monastery": 32.0}
+
+
+def site_landmarks(h, flat, micro, roads, towns, pois):
+    """Move each POI building off its road's end to the flattest dry spot beside it that no road
+    ribbon and no plot touches; the delivery ring stays at the road's end (`ring3`)."""
+    A, B, H, _ = _seg_arrays(roads)
+    plots = [pl["_poly"] for t in towns for pl in t.plots if "_poly" in pl]
+    moved = 0
+    for q in pois:
+        if "pos3" not in q: continue
+        end = np.array([q["pos3"][0], q["pos3"][2]])
+        rad = LANDMARK_R.get(q["kind"], 6.0)
+        best = None
+        for dist in (rad + 7.0, rad + 12.0, rad + 20.0):
+            for a in np.radians(np.arange(0, 360, 20)):
+                c = end + dist * np.array([math.cos(a), math.sin(a)])
+                ring = np.array([c + rad * np.array([math.cos(b), math.sin(b)]) for b in np.radians(np.arange(0, 360, 45))] + [c])
+                g = surface_at(h, flat, micro, ring[:, 0], ring[:, 1])
+                if g.min() < 3.0: continue                                   # dry land
+                sq = np.array([c + rad * np.array(v) for v in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+                if poly_road_overlap(sq, A, B, H + 2.0)[0] > 0.0: continue    # clear of every ribbon (+2 m)
+                hit = False
+                for pp in plots:
+                    if np.hypot(*(pp.mean(0) - c)) > rad + 40.0: continue
+                    if T.point_in_poly(c, pp) or min(T.seg_seg_dist(c, c, pp[k], pp[(k + 1) % len(pp)]) for k in range(len(pp))) < rad + 1.0:
+                        hit = True; break
+                if hit: continue
+                score = float(g.max() - g.min()) + 0.02 * dist
+                if best is None or score < best[0]: best = (score, c, float(g[-1]))
+            if best is not None and best[0] < 1.5: break
+        if best is None:
+            log("landmark site: none clear for", q["id"]); continue
+        c = best[1]
+        q["ring3"] = list(q["pos3"])
+        q["pos3"] = [float(c[0]), best[2], float(c[1])]
+        q["yaw"] = math.degrees(math.atan2(end[0] - c[0], end[1] - c[1]))       # facing the road's end
+        moved += 1
+    return moved
+
+
 def pick_camps(h, net, towns, flat, micro, seed=17):
     rng = np.random.default_rng(seed)
     ctx = LY.Ctx(h)
@@ -1389,7 +1434,9 @@ def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, 
             landmarks.append(e)
     for q in pois:
         if "pos3" in q:
-            landmarks.append({"id": "poi." + q["id"], "kind": q["kind"], "pos": [r2(v) for v in q["pos3"]], "yaw_deg": 0.0})
+            e = {"id": "poi." + q["id"], "kind": q["kind"], "pos": [r2(v) for v in q["pos3"]], "yaw_deg": r2(q.get("yaw", 0.0))}
+            if "ring3" in q: e["ring"] = [r2(v) for v in q["ring3"]]      # the road's end: the delivery ring
+            landmarks.append(e)
     # the desert oases (palm groves round irrigated plots; the flora reads kind "oasis")
     for k, (ox, oz, orad) in enumerate(W.OASES):
         if any(lm["kind"] == "oasis" and math.hypot(lm["pos"][0] - ox, lm["pos"][2] - oz) < orad for lm in landmarks): continue
@@ -1450,6 +1497,7 @@ def main():
             pickle.dump({"roads": net.roads, "towns": towns + hamlets}, f)
         log("stopped after the roads (OUTER_STOP=roads)")
         return
+    log("landmarks sited beside their roads: %d" % site_landmarks(h2, flat, micro, net.roads, towns + hamlets, pois))
     import outer_props as PR
     nprops = PR.dress(towns + hamlets, h2, flat, micro, net.roads, surface_at, LY.Ctx(h2))
     log("props", nprops)
