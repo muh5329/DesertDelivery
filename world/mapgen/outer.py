@@ -306,7 +306,7 @@ def town_heights(h, towns, flat):
                 dredge[jj[sea], ii[sea]] = True
     h2, w = R.apply_carve(h, dist, yt, hw, 3.0, 40.0)
     # (the quay edge follows the smoothed shoreline: whatever beach or spit lies in front of it goes)
-    h2 = np.where(dredge & ~filled, np.minimum(h2, -3.4), h2)
+    h2 = np.where(dredge & ~ndimage.binary_dilation(filled, iterations=1), np.minimum(h2, -3.4), h2)
     # never lower the ground below the sea inside a town's pads (quays stay land)
     flat_new = np.clip((dist < hw + 4) * 1.0, 0, 1)
     flat[:] = np.maximum(flat, ndimage.uniform_filter(flat_new, 3))

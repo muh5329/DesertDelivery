@@ -322,7 +322,9 @@ func _ribbon(e: Dictionary, k0: int, k1: int, surfaces: Dictionary) -> void:
 			var q := p + right * off
 			var outer_v := absf(off) > hw + 0.01
 			if on_bridge and outer_v: q = p + right * signf(off) * hw     # no shoulder on a deck
-			q.y = (p.y + 0.03) if on_bridge else (outer.height_at(q.x, q.z) + (0.015 if outer_v else 0.045))
+			# where ribbons overlap (a main street crossing its plaza) the plaza wins: it rides 3 cm higher
+			var lift := 0.045 + (0.03 if e.kind == 5 else (0.015 if e.kind == 6 else 0.0))
+			q.y = (p.y + 0.03) if on_bridge else (outer.height_at(q.x, q.z) + (0.015 if outer_v else lift))
 			V.append(q); Nn.append(nrm)
 			U.append(Vector2((off / e.width) + 0.5, along))
 			Tg.append_array(PackedFloat32Array([tan.x, tan.y, tan.z, 1.0]))

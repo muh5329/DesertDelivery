@@ -93,7 +93,8 @@ void vertex() {
 	vec2 wp = origin + gp * cell;
 	ivec2 L = ivec2(round((wp - ORIGIN) / LAT));
 	float h0 = lattice(L);
-	float d = distance(lod_camera, vec3(wp.x, h0, wp.y));
+	vec3 dv = lod_camera - vec3(wp.x, h0, wp.y);
+	float d = length(vec3(dv.x, dv.y * 0.5, dv.z));      // OuterTerrainView.VERT_WEIGHT
 	float morph = clamp((d - INSTANCE_CUSTOM.y) / max(INSTANCE_CUSTOM.z - INSTANCE_CUSTOM.y, 1.0), 0.0, 1.0);
 	vec2 odd = mod(gp, 2.0);
 	vec2 mp = wp - odd * cell * morph;
@@ -330,7 +331,8 @@ void fragment() {
 	col *= field_tint;
 	col = mix(col, col * (arid ? vec3(0.86, 0.84, 0.8) : vec3(0.72, 0.84, 0.62)), ditch * 0.7);
 	// the forest floor: brown needles and leaf litter, a little moss, darker under the canopy
-	col = mix(col, col * vec3(0.98, 0.86, 0.68) * (0.8 + 0.25 * n2), ff * 1.2);
+	float litter = smoothstep(0.22, 0.7, forest) * (1.0 - snow) * (arid ? 0.3 : 1.0);
+	col = mix(col, col * vec3(1.02, 0.84, 0.62) * (0.82 + 0.25 * n2), litter * 0.75);
 	// irrigated plots: lush green even in the desert
 	col = mix(col, col * vec3(0.72, 1.08, 0.62), irr * farm * 0.6);
 	// the erg: pale sand, darker in the dune troughs, wind ripples close up

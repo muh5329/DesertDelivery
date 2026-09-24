@@ -221,7 +221,8 @@ def layout_puerto(town, ctx):
     cn = ctx.inland_normal(cp, ct)
     # the breakwater: a stone mole off the point, the lighthouse on its head
     mole1 = cp - cn * 95.0
-    town.fill.append([(cp + ct * 8).tolist(), (cp - ct * 8).tolist(), (mole1 - ct * 8).tolist(), (mole1 + ct * 8).tolist()])
+    m0 = cp + cn * 25.0
+    town.fill.append([(m0 + ct * 9).tolist(), (m0 - ct * 9).tolist(), (mole1 - ct * 9).tolist(), (mole1 + ct * 9).tolist()])
     mo = town.add_street("quay", 10.0, [cp + cn * 4, mole1 + cn * 13]); set_rule(town, mo, ("flat", 2.4))
     town.quay_edges.append([(cp + ct * 6.5).tolist(), (mole1 + ct * 6.5).tolist()])
     town.quay_edges.append([(mole1 - ct * 6.5).tolist(), (cp - ct * 6.5).tolist()])
@@ -319,7 +320,9 @@ def layout_sarmada(town, ctx):
     town.quay_edges.append(offset_line(ctx, shore[max(k - 26, 0):min(k + 26, len(shore) - 1) + 1], 2.0).tolist())
     mole0 = shore[k] + ax * 90
     mole1 = mole0 + sea * 150 + ax * 40
-    town.fill.append([(mole0 - ax * 7).tolist(), (mole0 + ax * 7).tolist(), (mole1 + ax * 7).tolist(), (mole1 - ax * 7).tolist()])
+    # (rooted 25 m inland and 18 m wide, so the dredging in front of the quay cannot cut it off)
+    m0 = mole0 + inl * 25.0
+    town.fill.append([(m0 - ax * 9).tolist(), (m0 + ax * 9).tolist(), (mole1 + ax * 9).tolist(), (mole1 - ax * 9).tolist()])
     mi = town.add_street("quay", 10.0, [mole0 + inl * 6, mole1]); set_rule(town, mi, ("flat", 2.4))
     town.landmarks.append({"id": "sarmada.lighthouse", "kind": "lighthouse", "pos": mole1 + sea * 4, "yaw_deg": 0.0})
     town.port = {"berth": (mole0 + mole1) * 0.5 - ax * 24, "heading_deg": math.degrees(math.atan2(-sea[0], -sea[1]))}

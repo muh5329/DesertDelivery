@@ -116,10 +116,13 @@ void fragment() {
 		vec3 stone_tint = style == 1.0 ? vec3(1.28, 1.25, 1.18) : (style == 2.0 ? vec3(0.9, 0.92, 0.95) : (style == 3.0 ? vec3(1.22, 1.06, 0.84) : (style == 4.0 ? vec3(1.2, 1.17, 1.1) : vec3(1.14, 1.04, 0.88))));
 		col *= stone_tint;
 		if (style == 1.0 && kind == 5) {
-			// Lisbon: black basalt waves laid through the white limestone
-			float wave = sin(along * 0.42 + sin(across * 0.21) * 2.2) * 0.5 + 0.5;
-			float band = 1.0 - smoothstep(0.08, 0.16, abs(wave - 0.5));
-			col = mix(col, vec3(0.12, 0.12, 0.13) * (0.85 + 0.3 * n2), band * 0.9);
+			// Lisbon calcada: small white limestone cubes (the sett texture's grain only) with black
+			// basalt waves laid through them, crisp-edged
+			float lum = dot(texture(sett_tex, wpos.xz / 1.6).rgb, vec3(0.33));
+			col = vec3(0.86, 0.84, 0.79) * (0.72 + 0.55 * lum) * (0.94 + 0.12 * n1);
+			float wave = sin(along * 0.42 + sin(across * 0.21) * 2.2);
+			float band = 1.0 - smoothstep(0.2, 0.26, abs(wave));
+			col = mix(col, vec3(0.11, 0.11, 0.12) * (0.8 + 0.5 * lum), band);
 		}
 		if (kind == 5) {
 			// the plaza: a border of long kerb stones, bands of pale stone every 8 m across a darker
@@ -134,7 +137,9 @@ void fragment() {
 				+ step(r, 6.0) * (1.0 - smoothstep(0.02, 0.06, abs(sin(ang * 4.0)) * r / 6.0)) * step(0.5, r);
 			vec3 pale = texture(sett_tex, wpos.xz / 2.6 + 0.4).rgb * vec3(1.18, 1.12, 1.02);
 			col = mix(col * vec3(0.9, 0.88, 0.86), pale, clamp(border + bands * 0.8, 0.0, 1.0));
-			col = mix(col, vec3(0.62, 0.36, 0.26), clamp(rose, 0.0, 1.0) * step(r, 6.3) * 0.8);
+			// inlaid darker stone (basalt in the port, red porphyry inland), not paint
+			vec3 inlay = style == 1.0 ? vec3(0.16, 0.16, 0.17) : vec3(0.42, 0.3, 0.26);
+			col = mix(col, inlay * (0.8 + 0.4 * n2), clamp(rose, 0.0, 1.0) * step(r, 6.3) * 0.65);
 			col *= 1.0 - 0.08 * (1.0 - smoothstep(4.0, 16.0, r));
 		}
 		if (kind == 6) {

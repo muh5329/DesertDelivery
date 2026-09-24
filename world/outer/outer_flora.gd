@@ -32,6 +32,7 @@ var _last_near := Vector2i(-9999, -9999)
 var species: Dictionary = {}        # name -> {full: Array[PropPart], card: Array[PropPart]}
 var grass_parts: Dictionary = {}
 var rock_parts: Array = []
+var desert_rock_parts: Array = []
 var oases: Array = []               # [Vector2 centre, radius]
 var instance_total := 0
 var _clump := FastNoiseLite.new()
@@ -85,6 +86,8 @@ func _make_species() -> void:
 	grass_parts.flower_p = _grass("flower_card_pink", 0.9, 0.6)
 	grass_parts.flower_w = _grass("flower_card_white", 0.9, 0.6)
 	var rmat := WorldKit.rock_material("rock024", WorldKit.LIMESTONE_TINT, 0.12)
+	# the desert's boulders are the mesas' red-brown sandstone, not the coast's limestone
+	var dmat := WorldKit.rock_material("rock024", Color(0.74, 0.52, 0.38), 0.0)
 	# the kit's bedded limestone boulders (RockGen, the baked library's LOD1), scaled to the old
 	# sphere-rock size (~2 m across at scale 1), not smooth grey blobs
 	for i in range(4):
@@ -94,6 +97,7 @@ func _make_species() -> void:
 		var mesh: Mesh = r.get("mesh_lod1", null)
 		if mesh == null: mesh = _rock_mesh(31 + i)
 		rock_parts.append([WorldKit.PropPart.new(mesh, rmat, Transform3D(Basis().scaled(Vector3(0.5, 0.5, 0.5)), Vector3.ZERO))])
+		desert_rock_parts.append([WorldKit.PropPart.new(mesh, dmat, Transform3D(Basis().scaled(Vector3(0.5, 0.5, 0.5)), Vector3.ZERO))])
 
 
 func _card_tree(tex: String, w: float, h: float, trunk_r: float, conifer: bool, tint: Color, trunk_h: float = -1.0) -> Array:
@@ -372,7 +376,7 @@ func _build_tile_impl(k: Vector2i) -> void:
 		var h := _site(x, z, 1.1)
 		if is_nan(h): continue
 		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.45, 0.8), s)), Vector3(x, h - s * 0.35, z) - node.position))
-		rocks[1].append(Color(0.82, 0.86, 0.78))
+		rocks[1].append(Color(1, 1, 1))
 	_hedges(k, node, groups, rng)
 	_fields(k, node, groups, rng)
 	for sp in groups:
@@ -390,11 +394,13 @@ func _build_tile_impl(k: Vector2i) -> void:
 			_emit(node, variants[v], buckets[v][0], buckets[v][1], 0.0, FULL_RANGE if is_tree else 420.0, is_tree)
 			if is_tree: _emit(node, set.card[0], buckets[v][0], buckets[v][1], FULL_RANGE, CARD_RANGE, false)
 		instance_total += xf.size()
-	for v in range(rock_parts.size()):
+	var cb := ground.biome_at(k.x * TILE + TILE * 0.5, k.y * TILE + TILE * 0.5)
+	var rparts: Array = desert_rock_parts if (cb == Terrain.Biome.BADLANDS or cb == Terrain.Biome.DUNES) else rock_parts
+	for v in range(rparts.size()):
 		var xs: Array[Transform3D] = []; var cs: Array[Color] = []
-		for i in range(v, rocks[0].size(), rock_parts.size()):
+		for i in range(v, rocks[0].size(), rparts.size()):
 			xs.append(rocks[0][i]); cs.append(rocks[1][i])
-		if not xs.is_empty(): _emit(node, rock_parts[v], xs, cs, 0.0, 600.0, true)
+		if not xs.is_empty(): _emit(node, rparts[v], xs, cs, 0.0, 600.0, true)
 	instance_total += rocks[0].size()
 
 
@@ -441,6 +447,7 @@ func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 	var near_vines := false; var near_town := false
 	for vc in _vine_centres:
 		var d: float = c.distance_to(vc[0])
+		if d < float(vc[3]) + 60.0: return          # no vineyard in the middle of a town
 		if d < vc[2] and vc[1] in ["campo", "valdoro", "puerto"]: near_vines = true
 		if d < vc[2] * 0.7: near_town = true
 	var added := 0
@@ -486,7 +493,7 @@ func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 func _fields_centres() -> void:
 	for group in ["towns", "hamlets"]:
 		for t: Dictionary in ground.plan.get(group, []):
-			_vine_centres.append([Vector2(t.center[0], t.center[1]), t.style, 2200.0 if group == "towns" else 900.0])
+			_vine_centres.append([Vector2(t.center[0], t.center[1]), t.style, 2200.0 if group == "towns" else 900.0, float(t.radius)])
 
 
 ## Dry-stone walls along the parcel edges: 3 m segments laid along whichever edge is nearer.

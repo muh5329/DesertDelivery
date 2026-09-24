@@ -51,7 +51,7 @@ func _define(t: Dictionary) -> void:
 		var o := db.chunk_origin(c) + Vector3(db.chunk_size * 0.5, 0, db.chunk_size * 0.5)
 		var reach := 50.0
 		for rec in group:
-			if String(rec[0]).begins_with("crane") or rec[0] == "jetty": reach = 70.0
+			if String(rec[0]).begins_with("crane") or rec[0] == "jetty": reach = 85.0
 		db.add(o.x, o.z, func(): _build(kit.sink, group, style), reach)
 		recipes += 1
 	# quay walls along the water side of every quay (<= 48 m pieces)
@@ -123,13 +123,39 @@ func _build(parent: Node3D, group: Array, style: String) -> void:
 		elif not kind in NO_COLLIDE:
 			var fp := ArchProps.footprint(kind)
 			if fp.y > 0.0: c.box_shape_c(Vector3(0, fp.y * 0.5, 0), Vector3(fp.x * 2.0, fp.y, fp.z * 2.0))
-	c.bake_modules(1)
+	# kinds with a few instances in this chunk go into the merged mesh (a MultiMesh of 1-4 is a
+	# wasted draw call), as the building groups do
+	c.bake_modules(4)
 	c.finish(parent, "Props")
 	for sp in trees:
 		if outer.flora and outer.flora.species.has(sp):
 			var set: Dictionary = outer.flora.species[sp]
-			outer.flora._emit(parent, set.full[0], trees[sp][0], trees[sp][1], 0.0, 420.0, true)
+			_emit_trees(parent, set.full[0], trees[sp][0], trees[sp][1])
 	for key in boats: _boats(parent, key, boats[key])
+
+
+## The town trees with the wilderness' models, one MultiMesh per model part, each node at its
+## instances' centre with explicit bounds (a chunk's recipes must stay inside their extent).
+func _emit_trees(parent: Node3D, parts: Array, xforms: Array, colors: Array) -> void:
+	for part: WorldKit.PropPart in parts:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = true
+		mm.mesh = part.mesh; mm.instance_count = xforms.size()
+		var mab := part.mesh.get_aabb()
+		var box := ((xforms[0] as Transform3D) * part.xform) * mab
+		for i in range(1, xforms.size()): box = box.merge(((xforms[i] as Transform3D) * part.xform) * mab)
+		var centre := box.get_center()
+		for i in range(xforms.size()):
+			var t: Transform3D = (xforms[i] as Transform3D) * part.xform
+			mm.set_instance_transform(i, Transform3D(t.basis, t.origin - centre))
+			mm.set_instance_color(i, colors[i])
+		box.position -= centre
+		mm.custom_aabb = box
+		var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.material_override = part.mat
+		mmi.position = centre
+		mmi.visibility_range_end = 420.0; mmi.visibility_range_end_margin = 40.0
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		parent.add_child(mmi)
 
 
 ## Boats float: their own MultiMesh with the kit's material plus a slow heave, pitch and roll
@@ -142,13 +168,24 @@ func _boats(parent: Node3D, key: String, e: Array) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true; mm.use_custom_data = true
-	mm.mesh = ArchModules.mesh(key)
+	var mesh := ArchModules.mesh(key)
+	mm.mesh = mesh
 	mm.instance_count = xfs.size()
+	# the node sits at its instances' centre with explicit bounds (as ArchCtx.finish does: the
+	# server computes MultiMesh bounds lazily, and not at all headless)
+	var mab := mesh.get_aabb().grow(0.3)
+	var box := (xfs[0] as Transform3D) * mab
+	for i in range(1, xfs.size()): box = box.merge((xfs[i] as Transform3D) * mab)
+	var centre := box.get_center()
 	for i in range(xfs.size()):
-		mm.set_instance_transform(i, xfs[i])
+		var t: Transform3D = xfs[i]
+		mm.set_instance_transform(i, Transform3D(t.basis, t.origin - centre))
 		mm.set_instance_custom_data(i, e[1][i])
 		mm.set_instance_color(i, Color(1, 1, 1, 0))
+	box.position -= centre
+	mm.custom_aabb = box
 	var mmi := MultiMeshInstance3D.new(); mmi.name = "Boats"
+	mmi.position = centre
 	mmi.multimesh = mm; mmi.material_override = _bob_mat
 	mmi.visibility_range_end = 900.0
 	parent.add_child(mmi)
@@ -233,8 +270,8 @@ func _build_wall(parent: Node3D, pts: PackedVector2Array) -> void:
 	if parent == null or pts.size() < 2: return
 	var origin := parent.global_position if parent.is_inside_tree() else Vector3.ZERO
 	var m := ArchMesh.new()
-	m.layer = float(ArchMaterials.RUBBLE) + 0.3
-	m.tint = Color(0.86, 0.83, 0.78)
+	m.layer = float(ArchMaterials.RUBBLE) + 0.6
+	m.tint = Color(0.72, 0.7, 0.64)          # weathered, lichened field stone (not a bright line across the slope)
 	var faces := PackedVector3Array()
 	for k in range(pts.size() - 1):
 		var a := pts[k]; var b := pts[k + 1]

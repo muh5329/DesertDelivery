@@ -158,7 +158,7 @@ def macro_tint(h, s, biome, n1, n2, n3, wN, wS, wE, wW, farm, forest, dry, feat=
         # the south, zone by zone: dark gravel plains (reg) on the flat plateau, pale sand seas, bleached
         # wadi floors, red-brown badland slopes, green irrigated plots
         flatness = smoothstep(0.08, 0.02, s)[..., None]
-        reg = np.array([0.80, 0.74, 0.66]) * (1 + 0.08 * n2[..., None])
+        reg = np.array([0.90, 0.74, 0.58]) * (1 + 0.08 * n2[..., None])      # varnished, warm brown
         t = t * (1 - S * flatness * 0.55 * (1 - erg)) + reg * S * flatness * 0.55 * (1 - erg)
         badl = np.array([1.12, 0.86, 0.70]) * (1 + 0.1 * n1[..., None])
         steep = smoothstep(0.12, 0.35, s)[..., None]

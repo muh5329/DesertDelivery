@@ -80,8 +80,9 @@ func _process(_delta: float) -> void:
 	if cam == null: return
 	var y := cam.global_position.y
 	_follow_camera(cam)
-	var s := lerpf(0.62, 0.16, clampf((y - 30.0) / 1500.0, 0.0, 1.0))
-	s = lerpf(s, 0.025, clampf((y - 1500.0) / 6000.0, 0.0, 1.0))
+	# (polish: from the air the land kept ~55 % haze at 10 km; now ~35 %, the mountains read)
+	var s := lerpf(0.62, 0.11, clampf((y - 30.0) / 1500.0, 0.0, 1.0))
+	s = lerpf(s, 0.02, clampf((y - 1500.0) / 5000.0, 0.0, 1.0))
 	if absf(s - _fog_scale) < 0.01: return
 	_fog_scale = s
 	_env.fog_density = _fog_base * s

@@ -218,6 +218,7 @@ void fragment() {
 	// ---------- currents (outer world): the estuary's seaward flow, the lagoon's slow turn ----------
 	vec2 flow = vec2(0.0);
 	float flow_w = 0.0;
+	float lines_w = 0.0;          // flow lines only along the estuary (the lagoon's turning field drew spokes)
 	bool in_core = abs(wpos.x) < 624.0 && abs(wpos.z) < 624.0;
 	if (outer_enabled && !in_core) {
 		float bd = 1e9; vec2 bt = vec2(1.0, 0.0);
@@ -232,6 +233,7 @@ void fragment() {
 		float lw = smoothstep(640.0, 780.0, rr) * (1.0 - smoothstep(1350.0, 1700.0, rr));
 		flow = bt * ew * flow_speed + normalize(vec2(-wpos.z, wpos.x) + 1e-3) * lw * flow_speed * 0.35;
 		flow_w = max(ew, lw * 0.5);
+		lines_w = ew;
 	}
 	// ---------- moving normals: small chop + long swell (advected by the current) ----------
 	vec2 ta = wpos.xz / wave_a_metres + normalize(wave_a_dir) * TIME * wave_speed * 4.0 - flow * TIME / wave_a_metres * 0.6;
@@ -326,14 +328,14 @@ void fragment() {
 	caps *= smoothstep(0.6, 0.74, texture(foam_noise, wpos.xz / 25.0 + vec2(TIME * 0.004, 0.0)).r);
 	float foam = clamp(ring + streak + caps, 0.0, 1.0) * foam_opacity * (1.0 - far_w);
 	// the current's lines: foam and slicks drawn out along the flow (estuary, lagoon)
-	if (flow_w > 0.01) {
+	if (lines_w > 0.01) {
 		vec2 fd = normalize(flow + 1e-4);
 		vec2 fuv = vec2(dot(wpos.xz, fd) / 40.0 - TIME * length(flow) / 40.0, dot(wpos.xz, vec2(-fd.y, fd.x)) / 5.0);
 		// sparse: a few thin lines where two noise bands agree, faint, gone past a few hundred metres
 		float ln = texture(foam_noise, fuv).r * texture(foam_noise, fuv * vec2(0.37, 0.61) + 0.3).r;
-		float lines = smoothstep(0.43, 0.47, ln) * flow_w * (1.0 - smoothstep(80.0, 400.0, surf_d));
+		float lines = smoothstep(0.43, 0.47, ln) * lines_w * (1.0 - smoothstep(80.0, 400.0, surf_d));
 		foam = max(foam, lines * 0.18);
-		col *= 1.0 - 0.05 * smoothstep(0.4, 0.6, texture(foam_noise, fuv * vec2(0.3, 0.5) + 0.5).r) * flow_w;
+		col *= 1.0 - 0.05 * smoothstep(0.4, 0.6, texture(foam_noise, fuv * vec2(0.3, 0.5) + 0.5).r) * lines_w;
 	}
 	// far coasts: the surf line from the height map where the depth buffer's foam has faded out
 	if (outer_enabled && !in_core) {

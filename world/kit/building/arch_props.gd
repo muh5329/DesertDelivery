@@ -339,8 +339,8 @@ static func stall(v: int) -> String:
 			m.box(Vector3(x - 0.24, 0.98, -0.38), Vector3(x + 0.24, 1.1, 0.3))
 			m.box(Vector3(x - 0.2, 1.1, -0.3), Vector3(x + 0.2, 1.18, 0.2))
 	# a sack and a basket under the table
-	_part(m, L.CANVAS, Color(0.85, 0.75, 0.55))
-	m.dome(Vector3(-0.7, 0.24, 0.1), 0.3, 1.4, 7, 3)
+	_part(m, L.CANVAS, Color(0.62, 0.52, 0.36))
+	m.dome(Vector3(-0.7, 0.24, 0.1), 0.2, 1.3, 7, 3)
 	_part(m, L.TIMBER, Color(0.8, 0.65, 0.4))
 	m.cylinder(Vector3(0.6, 0.24, 0.0), 0.25, 0.3, 0.3, 8, false)
 	return _put(key, m)

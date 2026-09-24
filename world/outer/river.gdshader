@@ -62,11 +62,13 @@ void fragment() {
 	float foam = clamp(edge * 0.3 * smoothstep(0.45, 0.7, b) + froth * 0.8, 0.0, 1.0) * (1.0 - smoothstep(300.0, 900.0, dist));
 	float ndv = clamp(dot(NORMAL, normalize(-VERTEX)), 0.0, 1.0);
 	float fres = 0.03 + 0.97 * pow(1.0 - ndv, 5.0);
-	col = mix(col, sky, fres * 0.32);
+	col = mix(col, sky, fres * 0.25);
 	col = mix(col, foam_col, foam);
 	ALBEDO = col;
-	ROUGHNESS = mix(0.16, 0.6, foam);
-	SPECULAR = 0.25;
+	// no screen-space reflections on a transparent surface: a glossy one mirrors only the pale sky
+	// (the river read as a concrete channel), so the gloss stays low and the albedo carries it
+	ROUGHNESS = mix(0.32, 0.6, foam);
+	SPECULAR = 0.08;
 	// fade into the banks: no hard edge where the ribbon meets the ground
-	ALPHA = clamp(smoothstep(0.0, 0.12, thick) + foam, 0.0, 1.0);
+	ALPHA = clamp(0.35 + smoothstep(0.0, 0.25, thick) + foam, 0.0, 1.0);
 }

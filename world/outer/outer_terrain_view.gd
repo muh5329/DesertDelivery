@@ -162,10 +162,16 @@ func update_selection(p: Vector3, dir: Vector3 = Vector3.FORWARD) -> void:
 	multimesh.visible_instance_count = selected
 
 
+## The LOD distance: height above the ground counts half (VERT_WEIGHT; the vertex shader's morph
+## uses the same metric). From a plane at 9 km a plain 3-D distance put the whole island on 100 m
+## triangles and their slanted crossings of the sea level sawed the cliff coasts into teeth.
+const VERT_WEIGHT := 0.5
+
+
 func _dist_to_box(p: Vector3, x0: float, z0: float, size: float, hr: Vector2) -> float:
 	var dx := maxf(maxf(x0 - p.x, 0.0), p.x - (x0 + size))
 	var dz := maxf(maxf(z0 - p.z, 0.0), p.z - (z0 + size))
-	var dy := maxf(maxf(hr.x - p.y, 0.0), p.y - hr.y)
+	var dy := maxf(maxf(hr.x - p.y, 0.0), p.y - hr.y) * VERT_WEIGHT
 	return sqrt(dx * dx + dy * dy + dz * dz)
 
 

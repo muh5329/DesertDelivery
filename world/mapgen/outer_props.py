@@ -359,9 +359,9 @@ def dress_gaps(D, tries):
         if D.street_dist(p) < 3.5: continue
         if not D.free(p, 2.2, nav=3.0): continue
         # only where there are houses near: a gap in the town, not the open country
-        if not D.in_plot(p, 20.0): continue
+        if not D.in_plot(p, 34.0): continue
         # a big enough gap inside a block becomes a kitchen garden or an orchard corner
-        if rng.random() < 0.18 and D.street_dist(p) > 8.0 and D.free(p, 7.2, nav=3.0):
+        if rng.random() < 0.3 and D.street_dist(p) > 8.0 and D.free(p, 7.2, nav=3.0):
             D.add("garden", p, rng.uniform(0, 360), int(rng.integers(0, 2)), 7.2)
             continue
         sp = kinds[int(rng.integers(0, len(kinds)))]
@@ -421,8 +421,20 @@ def dress(towns, h, flat, micro, roads, surface_at, ctx, hamlet_ids=()):
                 if D.free(p, 1.4, nav=1.5):
                     D.add("well" if t.style in ("isola", "campo", "sarmada") else "fountain_trough", p, D.rng.uniform(0, 360), 0, 1.4)
                     break
+            # a shade tree or two by the square, a cart or a hay stack by the farm
+            for k in range(20):
+                p = pz + D.rng.uniform(-18, 18, 2)
+                if D.street_dist(p) > 3.0 and D.free(p, 2.0, nav=2.0):
+                    D.add("tree:" + GAP_TREES[t.style][k % 3], p, D.rng.uniform(0, 360), 0, 2.0)
+                    if k > 8: break
+            for k in range(10):
+                p = pz + D.rng.uniform(-22, 22, 2)
+                if D.street_dist(p) > 2.5 and D.free(p, 1.8, nav=1.5):
+                    D.add("cart" if t.style != "isola" else "lobster_pots", p, D.rng.uniform(0, 360), 0, 1.8)
+                    break
             dress_streets(D)
             dress_gardens(D, 3, 25, 110)
+            dress_gaps(D, 60)
             t.terraces = []
         t.props = D.props
         total += len(D.props)
