@@ -20,6 +20,7 @@ var arm_r: Node3D
 var leg_l: Node3D
 var leg_r: Node3D
 var hand_r: Node3D        # attachment point for the pistol
+var hand_l: Node3D
 var gun_node: Node3D
 var _t := 0.0
 var _base_head_scale := Vector3.ONE
@@ -64,6 +65,7 @@ func _ready() -> void:
 		var hand: Node3D = elbow.find_child("Hand*", true, false)
 		hand.name = "Hand"
 		if arm == arm_r: hand_r = hand
+		else: hand_l = hand
 	for leg in [leg_l, leg_r]:
 		leg.find_child("Knee*", true, false).name = "Knee"
 	var skeletons := model.find_children("*", "Skeleton3D", true, false)
@@ -299,7 +301,18 @@ func animate(mode: String, move_speed: float, delta: float, aim: bool = false, m
 	leg_r.rotation.x = -s * swing
 	leg_l.get_node("Knee").rotation.x = -maxf(0.0, -s) * swing * 1.3
 	leg_r.get_node("Knee").rotation.x = -maxf(0.0, s) * swing * 1.3
-	if aim:
+	if crouch > 0.001: _crouch_legs()
+	if long_gun != null:
+		_base_upper_body(mode, s, swing, idle_t, delta)
+		gun_raise = move_toward(gun_raise, 1.0 if aim else 0.0, delta * (7.0 if aim else 3.5))
+		_ads_blend = move_toward(_ads_blend, gun_ads, delta * 5.0)
+		recoil = move_toward(recoil, 0.0, delta * 6.0)
+		long_gun.visible = gun_raise > 0.02
+		if slung_gun: slung_gun.visible = not long_gun.visible
+		if _strap: _strap.visible = slung_gun != null and slung_gun.visible
+		_last_mode = mode
+		if long_gun.visible: _pose_long_gun(mode, aim_pitch)
+	elif aim:
 		# upper body only: right arm straight out along the look direction, left hand supporting
 		arm_r.rotation.x = lerpf(arm_r.rotation.x, deg_to_rad(88.0) - aim_pitch, clampf(delta * 12.0, 0, 1))
 		arm_r.rotation.z = deg_to_rad(-4.0)
@@ -310,11 +323,195 @@ func animate(mode: String, move_speed: float, delta: float, aim: bool = false, m
 		torso.rotation.y = lerpf(torso.rotation.y, deg_to_rad(-14.0), clampf(delta * 8.0, 0, 1))
 		torso.rotation.x = lerpf(torso.rotation.x, aim_pitch * 0.15, clampf(delta * 8.0, 0, 1))
 	else:
-		arm_l.rotation.x = -s * swing * 0.8
-		arm_r.rotation.x = s * swing * 0.8
-		arm_l.rotation.z = deg_to_rad(6.0)
-		arm_r.rotation.z = deg_to_rad(-6.0)
-		arm_l.get_node("Elbow").rotation.x = 0.35 + maxf(0.0, -s) * swing * 0.6
-		arm_r.get_node("Elbow").rotation.x = 0.35 + maxf(0.0, s) * swing * 0.6
-		torso.rotation.y = lerpf(torso.rotation.y, 0.0, clampf(delta * 6.0, 0, 1))
-		torso.rotation.x = deg_to_rad(4.0 if mode != "idle" else 0.0) + (sin(idle_t * 1.6) * 0.02 if mode == "idle" else 0.0)
+		_base_upper_body(mode, s, swing, idle_t, delta)
+
+
+func _base_upper_body(mode: String, s: float, swing: float, idle_t: float, delta: float) -> void:
+	arm_l.rotation = Vector3(-s * swing * 0.8, 0.0, deg_to_rad(6.0))
+	arm_r.rotation = Vector3(s * swing * 0.8, 0.0, deg_to_rad(-6.0))
+	arm_l.get_node("Elbow").rotation.x = 0.35 + maxf(0.0, -s) * swing * 0.6
+	arm_r.get_node("Elbow").rotation.x = 0.35 + maxf(0.0, s) * swing * 0.6
+	if long_gun != null:
+		arm_l.get_node("Elbow/Hand").rotation = Vector3.ZERO
+		arm_r.get_node("Elbow/Hand").rotation = Vector3.ZERO
+		head.rotation.y = lerpf(head.rotation.y, 0.0, clampf(delta * 8.0, 0, 1))
+		head.rotation.z = lerpf(head.rotation.z, 0.0, clampf(delta * 8.0, 0, 1))
+		leg_l.rotation.z = 0.0
+		leg_r.rotation.z = 0.0
+	torso.rotation.y = lerpf(torso.rotation.y, 0.0, clampf(delta * 6.0, 0, 1))
+	torso.rotation.x = deg_to_rad(4.0 if mode != "idle" else 0.0) + (sin(idle_t * 1.6) * 0.02 if mode == "idle" else 0.0)
+	torso.rotation.x -= flinch * 0.35
+
+
+## Kneeling behind cover: pelvis down, left foot planted forward, right knee on the ground.
+## Applied before the upper body so a rifle pose follows the lowered torso.
+var crouch := 0.0
+## A hit reaction: the torso snaps back and recovers (the owner decays it).
+var flinch := 0.0
+
+
+func _crouch_legs() -> void:
+	var c := clampf(crouch, 0.0, 1.0)
+	root.position.y = lerpf(root.position.y, 0.50, c)
+	leg_l.rotation.x = lerpf(leg_l.rotation.x, 1.30, c)
+	leg_l.get_node("Knee").rotation.x = lerpf(leg_l.get_node("Knee").rotation.x, -1.30, c)
+	leg_r.rotation.x = lerpf(leg_r.rotation.x, -0.10, c)
+	leg_r.get_node("Knee").rotation.x = lerpf(leg_r.get_node("Knee").rotation.x, -1.50, c)
+
+
+# ------------------------------------------------------------------------------ long guns
+## A rifle carried two-handed (the courier's Garand, a bandit's lever rifle). `held` must carry
+## the markers Butt, GripR and GripL: the butt plate centre and the two HAND PIVOT transforms
+## (wrist position + hand orientation) in the rifle's own frame, -Z toward the muzzle. `slung`
+## is the same rifle as it sits across the back (parented to the torso here).
+##
+## The owner steers the pose with plain fields; animate() blends everything:
+##   animate(..., aim=true)  raise the rifle (gun_raise eases 0 -> 1); false lowers and slings it
+##   gun_ads                 0 = hip / low ready, 1 = stock in the shoulder, cheek on the comb
+##   recoil                  set 1.0 on a shot: the rifle kicks back and the muzzle climbs
+##   sway                    (yaw, pitch) wobble in radians, e.g. from walking
+var long_gun: Node3D
+var slung_gun: Node3D
+var gun_raise := 0.0
+var gun_ads := 1.0
+var recoil := 0.0
+var sway := Vector2.ZERO
+var _ads_blend := 1.0
+var _strap: MeshInstance3D
+## A temporary target for the left hand in the rifle's frame (reloading), blended in by weight.
+var left_grip_override := Transform3D.IDENTITY
+var left_grip_weight := 0.0
+var _last_mode := "idle"
+
+## Torso-local shoulder pocket (ADS) and hip tuck (hip fire) the butt plate goes into.
+const SHOULDER_POCKET := Vector3(0.075, 0.600, -0.120)
+const HIP_POCKET := Vector3(0.200, 0.130, 0.040)
+const STANCE_YAW := -0.40        # blade the torso: left shoulder toward the target
+const HEAD_ADS := Vector3(-0.42, 0.34, -0.26)   # chin down, face back to the target, cheek onto the comb
+const POLE_R := Vector3(1.0, -0.75, 0.25)       # right elbow out to the side and down
+const POLE_L := Vector3(-0.25, -1.0, 0.10)      # left elbow under the rifle
+## Across the back, butt low on the right, muzzle up past the left shoulder, profile outward.
+const SLUNG := Transform3D(Basis(Vector3(0.0, 0.0, -1.0), Vector3(0.92, 0.39, 0.0), Vector3(0.39, -0.92, 0.0)), Vector3(0.02, 0.36, 0.16))
+
+
+func attach_long_gun(held: Node3D, slung: Node3D) -> void:
+	long_gun = held
+	slung_gun = slung
+	if held:
+		add_child(held)
+		held.visible = false
+	if slung:
+		torso.add_child(slung)
+		# the rifle's middle rides at the SLUNG origin in the small of the back
+		slung.transform = SLUNG * Transform3D(Basis(), Vector3(0, 0.05, 0.55))
+		_strap = _make_strap()
+		torso.add_child(_strap)
+
+
+## Bring the rifle up this instant (a snap shot from the sling), so the muzzle is where a shot
+## leaves from before the next animate() blends anything.
+func snap_long_gun(pitch: float) -> void:
+	if long_gun == null: return
+	gun_raise = 1.0
+	_ads_blend = gun_ads
+	long_gun.visible = true
+	if slung_gun: slung_gun.visible = false
+	if _strap: _strap.visible = false
+	_pose_long_gun(_last_mode, pitch)
+
+
+func _make_strap() -> MeshInstance3D:
+	# the sling crossing the chest: from the left shoulder, over the front, down to the right hip
+	var k := MeshKit.new()
+	var pts := PackedVector3Array()
+	for i in range(9):
+		var t := float(i) / 8.0
+		var a := Vector3(-0.13, 0.64, 0.02).lerp(Vector3(0.17, 0.10, -0.06), t)
+		var bulge := sin(t * PI)
+		pts.append(a + Vector3(0, 0, -0.105 - bulge * 0.035))
+	k.tube(pts, 0.0028, 8, Vector2(1.0, 5.5), true, true, Vector3(0, 0, -1))
+	var mi := MeshInstance3D.new()
+	mi.mesh = k.commit(null, WeaponMats.leather())
+	return mi
+
+
+func _pose_long_gun(mode: String, pitch: float) -> void:
+	var r := smoothstep(0.0, 1.0, gun_raise)
+	var ads := _ads_blend
+	# --- stance: blade the torso, lean into the rifle, cheek down onto the comb
+	torso.rotation.y = lerpf(torso.rotation.y, STANCE_YAW * lerpf(0.75, 1.0, ads), r)
+	torso.rotation.x = lerpf(torso.rotation.x, -0.07 + pitch * 0.30 - recoil * 0.06, r)
+	var head_target := Vector3(lerpf(-0.05, HEAD_ADS.x, ads) - pitch * 0.55, -STANCE_YAW * 0.85, lerpf(0.0, HEAD_ADS.z, ads))
+	head.rotation = head.rotation.lerp(head_target, r)
+	if mode == "idle":
+		leg_l.rotation.x = lerpf(leg_l.rotation.x, 0.16, r)
+		leg_r.rotation.x = lerpf(leg_r.rotation.x, -0.12, r)
+		leg_l.rotation.z = -0.05 * r
+		leg_r.rotation.z = 0.07 * r
+	# --- the rifle: butt in the pocket, bore along the aim (+ sway, + recoil climb)
+	var body_basis := global_transform.basis.orthonormalized()
+	var p_eff := lerpf(0.85, pitch - recoil * 0.10 + sway.y, r)
+	var dir := body_basis * (Basis(Vector3.UP, sway.x) * Vector3(0, -sin(p_eff), -cos(p_eff)))
+	var up := body_basis * Basis(Vector3(0, 0, 1), lerpf(-0.12, 0.0, ads)) * Vector3.UP
+	var basis := Basis.looking_at(dir, up)
+	var pocket := torso.global_transform * HIP_POCKET.lerp(SHOULDER_POCKET, ads)
+	var butt: Vector3 = long_gun.get_node("Butt").position
+	var origin := pocket - basis * butt + basis * Vector3(0, 0, recoil * 0.035)
+	long_gun.global_transform = Transform3D(basis, origin)
+	# --- hands onto the rifle
+	_reach(arm_r, long_gun.get_node("GripR").global_transform, torso.global_basis * POLE_R, r)
+	var grip_l: Transform3D = long_gun.get_node("GripL").global_transform
+	if left_grip_weight > 0.0:
+		grip_l = grip_l.interpolate_with(long_gun.global_transform * left_grip_override, clampf(left_grip_weight, 0.0, 1.0))
+	_reach(arm_l, grip_l, torso.global_basis * POLE_L, r)
+
+
+## Two-bone IK: the upper arm and forearm (elbow hinged on its local X, flexing forward) bring
+## the palm onto `grip.origin`, the elbow toward `pole`. The hand stays in line with the forearm
+## (the glove's cuff runs up the wrist) and rolls so the palm faces `grip`'s -Z. Two passes: the
+## first finds the forearm's direction, the second backs the wrist off along it so the palm, not
+## the wrist, lands on the grip. Blended over whatever pose the arm already has by `w`.
+func _reach(arm: Node3D, grip: Transform3D, pole: Vector3, w: float) -> void:
+	var elbow: Node3D = arm.get_node("Elbow")
+	var hand: Node3D = elbow.get_node("Hand")
+	var s := arm.global_position
+	var a := elbow.global_position.distance_to(s)
+	var b := hand.global_position.distance_to(elbow.global_position)
+	var palm_dir := -grip.basis.z.normalized()
+	var sol := _two_bone(s, grip.origin - palm_dir * 0.024, a, b, pole)
+	var f: Vector3 = sol[1]
+	sol = _two_bone(s, grip.origin - palm_dir * 0.024 - f * 0.035, a, b, pole)
+	var e: Vector3 = sol[0]
+	f = sol[1]
+	var u := (e - s).normalized()
+	var zc := f - u * f.dot(u)
+	var z_axis := -zc.normalized() if zc.length_squared() > 1e-10 else -(pole - u * pole.dot(u)).normalized()
+	var y_axis := -u
+	var gb := Basis(y_axis.cross(z_axis), y_axis, z_axis)
+	var parent_basis: Basis = (arm.get_parent() as Node3D).global_basis.orthonormalized()
+	var local_q := Quaternion((parent_basis.inverse() * gb).orthonormalized())
+	arm.quaternion = arm.quaternion.slerp(local_q, w)
+	elbow.rotation = Vector3(lerpf(elbow.rotation.x, acos(clampf(f.dot(u), -1.0, 1.0)), w), 0.0, 0.0)
+	# the hand: +Y back up the forearm, palm (-Z) turned toward the grip surface
+	var hy := -f
+	var hz := -(palm_dir - hy * palm_dir.dot(hy))
+	if hz.length_squared() < 1e-8: hz = z_axis
+	hz = hz.normalized()
+	var hb := Basis(hy.cross(hz), hy, hz)
+	var hq := Quaternion((elbow.global_basis.orthonormalized().inverse() * hb).orthonormalized())
+	hand.quaternion = Quaternion.IDENTITY.slerp(hq, w)
+
+
+## Shoulder at `s`, wrist target `t`, bone lengths a, b, elbow toward `pole`:
+## returns [elbow position, forearm direction (elbow -> wrist)].
+static func _two_bone(s: Vector3, t: Vector3, a: float, b: float, pole: Vector3) -> Array:
+	var to := t - s
+	var dir := to.normalized() if to.length_squared() > 1e-10 else Vector3.FORWARD
+	var d := clampf(to.length(), absf(a - b) + 0.002, a + b - 0.002)
+	var cos_a := clampf((a * a + d * d - b * b) / (2.0 * a * d), -1.0, 1.0)
+	var sin_a := sqrt(1.0 - cos_a * cos_a)
+	var pp := pole - dir * pole.dot(dir)
+	if pp.length_squared() < 1e-8: pp = dir.cross(Vector3.RIGHT)
+	pp = pp.normalized()
+	var e := s + dir * (a * cos_a) + pp * (a * sin_a)
+	return [e, (s + dir * d - e).normalized()]
