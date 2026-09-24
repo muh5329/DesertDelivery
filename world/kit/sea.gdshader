@@ -317,6 +317,7 @@ void fragment() {
 	// streaks reach 2-3x further out than the ring and follow the chop
 	float streak_zone = max(1.0 - smoothstep(0.0, foam_depth * 2.5, vdepth), smoothstep(0.25, 0.8, prox));
 	streak_zone *= streak_zone * streak_zone;   // cubic: dense at the rock foot, gone over the 3 m shelf
+	streak_zone *= 1.0 - 0.9 * lines_w;         // the estuary is shallow bank to bank: no shore-break streaks mid-channel
 	// (FastNoiseLite images sit in ~0.3..0.7, so the thresholds below live in that range)
 	float streak = smoothstep(0.55, 0.75, streak_n * 0.6 + clump * 0.4) * streak_zone * 1.2;   // r5: x1.2, the trails carry the foam, the collar is lace
 	float caps_n = clamp((fn2 * 0.6 + fn * 0.4 - 0.3) / 0.4, 0.0, 1.0);   // 4-11 m scales: crests, not a 1.5 m sprinkle
@@ -332,10 +333,11 @@ void fragment() {
 	if (lines_w > 0.01) {
 		vec2 fd = normalize(flow + 1e-4);
 		vec2 fuv = vec2(dot(wpos.xz, fd) / 40.0 - TIME * length(flow) / 40.0, dot(wpos.xz, vec2(-fd.y, fd.x)) / 5.0);
-		// sparse: a few thin lines where two noise bands agree, faint, gone past a few hundred metres
+		// sparse: a few thin lines where two noise bands agree, gone past a few hundred metres. Drawn
+		// as smooth dark slicks, not foam: as foam they read as white speed-dashes over the whole mouth
 		float ln = texture(foam_noise, fuv).r * texture(foam_noise, fuv * vec2(0.37, 0.61) + 0.3).r;
-		float lines = smoothstep(0.45, 0.5, ln) * lines_w * (1.0 - smoothstep(60.0, 300.0, surf_d));
-		foam = max(foam, lines * 0.08);
+		float lines = smoothstep(0.45, 0.52, ln) * lines_w * (1.0 - smoothstep(60.0, 300.0, surf_d));
+		col *= 1.0 - 0.07 * lines;
 		col *= 1.0 - 0.05 * smoothstep(0.4, 0.6, texture(foam_noise, fuv * vec2(0.3, 0.5) + 0.5).r) * lines_w;
 	}
 	// far coasts: the surf line from the height map where the depth buffer's foam has faded out
