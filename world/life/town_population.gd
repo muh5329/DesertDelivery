@@ -126,12 +126,17 @@ func clear(x: float, z: float, margin: float = MARGIN) -> bool:
 	return true
 
 
+## Above the water (a quay's dredged berth, the sea, a harbour channel).
+func dry(x: float, z: float) -> bool:
+	return h(x, z) > 0.3
+
+
 func segment_clear(a: Vector3, b: Vector3, margin: float = 0.25) -> bool:
 	var d := Vector2(b.x - a.x, b.z - a.z).length()
 	var n := maxi(1, ceili(d / 0.8))
 	for i in range(1, n):
 		var q := a.lerp(b, float(i) / n)
-		if not clear(q.x, q.z, margin): return false
+		if not clear(q.x, q.z, margin) or not dry(q.x, q.z): return false
 	return true
 
 
@@ -151,7 +156,7 @@ func _link(a: int, b: int) -> void:
 	var pa := graph.get_point_position(a); var pb := graph.get_point_position(b)
 	if absf(pa.y - pb.y) > 2.2: return
 	var mid := (pa + pb) * 0.5
-	if not clear(mid.x, mid.z, 0.3): return
+	if not clear(mid.x, mid.z, 0.3) or not dry(mid.x, mid.z): return
 	graph.connect_points(a, b)
 
 
@@ -197,7 +202,7 @@ func _streets() -> void:
 			var row: Array = []
 			for off in lanes:
 				var q: Vector2 = line[i] + nrm * float(off)
-				row.append(_node(q, si) if clear(q.x, q.y) else -1)
+				row.append(_node(q, si) if clear(q.x, q.y) and dry(q.x, q.y) else -1)
 			ids.append(row)
 		for i in line.size():
 			for j in lanes.size():
@@ -240,6 +245,7 @@ func attach(p: Vector3, reach: float = 22.0) -> int:
 # ---------------------------------------------------------------- spots
 func _add_spot(k: String, p: Vector3, f: Vector3, pose: String, extra: Dictionary = {}) -> int:
 	p.y = h(p.x, p.z)
+	if p.y < 0.3: return -1                 # nobody stands in the water
 	var nid := attach(p)
 	if nid < 0: return -1
 	var s := {"k": k, "p": p, "f": Vector3(f.x, 0, f.z).normalized(), "pose": pose, "node": nid}

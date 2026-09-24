@@ -9,6 +9,7 @@ const PROP_KINDS := ["vend", "browse", "hoe", "fish", "mend", "shopkeep", "work"
 
 var model: RiderModel
 var person: Townsperson
+var pop: TownPopulation            # the town the person lives in
 var near := false                  # near-eligible (one of the closest ~40)
 var showing_near := false
 var pose := ""

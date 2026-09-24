@@ -42,6 +42,11 @@ var viewed: Array = []             # Townsperson with a body, nearest first
 var enabled := true
 var frame_us := 0                  # the last frame's cost (records + views)
 var frame_us_max := 0
+## Running totals (µs) of the three parts, for benchmarks: the routines, choosing who gets a
+## body, and moving / posing the bodies.
+var tick_us_total := 0
+var select_us_total := 0
+var bodies_us_total := 0
 var _activating: Dictionary = {}   # town id -> next person to place
 var _pending_views := false
 var _gen_task := -1
@@ -147,12 +152,18 @@ func _process(delta: float) -> void:
 	PersonBuilder.poll_parts()
 	for id in active:
 		(towns[id] as TownPopulation).pump()
+	var t1 := Time.get_ticks_usec()
 	_tick(delta)
+	var t2 := Time.get_ticks_usec()
 	_view_acc += delta
 	if _view_acc >= (0.1 if _pending_views else 0.2):
 		_view_acc = 0.0
 		_select_views()
+	var t3 := Time.get_ticks_usec()
 	_update_bodies(delta)
+	tick_us_total += t2 - t1
+	select_us_total += t3 - t2
+	bodies_us_total += Time.get_ticks_usec() - t3
 	frame_us = Time.get_ticks_usec() - t0
 	frame_us_max = maxi(frame_us_max, frame_us)
 
@@ -377,7 +388,7 @@ func _select_views() -> void:
 				created += 1
 			else: b = free.pop_back()
 			b.assign(p, p.look(pop.style))
-			b.set_meta("town", pop.id)
+			b.pop = pop
 			assigned += 1
 		var body: TownBody = p.body
 		body.near = i < MAX_NEAR
@@ -396,7 +407,7 @@ func _update_bodies(delta: float) -> void:
 	for p: Townsperson in viewed:
 		var b: TownBody = p.body
 		if b == null: continue
-		var pop: TownPopulation = towns[b.get_meta("town")]
+		var pop: TownPopulation = b.pop
 		var walking := p.state == Townsperson.State.WALKING
 		var pos := p.position
 		var face := p.forward
@@ -439,8 +450,9 @@ func _update_bodies(delta: float) -> void:
 		var has_mesh := b.visible
 		# pose updates by distance: every frame up close and walking, rarer further away
 		var interval := 0.0
-		if d > 70.0: interval = 0.4 if walking else 1.2
+		if d > 70.0: interval = 0.25 if walking else 1.2
 		elif d > 30.0: interval = 0.1 if walking else 0.5
+		elif d > 12.0: interval = 1.0 / 30.0 if walking else 0.1
 		elif not walking: interval = 1.0 / 15.0
 		b.anim_t += delta
 		if has_mesh and (b.anim_t >= interval or b.pose == ""):
