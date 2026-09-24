@@ -21,6 +21,7 @@ uniform sampler2D aux_tex : filter_nearest;             // RGBA8: forest, flatte
 uniform sampler2D aux_lin : filter_linear;
 uniform sampler2D splat_tex : filter_linear;            // RGBA8: rock, sand, farm, snow
 uniform sampler2D tint_tex : source_color, filter_linear; // 1001^2 macro tint (x2)
+uniform sampler2D feat_tex : filter_linear_mipmap;       // RGBA8 2001^2: wadi bed, irrigation, erg, cavity (0.5 = none)
 uniform sampler2D road_tex : filter_linear_mipmap;      // 4096^2 road coverage
 uniform sampler2D micro_tex : filter_nearest, repeat_enable;
 uniform sampler2D micro_lin : filter_linear, repeat_enable;
@@ -200,12 +201,19 @@ void fragment() {
 	float biome = floor(texture(aux_tex, uv).b * 255.0 + 0.5);
 	float forest = aux.r;
 	float dry = aux.a;
+	vec4 ft = texture(feat_tex, uv);
+	float wadi = ft.r; float irr = ft.g; float erg = ft.b;
+	float occl = (ft.a - 0.5) * 2.0;          // + valleys and gullies, - crests
 	// ---- layer weights
 	float w_[NL];
 	for (int i = 0; i < NL; i++) { w_[i] = 0.0; }
 	float rock = max(sp.r, smoothstep(0.42, 0.75, slope + (n2 - 0.5) * 0.12));
+	// snow: the painted snowfields, plus a line that runs lower on the shaded north faces and in the
+	// gullies, higher on the sunny south faces and crests, torn by rock ribs
+	float aspect = clamp(-n.z / max(length(n.xz), 1e-3), -1.0, 1.0) * smoothstep(0.05, 0.3, slope);   // + faces north
+	float line_y = 960.0 - aspect * 70.0 - max(occl, 0.0) * 60.0 + (n1 - 0.5) * 110.0 + (n2 - 0.5) * 30.0;
 	float snow = sp.a * smoothstep(0.75, 0.45, slope);
-	snow = max(snow, smoothstep(930.0, 1010.0, w.y + (n1 - 0.5) * 90.0) * smoothstep(0.6, 0.35, slope));
+	snow = max(snow, smoothstep(line_y - 40.0, line_y + 40.0, w.y) * smoothstep(0.62, 0.36, slope + (n2 - 0.5) * 0.15));
 	float sand = sp.g;
 	float farm = sp.b;
 	float grass = max(1.0 - rock - snow - sand - farm, 0.0);
@@ -221,10 +229,15 @@ void fragment() {
 		w_[DRYGRASS] += grass * (1.0 - a) * (1.0 - lush);
 		w_[SCRUB] += grass * a * scrubby * 0.4;
 	} else if (arid) {
-		w_[DRYGRASS] += grass * (0.55 - scrubby * 0.2);
-		w_[SCRUB] += grass * (0.22 + scrubby * 0.35);
-		w_[SAND] += grass * 0.14;
-		w_[CLAY] += grass * 0.10 * smoothstep(0.08, 0.3, slope);
+		// the plateau between the sand: desert pavement (reg) on the flats, dry grass and scrub in
+		// the hollows, clay on the slopes
+		float reg = smoothstep(0.05, 0.015, slope) * smoothstep(0.35, 0.65, n1 * 0.7 + n3 * 0.5) * (1.0 - irr);
+		w_[DRYGRASS] += grass * (0.5 - scrubby * 0.2) * (1.0 - reg);
+		w_[SCRUB] += grass * (0.2 + scrubby * 0.3) * (1.0 - reg);
+		w_[GRAVEL] += grass * reg * 0.65;
+		w_[PEBBLES] += grass * reg * 0.35;
+		w_[SAND] += grass * 0.12;
+		w_[CLAY] += grass * 0.14 * smoothstep(0.06, 0.25, slope);
 	} else {
 		w_[MEADOW] += grass * lush * (1.0 - scrubby);
 		w_[DRYGRASS] += grass * (1.0 - lush) * (1.0 - scrubby);
@@ -240,10 +253,13 @@ void fragment() {
 	else { w_[LIMESTONE] += rock; }
 	w_[GRAVEL] += rock * smoothstep(0.55, 0.35, slope) * 0.35;   // scree at the foot of the faces
 	w_[SNOW] += snow;
-	// sand: beaches (pebbles on the rocky coasts), the seabed
+	// sand: beaches (pebbles on the rocky coasts), the seabed, the erg, the wadi floors (sand with
+	// braided gravel bars)
 	float rocky_coast = smoothstep(0.35, 0.65, n2) * (1.0 - smoothstep(-20.0, -1.0, -w.y + 0.0) * 0.0);
-	w_[SAND] += sand * (arid ? 1.0 : 1.0 - rocky_coast * 0.5);
-	w_[PEBBLES] += sand * (arid ? 0.0 : rocky_coast * 0.5);
+	float braid = smoothstep(0.42, 0.62, texture(noise_tex, rot(w.xz, 0.6) / vec2(61.0, 17.0)).r);
+	float in_wadi = wadi * (1.0 - erg);
+	w_[SAND] += sand * (arid ? 1.0 - in_wadi * braid * 0.6 : 1.0 - rocky_coast * 0.5);
+	w_[PEBBLES] += sand * (arid ? in_wadi * braid * 0.6 : rocky_coast * 0.5);
 	// farmland: the parcels
 	vec4 fp = fields(w.xz);
 	fp.z = mix(0.5, fp.z, 1.0 - smoothstep(60.0, 220.0, dist));   // furrows only close up (no moire)
@@ -261,7 +277,9 @@ void fragment() {
 		w_[SCRUB] += farm * hedge;
 		field_tint = mix(vec3(1.0), field_tint * (0.92 + 0.16 * fp.w), farm * (1.0 - hedge));
 	}
-	// road shoulders and town pads: packed gravel and dirt
+	// road shoulders and town pads: packed gravel and dirt; beyond them, along the country roads, a
+	// damp ditch line: lusher, darker grass at the outer edge of the flattened corridor
+	float ditch = smoothstep(0.12, 0.32, flat_m) * (1.0 - smoothstep(0.4, 0.62, flat_m)) * (biome == 5.0 ? 0.0 : 1.0) * (1.0 - snow);
 	float shoulder = smoothstep(0.35, 0.9, flat_m) * (1.0 - snow);
 	if (shoulder > 0.0) {
 		for (int i = 0; i < NL; i++) { w_[i] *= 1.0 - shoulder * 0.7; }
@@ -289,12 +307,18 @@ void fragment() {
 		col += AH[i].rgb * bw; tn += (NR[i].rgb * 2.0 - 1.0) * bw; rough += NR[i].a * bw; wsum += bw;
 	}
 	col /= max(wsum, 1e-4); tn /= max(wsum, 1e-4); rough /= max(wsum, 1e-4);
-	// sandstone strata on the arid cliffs and mesa rims: warm bands a few metres thick
+	// sandstone strata on the arid cliffs and mesa rims: formations 5-20 m thick (cream, ochre, red,
+	// a mauve shale), thin beds inside them, a pale cap rock, dark desert-varnish streaks down the faces
 	if (arid) {
-		float band = sin(w.y * 0.85 + n2 * 2.5) * 0.5 + 0.5;
-		float band2 = sin(w.y * 2.9 + n1 * 4.0) * 0.5 + 0.5;
-		vec3 strata = mix(vec3(1.18, 0.88, 0.64), vec3(0.92, 0.70, 0.52), band) * mix(0.9, 1.08, band2);
-		col = mix(col, col * strata, smoothstep(0.3, 0.85, rock) * 0.85);
+		float yy = w.y + (n3 - 0.5) * 14.0;
+		float form = floor(yy / 11.0);
+		float fr = hash21(vec2(form, 3.0));
+		vec3 fcol = fr < 0.25 ? vec3(1.24, 1.08, 0.86) : (fr < 0.55 ? vec3(1.16, 0.86, 0.62) : (fr < 0.82 ? vec3(1.04, 0.66, 0.50) : vec3(0.86, 0.72, 0.70)));
+		float beds = sin(yy * 2.7 + n1 * 3.0) * 0.5 + 0.5;
+		vec3 strata = fcol * mix(0.9, 1.07, beds);
+		float varnish = smoothstep(0.55, 0.8, texture(noise_tex, vec2(w.x + w.z, w.y * 0.08) / vec2(9.0, 3.0)).r) * smoothstep(0.55, 0.8, slope);
+		strata *= 1.0 - varnish * 0.35;
+		col = mix(col, col * strata, smoothstep(0.3, 0.85, rock) * 0.9);
 	} else if (w.y > 300.0) {
 		// lichen and weathering on the granite
 		col = mix(col, col * vec3(0.92, 0.96, 0.90) * (0.85 + 0.3 * n2), rock * 0.5);
@@ -304,9 +328,33 @@ void fragment() {
 	col *= 0.86 + 0.28 * n3;
 	col *= mix(1.0, 0.9 + 0.2 * n1, 0.6);
 	col *= field_tint;
-	// forest from afar: the canopy's dark green where trees are no longer instanced
+	col = mix(col, col * (arid ? vec3(0.86, 0.84, 0.8) : vec3(0.72, 0.84, 0.62)), ditch * 0.7);
+	// the forest floor: brown needles and leaf litter, a little moss, darker under the canopy
+	col = mix(col, col * vec3(0.98, 0.86, 0.68) * (0.8 + 0.25 * n2), ff * 1.2);
+	// irrigated plots: lush green even in the desert
+	col = mix(col, col * vec3(0.72, 1.08, 0.62), irr * farm * 0.6);
+	// the erg: pale sand, darker in the dune troughs, wind ripples close up
+	if (erg > 0.05) {
+		float ripple = sin(dot(w.xz, vec2(-0.62, 0.78)) * 3.1 + n2 * 6.0) * 0.5 + 0.5;
+		col *= mix(1.0, 0.94 + 0.08 * ripple, erg * (1.0 - smoothstep(30.0, 120.0, dist)));
+	}
+	// wet sand along the waterline (and the lake and river shores are darker too)
+	float wetline = (1.0 - smoothstep(0.35, 1.4, w.y)) * step(-0.5, w.y) * max(sand, wadi * 0.0);
+	col *= 1.0 - wetline * 0.32;
+	// cavity: gullies, valleys and the feet of slopes darker, crests a touch lighter (the far view's
+	// ambient occlusion)
+	col *= 1.0 - 0.34 * max(occl, 0.0) + 0.07 * max(-occl, 0.0);
+	// forest from afar: the canopy where trees are no longer instanced - dark conifer masses in the
+	// range, olive-green broadleaf lower down, grey-green maquis and scrub; mottled at crown scale
+	// and lit by the slope (the canopy's own relief) so a forest reads as a mass, not a stain
 	float canopy = smoothstep(0.3, 0.75, forest) * smoothstep(700.0, 1300.0, dist);
-	col = mix(col, vec3(0.10, 0.16, 0.08) * (0.8 + 0.4 * n2), canopy * 0.75);
+	if (canopy > 0.001) {
+		vec3 cc = w.y > 300.0 && !arid ? vec3(0.055, 0.10, 0.065) : (arid ? vec3(0.20, 0.21, 0.12) : vec3(0.09, 0.14, 0.06));
+		float crowns = texture(noise_tex, w.xz / 23.0).r;
+		cc *= 0.72 + 0.56 * crowns;
+		cc *= 0.8 + 0.5 * clamp(dot(n, normalize(vec3(-0.45, 0.8, 0.4))), 0.0, 1.0);
+		col = mix(col, cc, canopy * 0.82);
+	}
 	// roads beyond the ribbon meshes
 	float road = texture(road_tex, uv).r * smoothstep(far_road_start, far_road_end, dist);
 	col = mix(col, vec3(0.30, 0.29, 0.28), road * 0.9);

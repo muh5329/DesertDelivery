@@ -11,9 +11,10 @@ const P := 32                       # quads per patch side
 const LEAF := 200.0                 # level-0 node size (m)
 const LEVELS := 8                   # 200 m .. 25.6 km
 const ROOT := 25600.0
-const RANGE0 := 560.0               # level 0 is used within this distance; each level doubles
+const RANGE0 := 800.0               # level 0 is used within this distance; each level doubles (560 left coarse 200 m triangles
+                                    # sawing the far coastlines into teeth)
 const MORPH_START := 0.72
-const MAX_INSTANCES := 900
+const MAX_INSTANCES := 1600
 const LAYERS := [   # the texture array layers (outer_terrain.gdshader layer ids)
 	"meadow", "ground015", "alpine", "ground024", "ground004", "soil", "sand",
 	"rock019", "rock021", "gravel009", "snow", "clay", "rocks002"]
@@ -46,6 +47,9 @@ func setup(p_ground: OuterGround) -> void:
 	material.set_shader_parameter("aux_lin", atex)
 	material.set_shader_parameter("splat_tex", ImageTexture.create_from_image(ground.splat_image))
 	material.set_shader_parameter("tint_tex", ImageTexture.create_from_image(ground.tint_image))
+	var fimg: Image = ground.feat_image.duplicate()
+	fimg.generate_mipmaps()
+	material.set_shader_parameter("feat_tex", ImageTexture.create_from_image(fimg))
 	var rimg: Image = ground.roads_image.duplicate()
 	rimg.generate_mipmaps()
 	material.set_shader_parameter("road_tex", ImageTexture.create_from_image(rimg))

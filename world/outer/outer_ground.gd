@@ -28,6 +28,7 @@ var heights := PackedFloat32Array()
 var aux := PackedByteArray()      # RGBA8 N*N: R forest, G flatten, B biome id, A dryness
 var splat := PackedByteArray()    # RGBA8 N*N: R rock, G sand, B farmland, A snow
 var micro := PackedByteArray()    # L8 256*256
+var feat := PackedByteArray()     # RGBA8 N*N: R wadi / dry bed, G irrigation, B erg (sand sea), A cavity (0.5 = none)
 var micro_amp := 0.45
 var plan: Dictionary = {}
 var minmax := PackedFloat32Array()   # 128 x 128 x (min, max): 200 m leaves over [-12800, 12800]
@@ -37,6 +38,7 @@ var splat_image: Image
 var tint_image: Image
 var roads_image: Image
 var micro_image: Image
+var feat_image: Image
 var load_ms := 0
 
 
@@ -58,6 +60,12 @@ func load_data() -> bool:
 	aux_image.convert(Image.FORMAT_RGBA8); splat_image.convert(Image.FORMAT_RGBA8)
 	micro_image.convert(Image.FORMAT_L8)
 	aux = aux_image.get_data(); splat = splat_image.get_data(); micro = micro_image.get_data()
+	# the landscape features (older data has none: no wadis, oases or erg, neutral cavity)
+	if FileAccess.file_exists(DIR + "feat.png"): feat_image = _png("feat.png")
+	if feat_image == null:
+		feat_image = Image.create_empty(N, N, false, Image.FORMAT_RGBA8); feat_image.fill(Color(0, 0, 0, 0.5))
+	feat_image.convert(Image.FORMAT_RGBA8)
+	feat = feat_image.get_data()
 	var mf := FileAccess.open(DIR + "minmax.f32", FileAccess.READ)
 	if mf: minmax = mf.get_buffer(mf.get_length()).to_float32_array()
 	var pf := FileAccess.open(DIR + "plan.json", FileAccess.READ)
@@ -143,6 +151,12 @@ func dryness_at(x: float, z: float) -> float: return aux[_nearest(x, z) * 4 + 3]
 func splat_at(x: float, z: float) -> Color:
 	var k := _nearest(x, z) * 4
 	return Color(splat[k] / 255.0, splat[k + 1] / 255.0, splat[k + 2] / 255.0, splat[k + 3] / 255.0)
+
+
+## Landscape features at (x, z): (wadi bed, irrigation, erg, cavity), each 0..1.
+func feat_at(x: float, z: float) -> Color:
+	var k := _nearest(x, z) * 4
+	return Color(feat[k] / 255.0, feat[k + 1] / 255.0, feat[k + 2] / 255.0, feat[k + 3] / 255.0)
 
 
 ## Road distance proxy from the flatten mask (the core's `road_dist_at` contract: < 5.5 on a road).
