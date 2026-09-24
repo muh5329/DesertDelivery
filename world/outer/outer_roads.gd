@@ -202,7 +202,16 @@ func flush() -> void:
 	while not pending.is_empty(): build_tile(pending.pop_front())
 
 
+var max_build_ms := 0.0
+
+
 func build_tile(t: Vector2i) -> void:
+	var t0 := Time.get_ticks_usec()
+	_build_tile_impl(t)
+	max_build_ms = maxf(max_build_ms, (Time.get_ticks_usec() - t0) / 1000.0)
+
+
+func _build_tile_impl(t: Vector2i) -> void:
 	var node := Node3D.new(); node.name = "Roads_%d_%d" % [t.x, t.y]
 	add_child(node); loaded[t] = node
 	var surfaces: Dictionary = {}     # material key -> [verts, normals, uvs, tangents, indices]

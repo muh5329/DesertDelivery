@@ -76,7 +76,12 @@ func _process(_d: float) -> void:
 		var img := get_tree().root.get_texture().get_image()
 		var p := "%s/%s.png" % [out, cams[idx][0]]
 		img.save_png(p)
-		print("saved ", p)
+		print("saved ", p, "  draw calls %d, objects %d, primitives %d" % [Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+			Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)])
+		var outer: OuterWorld = game.world.outer
+		if outer and outer.ok:
+			print("  outer: terrain nodes %d, road tiles %d (max build %.1f ms), flora %s (max build %.1f ms)" % [outer.view.selected,
+				outer.roads.loaded.size(), outer.roads.max_build_ms, outer.flora.stats(), outer.flora.max_build_ms])
 		idx += 1
 		if idx >= cams.size():
 			get_tree().quit(); return

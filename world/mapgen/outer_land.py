@@ -244,6 +244,23 @@ def carve_estuary(h, f):
     return carved
 
 
+# the strait between the mainland and the big western island (the causeway crosses it)
+ISOLA_STRAIT = [(-7650, -900), (-7760, -100), (-7900, 450), (-7830, 1150), (-7960, 1800), (-7900, 2350), (-8080, 2950)]
+
+
+def carve_strait(h, f):
+    x, z = f["x"], f["z"]
+    wx = x + nz.fbm(x, z, 131, 700.0, 3) * 90.0
+    wz = z + nz.fbm(x + 50, z, 132, 700.0, 3) * 90.0
+    d, t = polyline_distance(wx, wz, ISOLA_STRAIT)
+    half = 190.0 + 110.0 * (nz.fbm(x, z, 133, 1600.0, 2) * 0.5 + 0.5) + 40.0 * nz.fbm(x, z, 134, 300.0, 2)
+    bed = -10.0 * (1 - np.clip(d / half, 0, 1) ** 2) - 1.5
+    carved = np.where(d < half, np.minimum(h, bed), h)
+    bank = smoothstep(half, half + 180, d)
+    shore = 1.0 + (np.maximum(h, 1.0) - 1.0) * bank
+    return np.where((d >= half) & (d < half + 180), np.minimum(carved, shore), carved)
+
+
 def erode(h, f, seed=7, droplets=900000):
     mask = np.clip(smoothstep(4, 40, h), 0, 1).astype(np.float64)
     # the lagoon and core stay untouched

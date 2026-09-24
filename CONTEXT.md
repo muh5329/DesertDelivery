@@ -54,7 +54,7 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   vineyards and the bodega), BADLANDS (SE hoodoos and the southern headland), TOWN (NE island), BEACH,
   LAKE (the badlands lake and the southern lagoon), DUNES (south-west shore), MOOR (the northern
   Highlands), SALTFLAT (the salinas). Texture, tint, relief and props follow it.
-- **Map** — `data/island_map.png` (417 px, 3 m cells, 1248 m world). `world/mapgen/extract.py` reads
+- **Map** — `data/island_map.png` (417 px, 3 m cells, 1248 m core). `world/mapgen/extract.py` reads
   the painting into the 720 m map; `expand.py` scales that by K = 1248/720 and grows the Highlands
   and the Southern Shore into the sea; painting pixels convert to world XZ with `Island._px`.
 - **Terrain3D** — the plugin that draws and collides the ground. `Terrain.build()` still produces the
@@ -69,6 +69,30 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Atmosphere** — the one dict in `WorldKit` that sets the sun (yaw/elevation/colour), ambient,
   fog, sky shader stops, clouds and sea colours; the reference look lives there, and
   `reference/` holds the targets it is measured against (`BRIEF.md`, `compare.py`, spots).
+
+## The outer world
+
+- **Core** — the hand-built 1248 m island at the centre (Terrain3D, `Island`). Everything beyond
+  it is the **outer world** (`OuterWorld`, `world/outer`, data in `data/outer`, ADR 0010).
+- **Lagoon** — the sea ring round the core; the mainland begins 1.4-1.7 km out. The **estuary**
+  runs from its east shore to the eastern bay; the **strait** parts the big western island.
+- **Core exits** — the four core roads appended last in `Island._define_roads` (north past the
+  monastery, east by the lighthouse, south under Torre Vieja, west off the coast road). The outer
+  **spokes** start exactly on their last samples.
+- **Lattice** — the outer ground's definition: triangles on a 6.25 m grid, each point the bilinear
+  data height plus **micro relief** x (1 - **flatten**). Drawn, collided and queried identically.
+- **Road classes** — **highway** (11 m, 7 % grade: the **ring** joining the five towns and the four
+  spokes), **road** (7 m, 10 %: hamlets, country roads, the **causeway**), **track** (4.5 m, 14 %:
+  mountains, desert, capes), **street** (a town's main street, from its **gate** to its plaza).
+- **Town** — Puerto Alto (`puerto`), Valdoro (`valdoro`), Sarmada (`sarmada`), Isola Serena
+  (`isola`), Campo Real (`campo`); **hamlets** take the style of the nearest town. Each is a
+  location with its delivery ring on the plaza.
+- **Plot** — one building site in `plan.json`: id, style, kind, x/z, y (the pad), yaw (the street
+  side faces `(sin yaw, 0, cos yaw)`), w (frontage), d, floors, seed, tags, ground_min. The
+  contract with the architecture kit (`BuildingKit.build_group`).
+- **Sea lane** — a shipping route between **ports** (the core harbour, Puerto Alto, Sarmada, Isola
+  Serena) through water >= 8 m deep and >= 60 m from the coast; bridges over them clear 12 m.
+- **Camp** — a bandit camp or pirate cove candidate point for the combat system.
 
 ## Architecture (see ARCHITECTURE.md)
 

@@ -19,10 +19,15 @@ res://
 │   ├── world_config.gd      WorldConfig resource (chunk size, stream radius, tier radii, seed)
 │   ├── database/            world_database.gd (recipes per chunk, locations, hubs), hub.gd
 │   ├── streaming/           world_streamer.gd, chunk.gd
-│   ├── terrain/             terrain.gd (map-driven heightfield, roads, bridges, viaducts -> Terrain3D)
+│   ├── terrain/             terrain.gd (map-driven heightfield, roads, bridges, viaducts -> Terrain3D), bridge.gd
+│   ├── outer/               the 25 km outer world (ADR 0010): outer_world.gd (OuterWorld: queries + collision),
+│   │                        outer_ground.gd (the lattice surface), outer_terrain_view.gd + .gdshader (CDLOD),
+│   │                        outer_roads.gd (network, ribbons, bridges), outer_towns.gd (towns, plots, landmarks),
+│   │                        outer_flora.gd (wilderness)
 │   ├── kit/                 world_kit.gd (every builder: houses, rocks, kits, arcades, sea, sky)
 │   ├── island/              island.gd (the generator for THIS island: hubs, places, roads, biomes)
-│   └── mapgen/              extract.py (painting → 720 m map), expand.py (→ 1248 m world + new land), textures.py
+│   └── mapgen/              extract.py (painting → 720 m map), expand.py (→ 1248 m world + new land), textures.py,
+│                            outer.py (+ outer_*.py: the outer world → data/outer), outer_textures.py
 ├── assets/terrain/          ground textures for Terrain3D
 ├── addons/terrain_3d/       the Terrain3D GDExtension (rendering + collision of the ground)
 ├── entities/
@@ -37,7 +42,7 @@ res://
 │   └── weapons/             gun.gd
 ├── ai/                      autopilot.gd (a Controls.Source that drives a Vehicle along the roads)
 ├── ui/                      hud/hud.gd, debug/debug_overlay.gd
-├── data/                    the database: island maps, config/world.tres, vehicles/*.tres, jobs/*.tres
+├── data/                    the database: island maps, outer/ (the outer world), config/world.tres, vehicles/*.tres, jobs/*.tres
 └── tests/                   in-game test nodes and render tools (run with --test=NAME)
 ```
 
@@ -47,6 +52,7 @@ res://
 Game (core/app/game.gd)            boots, wires, holds the CLI/session state
 ├── WorldManager
 │   ├── Environment                sky, sun, sea, abyss, boundaries, Terrain — always resident
+│   │   └── OuterWorld             outer terrain (CDLOD), collision tiles, roads, bridges, town silhouettes, wilderness
 │   └── WorldStreamer              Chunk_x_y nodes around the focus (7×7 of 60 m by default)
 ├── EntityManager                  bike, player body, pickups, targets, (NPCs, cars...) by id
 ├── Rider                          player controller: mode + ControlIntent routing
@@ -73,6 +79,13 @@ painting ──extract.py──▶ island_map_720.png ──expand.py──▶ d
                                                    ├─ data:     locations, hubs     → WorldDatabase
                                                    └─ recipes:  one Callable per prop, per chunk
                                                                  → WorldDatabase.records
+world/mapgen/outer.py ──▶ data/outer (height.f32, splat/aux/tint/roads PNGs, plan.json)
+                                                              └─▶ OuterWorld (boot, ~0.8 s)
+                                                   ├─ resident: CDLOD terrain, bridges, silhouettes, lake
+                                                   ├─ data:     roads → Terrain.road_samples, towns → locations
+                                                   ├─ recipes:  plots, lamps, landmarks, signs → WorldDatabase
+                                                   └─ streamed round the focus/camera: collision tiles,
+                                                                road ribbons, wilderness
 player position ──▶ WorldStreamer ──▶ Chunk.build(): run the chunk's recipes → nodes
 								  └──▶ Chunk.queue_free() when out of range
 ```
@@ -119,6 +132,18 @@ gives the same chunk (the kit rng is reseeded from the coordinate).
     F5/F9 quick save/load.
 15. **Feature-based folders** — see above.
 
+## The outer world
+
+`Terrain` answers for the core square (|x|, |z| <= 624 m) and forwards every other `height_at`,
+`normal_at`, `biome_at` and `road_dist_at` to `terrain.expanse` — the `OuterWorld`. Its ground is
+triangles on a 6.25 m lattice over the 12.5 m data; the GPU patches, the collision tiles (200 m,
+5 x 5 round the focus, one built per physics frame) and `height_at` evaluate the same lattice.
+The outer roads are appended to `Terrain.road_samples` / `roads` / `bridges`, so RoadNavigation,
+the autopilot, traffic, the reset key and `nearest_road` (a coarse 256 m grid answers far from
+the core) cover the whole network. Towns and hamlets are WorldDatabase locations and recipes:
+`BuildingKit.build_group(parent, plots, origin)` builds the plots when
+`res://world/kit/building_kit.gd` exists, a placeholder otherwise. See ADR 0010.
+
 ## Persistence
 
 `Saves.register(key, provider)`; a provider implements `save_state() -> Dictionary` and
@@ -135,6 +160,8 @@ godot --headless --path . -- --autotest --deliveries=4          # delivery loop 
 godot --headless --path . -- --test=architecture_tests          # streaming, database, tiers, events, save/load
 godot --headless --path . -- --test=edge_tests                  # brake/reverse, sea reset, camera
 godot --headless --path . -- --test=feature_tests               # dismount, swim, pistol, plane (28 checks)
+godot --headless --path . -- --test=outer_world_tests           # outer world: data, ground == collision, roads, towns, budgets
+python3 world/mapgen/outer.py                                   # regenerate data/outer (~1 min)
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --nostream --nofog --out=/tmp/view
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=feature_shots --out=/tmp/fshots
 ROAD=3 godot --headless --path . -- --test=road_dump            # road profiles / bridges

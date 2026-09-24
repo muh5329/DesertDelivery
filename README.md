@@ -1,6 +1,6 @@
 # Desert Delivery
 
-A third-person courier game with a **25 km × 25 km world boundary**, a detailed 1.248 km Mediterranean settlement core, and surrounding traversable highlands. The north viaduct joins the original road network to the new landscape. The outer heightfield uses a fixed geometry budget and streamed collision; this is not 625 km² of bespoke city detail.
+A third-person courier game on a **25 km × 25 km** country: a detailed 1.248 km Mediterranean island at the centre, ringed by a lagoon, and round it a generated country — an alpine range with a dammed lake in the north, an arid plateau of mesas and canyons in the south, farmland plains and an estuary in the east, a rugged coast and an archipelago in the west. Five towns (the port city of Puerto Alto, the alpine hill town of Valdoro, the walled desert port of Sarmada, the island village of Isola Serena, the plains market town of Campo Real) and fourteen hamlets are joined by ~220 km of highways, roads and tracks with 40+ bridges, and by sea lanes between the ports. See [ADR 0010](docs/adr/0010-outer-world.md).
 
 The September 2026 overhaul adds a hand-painted, Ghibli-inspired summer palette, an ImageGen gouache surface used by terrain and object materials, a newly authored Blender delivery truck, regraded existing GLBs, and occupation-based wardrobe silhouettes for all 64 residents. The shared base character and most existing model topology remain. Godot **4.7 Forward+ (Vulkan)** is the current renderer on macOS; Terrain3D draws and collides the detailed core.
 
@@ -49,11 +49,13 @@ Ride to the glowing ring at the pickup, slow to a stop inside it to load the pac
 rack, then follow the compass (top-left) to the destination ring and stop again to hand it over.
 Walking and the cargo truck also support handoffs. Stay grounded and below 2.5 m/s in the
 ring for half a second. Coins are awarded once on delivery, and F5/F9 preserves the current
-package, job and wallet. Ten jobs chain round the island: Villa Rosa Office (SW vineyards) → Hilltop Farm (NW massif) → Harbour Cafe
+package, job and wallet. Fifteen jobs chain round the island and out into the country: Villa Rosa Office (SW vineyards) → Hilltop Farm (NW massif) → Harbour Cafe
 (NE town, over the strait aqueduct) → Dunes Lookout (badlands, over the gorge viaduct) → Lakeside Camp →
 Bodega San Marco (the southern vineyards) → the Salinas (salt pans) → Cala Blanca (fishing cove) → the Marble
-Quarry and San Telmo Monastery (the northern Highlands, over the mountain pass) → back to the Villa.
-Signposts at each hub point the way; F6 teleports to the next hub.
+Quarry and San Telmo Monastery (the northern Highlands, over the mountain pass) → back to the Villa, and on out
+over the lagoon bridges: Campo Real (the plains) → Puerto Alto (over the estuary bridge) → Sarmada (the south coast)
+→ Isola Serena (over the causeway) → Valdoro (up the switchbacks in the north).
+Signposts at each hub and at every outer junction point the way; F6 teleports to the next hub.
 
 ## Places
 
@@ -100,7 +102,7 @@ All checks run inside the booted game through the test runner (`--test=NAME` loa
 
 ```
 godot --headless --path . -- --autotest --deliveries=10 --maxtime=2800   # drives the whole loop, exits 0 on success
-godot --headless --path . -s tests/world_expanse_tests.gd       # extent, surface/collider agreement, tile budget
+godot --headless --path . -- --test=outer_world_tests           # outer world: data, surface == collision, roads, towns, plots, budgets
 godot --headless --path . -s tests/control_regression_tests.gd # analog, buffered/coyote jumps, controls
 godot --headless --path . -s tests/third_person_tests.gd       # movement, jump height, slopes, camera obstruction
 godot --headless --path . -s tests/bike_dynamics_tests.gd      # suspension, crest airtime, landing and timestep parity
@@ -120,6 +122,9 @@ xvfb-run godot --path . --rendering-driver opengl3 -- --shots=/tmp/shots --autot
 python3 world/mapgen/extract.py [painting.png]   # painting -> world/mapgen/island_map_720.png (the 720 m map)
 python3 world/mapgen/expand.py                   # 720 m map -> data/ (1248 m world with the new land)
 python3 world/mapgen/textures.py                 # pack / bake the ground textures in assets/terrain
+python3 world/mapgen/outer_textures.py           # bake meadow / alpine / snow / asphalt / cobble textures
+python3 world/mapgen/outer.py                    # generate the outer world into data/outer (~1 min)
+godot --headless --path . -- --test=dump_core_exits   # refresh world/mapgen/core_exits.json after changing the core exits
 python3 world/mapgen/foliage.py                  # bake the leaf / grass cards in assets/foliage
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast --out=/tmp/x
 python3 reference/compare.py /tmp/x/cliff_coast.png reference/ref_cliff_coast.png   # similarity vs the reference
@@ -135,7 +140,7 @@ The latest measured frame rates, controller changes, visual reviews and limitati
 See `ARCHITECTURE.md` for the full picture; `CONTEXT.md` for the domain vocabulary.
 
 - `core/` – `Game` root (boot + wiring), `Events` bus, `Saves`, definitions, utils
-- `world/` – `WorldManager`, `WorldDatabase` (recipes per chunk, locations, hubs), `WorldStreamer` + `Chunk`, `Terrain` (heightfield → Terrain3D), `WorldKit` builders, the `Island` generator, `mapgen/` (extract, expand, textures)
+- `world/` – `WorldManager`, `WorldDatabase` (recipes per chunk, locations, hubs), `WorldStreamer` + `Chunk`, `Terrain` (heightfield → Terrain3D), `WorldKit` builders, the `Island` generator, `outer/` (the outer world), `mapgen/` (extract, expand, textures, outer)
 - `assets/terrain/` – ground textures (seven packed CC0 ambientCG sets + four baked ones; see `assets/CREDITS.md`)
 - `assets/rock/`, `assets/trees/` – rock textures and the Quaternius CC0 trees with `leaf.gdshader`
 - `reference/` – reference screenshots, brief, camera spots, `compare.py`, per-round critiques and changelogs
@@ -145,5 +150,5 @@ See `ARCHITECTURE.md` for the full picture; `CONTEXT.md` for the domain vocabula
 - `gameplay/` – `GameplayManager`, `Controls` seam, `DeliverySystem` + `JobDefinition`, `GunSystem`
 - `ai/` – `Autopilot`
 - `ui/` – `HUD`, `DebugOverlay`
-- `data/` – island maps, `config/world.tres`, vehicle definitions (`bike.tres`, `truck.tres`), `jobs/*.tres`
+- `data/` – island maps, `outer/` (outer world heights, maps and plan), `config/world.tres`, vehicle definitions (`bike.tres`, `truck.tres`), `jobs/*.tres`
 - `tests/` – test nodes and render tools

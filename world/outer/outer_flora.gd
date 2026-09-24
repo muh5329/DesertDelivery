@@ -211,7 +211,16 @@ func _pick_species(x: float, z: float, h: float, biome: int, dry: float, r: floa
 	return "oak" if r < 0.55 else ("umbrella" if r < 0.75 else ("olive" if r < 0.9 else "cypress"))
 
 
+var max_build_ms := 0.0
+
+
 func build_tile(k: Vector2i) -> void:
+	var t0 := Time.get_ticks_usec()
+	_build_tile_impl(k)
+	max_build_ms = maxf(max_build_ms, (Time.get_ticks_usec() - t0) / 1000.0)
+
+
+func _build_tile_impl(k: Vector2i) -> void:
 	var node := Node3D.new(); node.name = "Wild_%d_%d" % [k.x, k.y]
 	node.position = Vector3(k.x * TILE, 0, k.y * TILE)
 	add_child(node); loaded[k] = node
@@ -226,7 +235,11 @@ func build_tile(k: Vector2i) -> void:
 			var z := k.y * TILE + (j + rng.randf()) * TREE_GRID
 			var roll := rng.randf(); var r2 := rng.randf(); var sc := rng.randf_range(0.8, 1.3); var yaw := rng.randf() * TAU
 			var dens := ground.forest_at(x, z)
-			if roll > dens * 0.55 + 0.012: continue
+			var base_chance := 0.012
+			var b0 := ground.biome_at(x, z)
+			if b0 == Terrain.Biome.BADLANDS or b0 == Terrain.Biome.DUNES: base_chance = 0.05
+			elif b0 == Terrain.Biome.MOOR: base_chance = 0.03
+			if roll > dens * 0.55 + base_chance: continue
 			var h := _site(x, z, 0.75)
 			if is_nan(h): continue
 			var biome := ground.biome_at(x, z)

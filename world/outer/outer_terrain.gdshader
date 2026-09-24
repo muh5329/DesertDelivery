@@ -289,6 +289,16 @@ void fragment() {
 		col += AH[i].rgb * bw; tn += (NR[i].rgb * 2.0 - 1.0) * bw; rough += NR[i].a * bw; wsum += bw;
 	}
 	col /= max(wsum, 1e-4); tn /= max(wsum, 1e-4); rough /= max(wsum, 1e-4);
+	// sandstone strata on the arid cliffs and mesa rims: warm bands a few metres thick
+	if (arid) {
+		float band = sin(w.y * 0.85 + n2 * 2.5) * 0.5 + 0.5;
+		float band2 = sin(w.y * 2.9 + n1 * 4.0) * 0.5 + 0.5;
+		vec3 strata = mix(vec3(1.18, 0.88, 0.64), vec3(0.92, 0.70, 0.52), band) * mix(0.9, 1.08, band2);
+		col = mix(col, col * strata, smoothstep(0.3, 0.85, rock) * 0.85);
+	} else if (w.y > 300.0) {
+		// lichen and weathering on the granite
+		col = mix(col, col * vec3(0.92, 0.96, 0.90) * (0.85 + 0.3 * n2), rock * 0.5);
+	}
 	// ---- colour: macro tint, broad variation, field crops
 	col *= mix(vec3(1.0), tint, 0.85);
 	col *= 0.86 + 0.28 * n3;

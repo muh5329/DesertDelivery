@@ -52,7 +52,7 @@ TOWN_DEFS = [
     ("sarmada", "Sarmada", "sarmada", (2650, 8650), 420, True, None),
     ("isola_serena", "Isola Serena", "isola", None, 240, True, None),
 ]
-ISOLA_JUNCTION = (-7350, 760)      # the causeway's mainland end on the ring highway
+ISOLA_JUNCTION = (-7470, 1330)      # the causeway's mainland end on the ring highway
 
 
 def log(*a):
@@ -134,7 +134,11 @@ def stage_terrain():
     h, f = L.base_heights(); log("base heights")
     h = L.shape(h, f); log("shaped")
     h = L.erode(h, f); log("eroded")
+    # crisp mesas: re-terrace the arid plateau after erosion (flat tops, steep risers)
+    arid = f["wS"] * L.smoothstep(70, 120, h)
+    h = h + (L.terrace(h, 22.0, 4.0) - h) * arid * 0.9
     h = L.carve_estuary(h, f); log("estuary")
+    h = L.carve_strait(h, f); log("strait")
     # the core square: match the core's own seabed at its edge (the core map's rim is -3..-7)
     ax = np.maximum(np.abs(f["x"]), np.abs(f["z"]))
     h = np.where(ax < L.CORE_HALF + 2, np.minimum(h, -6.0), h)
@@ -383,8 +387,8 @@ def parallel_mult(roadcells, keep_free):
     return m.astype(np.float64)
 
 
-def route(grid, a, b, cls, roadcells, target=None, extra_forbid=None, clear_around=()):
-    hr, water, forbid, X, Z = grid
+def route(grid, a, b, cls, roadcells, target=None, extra_forbid=None, clear_around=(), water=None):
+    hr, wmask, forbid, X, Z = grid
     n = hr.shape[0]
     mult = parallel_mult(roadcells, list(clear_around) + [(a, 500.0)] + ([(b, 500.0)] if b is not None else []))
     fb = forbid.copy()
@@ -397,9 +401,9 @@ def route(grid, a, b, cls, roadcells, target=None, extra_forbid=None, clear_arou
     s = to_node(a, n)
     if target is None:
         g = to_node(b, n)
-        path = R.astar(hr, water, fb, roadcells, ROUTE_CELL, s, g, roadcells, c["gmax"], 1.6, c["water"], 60.0, 1.0, 1.0, mult)
+        path = R.astar(hr, wmask, fb, roadcells, ROUTE_CELL, s, g, roadcells, c["gmax"], 1.6, c["water"] if water is None else water, 60.0, 1.0, 1.0, mult)
     else:
-        path = R.astar(hr, water, fb, roadcells, ROUTE_CELL, s, -1, target, c["gmax"], 1.6, c["water"], 0.0, 1.0, 0.0, mult)
+        path = R.astar(hr, wmask, fb, roadcells, ROUTE_CELL, s, -1, target, c["gmax"], 1.6, c["water"] if water is None else water, 0.0, 1.0, 0.0, mult)
     if len(path) == 0: return None
     return np.stack([ORIGIN + (path % n) * ROUTE_CELL, ORIGIN + (path // n) * ROUTE_CELL], 1)
 
@@ -563,12 +567,12 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
     gy["isola_junction"] = max(float(bil(h, [ISOLA_JUNCTION[0]], [ISOLA_JUNCTION[1]])[0]), 2.0)
     clear = [(g, 180.0) for g in gates.values()]
 
-    def link(rid, cls, a_id, b_id, a=None, b=None, ya=None, yb=None, lead_a=None, lead_b=None, vias=()):
+    def link(rid, cls, a_id, b_id, a=None, b=None, ya=None, yb=None, lead_a=None, lead_b=None, vias=(), water=None):
         pa = gates[a_id] if a is None else a; pb = gates[b_id] if b is None else b
         stops = [pa + (lead_a if lead_a is not None else 0)] + [np.asarray(v, float) for v in vias] + [pb]
         parts = []
         for s0, s1 in zip(stops[:-1], stops[1:]):
-            c = route(grid, s0, s1, cls, roadcell_mask(net, n), clear_around=clear + [(pa, 300.0), (s0, 200.0), (s1, 200.0)])
+            c = route(grid, s0, s1, cls, roadcell_mask(net, n), clear_around=clear + [(pa, 300.0), (s0, 200.0), (s1, 200.0)], water=water)
             if c is None:
                 log("ROUTE FAILED", rid); return None
             parts.append(c if not parts else c[1:])
@@ -594,7 +598,7 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
         link("spoke.%s" % name, "highway", "core_" + name, dest, a=last[[0, 2]], ya=float(last[1]), lead_a=tan * 160.0,
              vias=spoke_vias.get(name, ()))
     # --- the causeway to Isola Serena
-    link("causeway.isola_serena", "road", "isola_junction", "isola_serena")
+    link("causeway.isola_serena", "road", "isola_junction", "isola_serena", water=2.5)
     net.gy = gy
     return net
 
