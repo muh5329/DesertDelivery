@@ -46,10 +46,13 @@ var spawned := 0
 var despawned := 0
 var paths_ms := 0.0
 var frame_us := 0
+var physics_us := 0
 var _cells: Dictionary = {}             # Vector2i (100 m) -> [nav node ids] (outer roads only)
 var _pool: Dictionary = {}              # kind -> [views]
 var _rng := RandomNumberGenerator.new()
 var _spawn_t := 0.0
+var _target_t := 0.0
+var _target := 0
 var _gap_t := 0.0
 var _next_id := 0
 var _viewer := Vector3.ZERO
@@ -142,10 +145,14 @@ func _process(delta: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	_viewer = _viewer_pos()
 	_spawn_t -= delta
+	_target_t -= delta
+	if _target_t <= 0.0:
+		_target_t = 2.0
+		_target = target_count(_viewer)
 	if _spawn_t <= 0.0:
 		_spawn_t = 0.35
 		_despawn_far()
-		if vehicles.size() < target_count(_viewer): spawn_one()
+		if vehicles.size() < _target: spawn_one()
 	frame_us = Time.get_ticks_usec() - t0
 
 
@@ -220,33 +227,55 @@ func _free_at(p: Vector3, reach: float) -> bool:
 func _route(rec: Dictionary, from_node: int, to: Vector3) -> bool:
 	var t0 := Time.get_ticks_usec()
 	var ids := nav.graph.get_id_path(from_node, nav.nearest(to))
+	if ids.size() < 3:
+		paths_ms += float(Time.get_ticks_usec() - t0) / 1000.0
+		return false
+	rec.ids = ids; rec.next = 0
+	rec.path = PackedVector3Array(); rec.cum = PackedFloat32Array(); rec.lim = PackedFloat32Array()
+	rec.s = 0.0; rec.done = false; rec.wait = 0.0
+	_extend(rec)
 	paths_ms += float(Time.get_ticks_usec() - t0) / 1000.0
-	if ids.size() < 3: return false
-	var pts := PackedVector3Array(); var lim := PackedFloat32Array(); var cum := PackedFloat32Array()
-	var total := 0.0
-	for i in ids.size():
+	return (rec.path as PackedVector3Array).size() >= 3
+
+
+## Lay the lane BUILD_AHEAD further along the route (a route may be 20 km; a vehicle lives for
+## the kilometre or two near the viewer). Heights are the road's own samples (decks included).
+const BUILD_AHEAD := 1200.0
+
+func _extend(rec: Dictionary) -> void:
+	var ids: PackedInt64Array = rec.ids
+	var pts: PackedVector3Array = rec.path
+	var cum: PackedFloat32Array = rec.cum
+	var lim: PackedFloat32Array = rec.lim
+	var i: int = rec.next
+	var first := pts.size()
+	var total := cum[cum.size() - 1] if cum.size() > 0 else 0.0
+	while i < ids.size() and total < float(rec.s) + BUILD_AHEAD:
 		var c := nav.graph.get_point_position(ids[i])
 		var tan := nav.graph.get_point_position(ids[mini(i + 1, ids.size() - 1)]) - nav.graph.get_point_position(ids[maxi(i - 1, 0)])
 		tan.y = 0.0
+		i += 1
 		if tan.length_squared() < 0.01: continue
-		var cls := class_of(ids[i])
+		var cls := class_of(ids[i - 1])
 		var q := c + tan.normalized().cross(Vector3.UP) * float(LANES.get(cls, 1.2))
-		q.y = nav.support(q, terrain).height
 		if not pts.is_empty():
 			var step := Vector2(q.x - pts[pts.size() - 1].x, q.z - pts[pts.size() - 1].z).length()
 			if step < 0.5: continue
 			total += step
 		pts.append(q); cum.append(total); lim.append(float(LIMITS.get(cls, 9.0)))
-	if pts.size() < 3: return false
+	rec.next = i
 	# bends: the speed a car can hold through the turn at each point
-	for i in range(1, pts.size() - 1):
-		var a := pts[i] - pts[i - 1]; var b := pts[i + 1] - pts[i]
+	for k in range(maxi(1, first - 1), pts.size() - 1):
+		var a := pts[k] - pts[k - 1]; var b := pts[k + 1] - pts[k]
 		a.y = 0; b.y = 0
 		var turn := a.normalized().angle_to(b.normalized())
 		var span := (a.length() + b.length()) * 0.5
-		if turn > 0.02: lim[i] = minf(lim[i], sqrt(3.2 * span / turn))
-	rec.path = pts; rec.cum = cum; rec.lim = lim; rec.s = 0.0; rec.done = false; rec.wait = 0.0
-	return true
+		if turn > 0.02: lim[k] = minf(lim[k], sqrt(3.2 * span / turn))
+	rec.path = pts; rec.cum = cum; rec.lim = lim
+
+
+func _complete(rec: Dictionary) -> bool:
+	return int(rec.get("next", 0)) >= (rec.get("ids", PackedInt64Array()) as PackedInt64Array).size()
 
 
 func _limit_at(rec: Dictionary, s: float) -> float:
@@ -299,14 +328,17 @@ func _physics_process(delta: float) -> void:
 			v.wait += delta
 			v.v = move_toward(float(v.v), 0.0, BRAKE * delta)
 			continue
-		var want := minf(_limit_at(v, float(v.s)), float(v.limit))
 		var end := float((v.cum as PackedFloat32Array)[(v.cum as PackedFloat32Array).size() - 1])
-		want = minf(want, sqrt(maxf(0.0, 2.0 * BRAKE * 0.5 * (end - float(v.s)))))
+		if end - float(v.s) < 400.0 and not _complete(v):
+			_extend(v)
+			end = float((v.cum as PackedFloat32Array)[(v.cum as PackedFloat32Array).size() - 1])
+		var want := minf(_limit_at(v, float(v.s)), float(v.limit))
+		if _complete(v): want = minf(want, sqrt(maxf(0.0, 2.0 * BRAKE * 0.5 * (end - float(v.s)))))
 		# harder braking when something turns up close (up to ~1 g)
 		var brake := BRAKE if float(v.v) < want + 3.0 else BRAKE * 1.8
 		v.v = move_toward(float(v.v), want, (ACCEL if want > float(v.v) else brake) * delta)
 		v.s = float(v.s) + float(v.v) * delta
-		if float(v.s) >= end - 0.5:
+		if float(v.s) >= end - 0.5 and _complete(v):
 			v.s = end; v.done = true; v.wait = 0.0
 			# a new destination from here (the town it reached is behind it)
 			var here: Vector3 = v.pos
@@ -317,7 +349,7 @@ func _physics_process(delta: float) -> void:
 					break
 		_place(v)
 		_move_view(v, delta)
-	frame_us += Time.get_ticks_usec() - t0
+	physics_us = Time.get_ticks_usec() - t0
 
 
 ## The speed allowed by what is ahead: a vehicle in the same lane, a crossing at a junction, the

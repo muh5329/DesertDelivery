@@ -6,7 +6,7 @@ extends RefCounted
 ## "wheels" / "radius", "steer", "driver" (a seated townsperson, far mesh), "legs" (the donkey).
 ## All face -Z, origin on the ground between the axles.
 
-const PAINT_NAMES := {"car": ["Car seafoam"], "lorry": ["Truck red", "Truck paint", "Body", "Red"]}
+const PAINT_NAMES := {"car": ["Car seafoam"], "lorry": ["Truck vermilion enamel"]}
 
 static var _mats: Dictionary = {}
 

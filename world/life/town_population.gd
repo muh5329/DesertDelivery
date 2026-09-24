@@ -71,7 +71,7 @@ func _init(plan_record: Dictionary, height: Callable) -> void:
 
 ## How many people live here: ~0.6 a plot (Puerto Alto ~400, a hamlet a handful).
 static func population_for(plan_record: Dictionary) -> int:
-	return clampi(roundi((plan_record.plots as Array).size() * 0.6) + 2, 3, 420)
+	return clampi(roundi((plan_record.plots as Array).size() * 0.7) + 2, 3, 480)
 
 
 func generate() -> void:
@@ -331,6 +331,8 @@ func _spots() -> void:
 			if door >= 0: homes.append(door)
 		if kind_ == "shop" or "shopfront" in p.get("tags", []):
 			_add_spot("shop", c + f * (hd + 1.0) + t * (hw * 0.45), f, "shopkeep")
+			# window shopping in front of the shop
+			_add_spot("window", c + f * (hd + 1.5) - t * (hw * 0.3), -f, "browse")
 		if kind_ in ["barn", "granary", "windmill"]:
 			_add_spot("barn", c + f * (hd + 1.4) + t * (hw * 0.3), -f, "work")
 		if kind_ in ["boathouse", "warehouse"]:
@@ -342,11 +344,22 @@ func _spots() -> void:
 		if kind_ == "market_hall":
 			for j in 4:
 				_add_spot("vend", c + f * (hd + 1.2) + t * (-hw * 0.6 + hw * 0.4 * j), f, "vend")
-	# chat clusters on plazas and quays: pairs facing each other
+	# chat clusters on plazas, quays and the main street's sidewalks: pairs facing each other
 	for st: Dictionary in _plan.streets:
-		if not st.kind in ["plaza", "quay"]: continue
+		if not st.kind in ["plaza", "quay", "main"]: continue
 		var w := float(st.width)
-		var line := _resample(st.points, 9.0 if st.kind == "plaza" else 23.0)
+		var line := _resample(st.points, 9.0 if st.kind == "plaza" else (23.0 if st.kind == "quay" else 26.0))
+		if st.kind == "main":
+			for i in line.size():
+				var tan := (line[mini(i + 1, line.size() - 1)] - line[maxi(i - 1, 0)]).normalized()
+				var nrm := Vector2(-tan.y, tan.x) * (1.0 if i % 2 == 0 else -1.0)
+				var q2: Vector2 = line[i] + nrm * (w * 0.5 - 1.1)
+				var d := Vector3(tan.x, 0, tan.y)
+				var q := Vector3(q2.x, 0, q2.y)
+				if clear(q.x - d.x * 0.6, q.z - d.z * 0.6, 0.4) and clear(q.x + d.x * 0.6, q.z + d.z * 0.6, 0.4):
+					_add_spot("chat", q - d * 0.55, d, "chat")
+					_add_spot("chat", q + d * 0.55, -d, "chat")
+			continue
 		for i in line.size():
 			var tan := (line[mini(i + 1, line.size() - 1)] - line[maxi(i - 1, 0)]).normalized()
 			var nrm := Vector2(-tan.y, tan.x)
@@ -461,15 +474,18 @@ func _people() -> void:
 			person.home = near_homes[mini(rng.randi() % 3, near_homes.size() - 1)][1]
 		home_load[person.home] = int(home_load.get(person.home, 0)) + 1
 		_routine(person, rng)
+		person.look(style)          # decided here, on the worker thread, not when he comes into view
 		counts[person.occupation if person.occupation != "" else "townsfolk"] = int(counts.get(person.occupation if person.occupation != "" else "townsfolk", 0)) + 1
 		people.append(person)
 
 
-## A leisure spot near `p`: a seat or a chat spot (or a stall to browse when `shopping`).
+## A leisure spot near `p`: a seat or a chat spot (or a stall to browse when `shopping`). A third
+## of the time the plaza instead: the market and the benches are where a town meets.
 func _leisure(p: Vector3, rng: RandomNumberGenerator, shopping := false) -> int:
-	var kinds := ["browse"] if shopping else (["seat", "chat"] if rng.randf() < 0.75 else ["chat"])
+	if rng.randf() < 0.33: p = centre
+	var kinds := ["browse", "window"] if shopping else (["seat", "chat"] if rng.randf() < 0.75 else ["chat"])
 	var near := spots_near(p, kinds, NEAR_REACH)
-	if near.is_empty(): near = spots_near(p, ["seat", "chat", "browse"], NEAR_REACH * 2.0)
+	if near.is_empty(): near = spots_near(p, ["seat", "chat", "browse", "window"], NEAR_REACH * 2.0)
 	if near.is_empty(): return -1
 	return near[mini(rng.randi() % 6, near.size() - 1)]
 
@@ -496,13 +512,13 @@ func _routine(person: Townsperson, rng: RandomNumberGenerator) -> void:
 		r.append([off + rng.randf_range(40.0, 80.0), _leisure(home_p, rng), "rest"])
 		r.append([rng.randf_range(1230.0, 1330.0), person.home, "home"])
 	else:
-		var t := rng.randf_range(460.0, 620.0)
+		var t := rng.randf_range(440.0, 600.0)
 		while t < 1260.0:
 			var roll := rng.randf()
-			if roll < 0.3: r.append([t, _leisure(home_p, rng, true), "shop"])
-			elif roll < 0.85: r.append([t, _leisure(home_p, rng), "rest"])
+			if roll < 0.4: r.append([t, _leisure(home_p, rng, true), "shop"])
+			elif roll < 0.88: r.append([t, _leisure(home_p, rng), "rest"])
 			else: r.append([t, person.home, "home"])
-			t += rng.randf_range(35.0, 110.0)
+			t += rng.randf_range(30.0, 90.0)
 		r.append([rng.randf_range(1260.0, 1340.0), person.home, "home"])
 	# no leisure spot found -> stay home
 	for e in r:

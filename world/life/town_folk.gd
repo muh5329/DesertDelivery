@@ -27,8 +27,8 @@ const NEAR_MESH := 24.0            # show the detailed mesh inside this (hystere
 const TICK_SLICE := 0.5            # every person is re-evaluated this often (s)
 const CARRY_PAUSE := 3.5
 const PLACE_PER_FRAME := 60
-const ASSIGN_PER_PASS := 12        # new bodies handed out per view pass (nearest first)
-const CREATE_PER_PASS := 6         # new pooled bodies built per view pass
+const ASSIGN_PER_PASS := 10        # new bodies handed out per view pass (nearest first)
+const CREATE_PER_PASS := 4         # new pooled bodies built per view pass
 const UNPLACED := -2
 
 var world: WorldManager
@@ -222,14 +222,18 @@ func _reserve(pop: TownPopulation, p: Townsperson, want: int) -> int:
 	if want < 0: return p.home
 	var k: String = pop.spots[want].k
 	if k in ["door"]: return want
+	if k == "window": k = "browse"
 	if pop.occupant[want] < 0 or pop.occupant[want] == p.index:
 		pop.occupant[want] = p.index
 		return want
-	for alt: int in pop.spots_near(pop.spots[want].p, [k] if k != "chat" else ["chat", "seat"], 60.0):
+	var kinds: Array = [k]
+	if k == "chat": kinds = ["chat", "seat"]
+	elif k == "browse": kinds = ["browse", "window"]
+	for alt: int in pop.spots_near(pop.spots[want].p, kinds, 60.0):
 		if pop.occupant[alt] < 0:
 			pop.occupant[alt] = p.index
 			return alt
-	return p.home if k in ["seat", "chat", "browse"] else want
+	return p.home if k in ["seat", "chat", "browse", "window"] else want
 
 
 func _release_spot(pop: TownPopulation, p: Townsperson) -> void:
@@ -378,10 +382,12 @@ func _select_views() -> void:
 		var body: TownBody = p.body
 		body.near = i < MAX_NEAR
 		viewed.append(p)
-		var look := p.look(pop.style)
-		PersonBuilder.request_part(look, false, i < 24)
-		if body.near and p.view_distance < NEAR_MESH + 8.0:
-			PersonBuilder.request_part(look, true, true)
+		var meshes := body.model.person_meshes()
+		if meshes[1] == null or (body.near and meshes[0] == null and p.view_distance < NEAR_MESH + 8.0):
+			var look := p.look(pop.style)
+			if meshes[1] == null: PersonBuilder.request_part(look, false, i < 24)
+			if body.near and meshes[0] == null and p.view_distance < NEAR_MESH + 8.0:
+				PersonBuilder.request_part(look, true, true)
 
 
 func _update_bodies(delta: float) -> void:
@@ -437,7 +443,7 @@ func _update_bodies(delta: float) -> void:
 		elif d > 30.0: interval = 0.1 if walking else 0.5
 		elif not walking: interval = 1.0 / 15.0
 		b.anim_t += delta
-		if b.anim_t >= interval and has_mesh:
+		if has_mesh and (b.anim_t >= interval or b.pose == ""):
 			b.animate(walking, carrying, pose, float(spot.get("seat", 0.46)), b.anim_t, clock)
 			b.anim_t = 0.0
 

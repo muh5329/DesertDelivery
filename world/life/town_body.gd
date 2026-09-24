@@ -66,7 +66,9 @@ func assign(p: Townsperson, look: Dictionary) -> void:
 	model.set_person_meshes(null, null)
 	showing_near = false
 	visible = false
-	pose = ""; seated = false; anim_t = 1.0; check_t = 0.0; move_t = 1.0; last_pos = Vector3.INF
+	# staggered, so a crowd handed out in one pass does not pose all in the same frame
+	var k := float(p.index % 11)
+	pose = ""; seated = false; anim_t = k * 0.1; check_t = k * 0.011; move_t = 1.0; last_pos = Vector3.INF
 	_set_prop("")
 	_crate.visible = false
 
@@ -113,6 +115,7 @@ func refresh_meshes(look: Dictionary, want_near: bool) -> bool:
 ## One pose update: `walking` (with the crate for a dockworker's loaded leg), or the spot's pose.
 func animate(walking: bool, carrying: bool, spot_pose: String, seat_h: float, delta: float, clock: float) -> void:
 	var m := model
+	pose = "walk" if walking else spot_pose
 	if walking:
 		if seated: _stand_up()
 		m.animate("walk", person.speed, delta)

@@ -27,6 +27,7 @@ var _height: Callable
 var _pool: Array = []
 var _tick := 0.0
 var elapsed := 0.0
+var frame_us := 0
 
 
 func setup(p_world: WorldManager, p_entities: EntityManager, p_life: IslandLife) -> void:
@@ -274,6 +275,12 @@ static func _along(route: PackedVector3Array, cum: PackedFloat32Array, s: float,
 
 func _process(delta: float) -> void:
 	if harbours.is_empty(): return
+	var t0 := Time.get_ticks_usec()
+	_boats_frame(delta)
+	frame_us = Time.get_ticks_usec() - t0
+
+
+func _boats_frame(delta: float) -> void:
 	elapsed = (life.total_minutes / maxf(life.minutes_per_second, 0.0001)) if life else elapsed + delta
 	var viewer := _viewer()
 	_tick -= delta
@@ -360,7 +367,8 @@ func _fisher(b: Dictionary, node: Node3D, show: bool, working: bool) -> void:
 		if m: m.visible = false
 		return
 	var hb: Dictionary = b.harbour
-	var look := CharacterLook.from_seed(hash([hb.id, b.index, "boat"]), hb.style, "fisher")
+	if not b.has("look"): b.look = CharacterLook.from_seed(hash([hb.id, b.index, "boat"]), hb.style, "fisher")
+	var look: Dictionary = b.look
 	if m == null:
 		m = RiderModel.new(); m.name = "Fisher"
 		m.manual_meshes = true

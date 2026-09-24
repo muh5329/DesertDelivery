@@ -164,8 +164,8 @@ static func clear_cache() -> void:
 ## present in the whole-person cache above is reused.
 const PART_LIMIT_NEAR := 56
 const PART_LIMIT_FAR := 320
-## At most this many part builds in flight at once (the machine has other work to do).
-static var part_workers := 3
+## At most this many part builds in flight at once: one core stays the main thread's.
+static var part_workers := clampi(OS.get_processor_count() - 1, 1, 3)
 static var _parts: Dictionary = {}          # "key|n" / "key|f" -> ArrayMesh
 static var _parts_order := {true: [], false: []}
 static var _part_pending: Dictionary = {}   # pkey -> task id
