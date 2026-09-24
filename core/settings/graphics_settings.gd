@@ -7,7 +7,8 @@ extends RefCounted
 ## What a preset sets: the post stack (SSAO, SSIL, volumetric fog: quality and on/off), the sun's
 ## shadow cascades and atlas, anti-aliasing (FXAA / TAA / MSAA, and FSR 2 upscaling on a Retina
 ## screen at High), mesh LOD bias, anisotropic filtering, and the night-light budget (how many
-## lamps cast real light near the camera, and whether the courier's headlight casts shadows).
+## lamps cast real light near the camera, and whether the courier's headlight casts shadows), and
+## how many directions the sea searches for a shore per pixel.
 ## The Compatibility renderer and headless runs only take the light budget.
 ##
 ## The default is High: tuned for an M4 Pro at a Retina window (FSR 2 renders ~0.77 of the 2x
@@ -68,6 +69,11 @@ static func apply(world: WorldManager, lvl := -1) -> void:
 	VehicleLights.spot_shadows = P.spot_shadows
 	if world and world.day_night and world.day_night.lights:
 		world.day_night.lights.set_budget(P.lights)
+	# the sea's shore search (depth taps per water pixel: 6 radii x this many directions)
+	if world and world.environment:
+		var sea := world.environment.get_node_or_null("Sea") as MeshInstance3D
+		if sea and sea.material_override is ShaderMaterial:
+			(sea.material_override as ShaderMaterial).set_shader_parameter("prox_dirs", [6, 8, 12, 12][level])
 	if DisplayServer.get_name() == "headless" or not WorldKit.forward_plus(): return
 	var env: Environment = null
 	var sun: DirectionalLight3D = null
