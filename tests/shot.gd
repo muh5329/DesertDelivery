@@ -13,6 +13,9 @@ var idx := 0
 var cam: Camera3D
 var settle := 24
 var game: Game
+var _t_last := 0
+var _t_acc := 0.0
+var _t_n := 0
 
 
 func _ready() -> void:
@@ -68,6 +71,11 @@ func _place() -> void:
 
 func _process(_d: float) -> void:
 	frame += 1
+	# frame time over the last 8 settle frames (wall clock between process calls)
+	var now := Time.get_ticks_usec()
+	if frame > settle - 8 and _t_last > 0:
+		_t_acc += (now - _t_last) / 1000.0; _t_n += 1
+	_t_last = now
 	# keep the focus pinned (the bike would otherwise fall)
 	var from: Vector3 = cams[idx][1]; var at: Vector3 = cams[idx][2]
 	var focus := from.lerp(at, 0.35)
@@ -76,8 +84,10 @@ func _process(_d: float) -> void:
 		var img := get_tree().root.get_texture().get_image()
 		var p := "%s/%s.png" % [out, cams[idx][0]]
 		img.save_png(p)
-		print("saved ", p, "  draw calls %d, objects %d, primitives %d" % [Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
-			Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)])
+		print("saved ", p, "  draw calls %d, objects %d, primitives %d, frame %.0f ms" % [Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+			Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+			_t_acc / maxf(_t_n, 1)])
+		_t_acc = 0.0; _t_n = 0
 		var outer: OuterWorld = game.world.outer
 		if outer and outer.ok:
 			print("  outer: terrain nodes %d, road tiles %d (max build %.1f ms), flora %s (max build %.1f ms)" % [outer.view.selected,
