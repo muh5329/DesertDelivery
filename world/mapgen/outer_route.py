@@ -185,10 +185,12 @@ def curvature_smooth(pts, min_radius, iterations=60, fixed_head=1, fixed_tail=1)
     return p
 
 
-def lipschitz_profile(target, ds, gmax, fixed, lower):
-    """Grade-limited profile close to `target`: the mean of the upper and lower Lipschitz
-    envelopes, clamped to the envelopes of the `fixed` samples (exact there) and raised to the
-    envelope of the `lower` bounds (bridges / clearances). All results have |dy/ds| <= gmax."""
+def lipschitz_profile(target, ds, gmax, fixed, lower, cut_bias=0.5):
+    """Grade-limited profile close to `target`: a blend of the upper and lower Lipschitz
+    envelopes (`cut_bias` 0.5 = their mean, balanced cut and fill; toward 1 = the envelope under
+    the ground, i.e. cuttings rather than fills), clamped to the envelopes of the `fixed` samples
+    (exact there) and raised to the envelope of the `lower` bounds (bridges / clearances). All
+    results have |dy/ds| <= gmax."""
     n = len(target)
     G = gmax * ds
     up = target.copy(); lo = target.copy()
@@ -196,7 +198,7 @@ def lipschitz_profile(target, ds, gmax, fixed, lower):
         up[i] = min(up[i], up[i - 1] + G); lo[i] = max(lo[i], lo[i - 1] - G)
     for i in range(n - 2, -1, -1):
         up[i] = min(up[i], up[i + 1] + G); lo[i] = max(lo[i], lo[i + 1] - G)
-    y = 0.5 * (up + lo)
+    y = cut_bias * up + (1.0 - cut_bias) * lo
     # lower bounds (deck clearances): raise to their Lipschitz envelope
     if lower is not None:
         lb = lower.copy()

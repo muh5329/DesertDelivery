@@ -219,9 +219,14 @@ def layout_puerto(town, ctx):
     # ---- the lighthouse on the point where the estuary meets the bay, cranes on the quay
     cp, ct = along(shore, min(corner_s, poly_len(shore) - 5))
     cn = ctx.inland_normal(cp, ct)
-    lp = cp - cn * 3 + (-ct) * 0.0
-    town.try_plot("lighthouse", cp + cn * 5, -cn, 7, 7, 7, [], None, check_bounds=False)
-    town.landmarks.append({"id": "puerto_alto.lighthouse", "kind": "lighthouse", "pos": cp + cn * 5, "yaw_deg": 0.0})
+    # the breakwater: a stone mole off the point, the lighthouse on its head
+    mole1 = cp - cn * 95.0
+    town.fill.append([(cp + ct * 8).tolist(), (cp - ct * 8).tolist(), (mole1 - ct * 8).tolist(), (mole1 + ct * 8).tolist()])
+    mo = town.add_street("quay", 10.0, [cp + cn * 4, mole1 + cn * 13]); set_rule(town, mo, ("flat", 2.4))
+    town.quay_edges.append([(cp + ct * 6.5).tolist(), (mole1 + ct * 6.5).tolist()])
+    town.quay_edges.append([(mole1 - ct * 6.5).tolist(), (cp - ct * 6.5).tolist()])
+    town.try_plot("lighthouse", mole1 + cn * 2, -cn, 7, 7, 7, [], None, check_bounds=False, check_streets=False)
+    town.landmarks.append({"id": "puerto_alto.lighthouse", "kind": "lighthouse", "pos": mole1 + cn * 2, "yaw_deg": 0.0})
     for k in range(6):
         p, t = along(quay, 60 + k * 60)
         n = ctx.inland_normal(p, t)
