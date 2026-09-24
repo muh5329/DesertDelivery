@@ -125,6 +125,7 @@ func _define_town(t: Dictionary) -> void:
 func _build_plots(parent: Node3D, plots: Array) -> void:
 	if parent == null: return
 	var origin := parent.global_position if parent.is_inside_tree() else Vector3.ZERO
+	_aprons(parent, plots, origin)
 	if _kit_has("build_group"):
 		building_kit.call("build_group", parent, plots, origin)
 		return
@@ -135,6 +136,59 @@ func _build_plots(parent: Node3D, plots: Array) -> void:
 	var mi := MeshInstance3D.new(); mi.name = "PlaceholderBuildings"
 	mi.mesh = st.commit(); mi.material_override = _vertex_colour_material()
 	parent.add_child(mi); parent.add_child(body)
+
+
+## M-10: no building stands straight on the lawn: a paved (or beaten-earth, by town) apron runs
+## round every plot's foot, draped on the ground, its outer edge turning to gravel (the road
+## shader's `apron` kind: calcada in Puerto Alto, sandstone in Campo Real, granite in Valdoro,
+## beaten earth in Sarmada, flags in Isola). Render only; one mesh per plot group.
+const APRON := 1.3                    # paving beyond the footprint (m)
+const APRON_EDGE := 0.9               # then gravel thinning into the ground
+const APRON_SKIP := ["wall", "tower", "windmill", "lighthouse", "gate"]
+
+
+func _aprons(parent: Node3D, plots: Array, origin: Vector3) -> void:
+	if outer == null or outer.roads == null: return
+	var V := PackedVector3Array(); var Nn := PackedVector3Array(); var U := PackedVector2Array()
+	var Tg := PackedFloat32Array(); var Cl := PackedColorArray(); var I := PackedInt32Array()
+	for p: Dictionary in plots:
+		if String(p.get("kind", "")) in APRON_SKIP: continue
+		var st := float(OuterRoads.STYLE_ID.get(String(p.get("style", "campo")), 0))
+		var yaw := deg_to_rad(float(p.yaw))
+		var f := Vector3(sin(yaw), 0.0, cos(yaw)); var r := Vector3(f.z, 0.0, -f.x)
+		var c := Vector3(float(p.x), 0.0, float(p.z))
+		var hw := float(p.w) * 0.5; var hd := float(p.d) * 0.5
+		# the paving to APRON, the gravel to APRON + APRON_EDGE; a vertex every ~4 m. Neighbours'
+		# aprons overlap: each rides a few mm apart (stable order, no flicker), all under the streets
+		var ext0 := APRON; var ext1 := APRON + APRON_EDGE
+		var lift := 0.022 + float(absi(int(p.get("seed", 0))) % 4) * 0.005
+		var nu := maxi(2, ceili((hw + ext1) * 2.0 / 4.0)); var nv := maxi(2, ceili((hd + ext1) * 2.0 / 4.0))
+		var base := V.size()
+		for j in range(nv + 1):
+			for i in range(nu + 1):
+				var u := -hw - ext1 + (hw + ext1) * 2.0 * i / nu
+				var v := -hd - ext1 + (hd + ext1) * 2.0 * j / nv
+				var q := c + r * u + f * v
+				q.y = outer.height_at(q.x, q.z) + lift
+				var out_d := maxf(absf(u) - hw, absf(v) - hd)
+				V.append(q - origin); Nn.append(Vector3.UP); U.append(Vector2(0.5, 0.0))      # (the pads are flat)
+				Tg.append_array(PackedFloat32Array([r.x, r.y, r.z, 1.0]))
+				Cl.append(Color(0.0, st / 8.0, 0.0, 1.0 if out_d > ext0 + 0.01 else 0.0))
+		for j in range(nv):
+			for i in range(nu):
+				# (the same winding as the road ribbons: front faces up)
+				var a := base + j * (nu + 1) + i; var b := a + nu + 1
+				I.append_array(PackedInt32Array([a, a + 1, b, a + 1, b + 1, b]))
+	if I.is_empty(): return
+	var arr := []; arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = V; arr[Mesh.ARRAY_NORMAL] = Nn; arr[Mesh.ARRAY_TEX_UV] = U
+	arr[Mesh.ARRAY_TANGENT] = Tg; arr[Mesh.ARRAY_COLOR] = Cl; arr[Mesh.ARRAY_INDEX] = I
+	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	var mi := MeshInstance3D.new(); mi.name = "Aprons"; mi.mesh = mesh
+	mi.material_override = outer.roads.material_for(7, 1.0)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 420.0
+	parent.add_child(mi)
 
 
 ## The fallback building: a plinth down to the lowest ground under the plot, the walls (floors x

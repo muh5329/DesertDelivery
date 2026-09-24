@@ -11,7 +11,7 @@ extends Node3D
 
 const TILE := 250.0
 const RADIUS := 4
-const KIND := {"highway": 0, "road": 1, "track": 2, "street": 3, "main": 3, "lane": 4, "plaza": 5, "quay": 6}
+const KIND := {"highway": 0, "road": 1, "track": 2, "street": 3, "main": 3, "lane": 4, "plaza": 5, "quay": 6, "apron": 7}
 const RIBBON_FAR := 1150.0
 ## town style -> id carried to the street shader in COLOR.g (paving by town: Lisbon calcada in Puerto)
 const STYLE_ID := {"campo": 0, "puerto": 1, "valdoro": 2, "sarmada": 3, "isola": 4}
@@ -38,6 +38,10 @@ func setup(p_outer: OuterWorld, p_terrain: Terrain) -> void:
 	name = "OuterRoads"
 	var plan: Dictionary = outer.ground.plan
 	nav_first = terrain.road_samples.size()
+	# town id -> paving style: the main streets are plan roads (M-10: they were drawn in style 0)
+	var town_style := {}
+	for group in ["towns", "hamlets"]:
+		for t: Dictionary in plan.get(group, []): town_style[t.id] = STYLE_ID.get(t.style, 0)
 	for r: Dictionary in plan.get("roads", []):
 		var pts := PackedVector3Array()
 		for p in r.points: pts.append(Vector3(p[0], p[1], p[2]))
@@ -47,6 +51,7 @@ func setup(p_outer: OuterWorld, p_terrain: Terrain) -> void:
 		var e := {"id": r.id, "cls": r["class"], "kind": KIND.get(r["class"], 1), "width": float(r.width), "pts": pts, "bridge": br,
 			"bridges": r.bridges, "nav": -1, "from": r.get("from", ""), "to": r.get("to", ""), "join": r.get("join", {})}
 		if r["class"] == "street": e.kind = 3
+		if r.has("town"): e["style"] = town_style.get(r.town, 0)
 		e.nav = _register(pts, r.bridges)
 		by_id[r.id] = roads.size()
 		roads.append(e)
@@ -214,7 +219,7 @@ func _make_materials() -> void:
 	var dirt := _tex("ground004_alb_ht"); var dirt_n := _tex("ground004_nrm_rgh")
 	var noise: Texture2D = OuterTerrainView._noise_texture()
 	var shader: Shader = load("res://world/outer/outer_road.gdshader")
-	for kind in range(7):
+	for kind in range(8):
 		var m := ShaderMaterial.new(); m.shader = shader
 		m.set_shader_parameter("kind", kind)
 		m.set_shader_parameter("asphalt_tex", asphalt); m.set_shader_parameter("asphalt_nrm", asphalt_n)
