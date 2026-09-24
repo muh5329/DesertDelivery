@@ -50,6 +50,9 @@ var _person_near: MeshInstance3D
 var _person_far: MeshInstance3D
 ## Build the townsperson's meshes on a worker thread (streamed residents) instead of now.
 var async_build := false
+## The owner supplies the meshes (set_person_meshes): the outer towns' crowds, whose bodies are
+## pooled and whose near / far parts are built separately (PersonBuilder.part).
+var manual_meshes := false
 ## Resting elbow bend (idle and walk), radians.
 var elbow_rest := .35
 const PERSON_HEAD_SCALE := 1.1
@@ -216,7 +219,9 @@ func set_look(p_look: Dictionary) -> void:
 
 
 func _apply_look() -> void:
-	if async_build and not PersonBuilder.is_cached(look):
+	if manual_meshes:
+		_person_near.mesh = null; _person_far.mesh = null
+	elif async_build and not PersonBuilder.is_cached(look):
 		# streamed townsfolk never stall a frame: build in the background, appear when done
 		PersonBuilder.request(look)
 		_person_near.mesh = null; _person_far.mesh = null
@@ -229,6 +234,45 @@ func _apply_look() -> void:
 	stoop = float(look.get("stoop", 0.0))
 	arm_spread = float(look.get("arm_spread", 0.0))
 	scale = Vector3.ONE * body_scale
+
+
+## Hand this townsperson its meshes (either may be null: nothing is drawn at that level).
+func set_person_meshes(near_mesh: Mesh, far_mesh: Mesh) -> void:
+	if not is_person(): return
+	_person_near.mesh = near_mesh
+	_person_far.mesh = far_mesh
+
+
+## Which level is drawn (the crowds choose it themselves: a near body without its near mesh yet
+## keeps showing the far one).
+func show_person_level(near: bool) -> void:
+	if not is_person(): return
+	_person_near.visible = near
+	_person_far.visible = not near
+
+
+func person_meshes() -> Array:
+	return [_person_near.mesh, _person_far.mesh] if is_person() else [null, null]
+
+
+func person_mesh_instances() -> Array:
+	return [_person_near, _person_far] if is_person() else []
+
+
+## Seated on a bench or a cafe chair: hips `seat_h` metres (world) over the feet's ground,
+## thighs forward, shins down; hands resting on the thighs.
+func pose_seated(seat_h: float) -> void:
+	var s := maxf(body_scale, .5)
+	root.position = Vector3(0, seat_h / s + .06, .02)
+	root.rotation = Vector3.ZERO
+	torso.rotation = Vector3(.05 - stoop * .5, 0, 0)
+	for side in [-1.0, 1.0]:
+		var leg := leg_l if side < 0 else leg_r
+		leg.rotation = Vector3(1.48, side * -.06, side * .05)
+		leg.get_node("Knee").rotation.x = -1.42
+		var arm := arm_l if side < 0 else arm_r
+		arm.rotation = Vector3(.55, 0, side * (.10 + arm_spread * .5))
+		arm.get_node("Elbow").rotation.x = .75
 
 
 ## Resident-only visibility LOD keeps every pivot, accessory and skeleton alive.
