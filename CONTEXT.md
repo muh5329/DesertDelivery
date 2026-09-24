@@ -90,6 +90,13 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Plot** — one building site in `plan.json`: id, style, kind, x/z, y (the pad), yaw (the street
   side faces `(sin yaw, 0, cos yaw)`), w (frontage), d, floors, seed, tags, ground_min. The
   contract with the architecture kit (`BuildingKit.build_group`).
+- **BuildingKit / style** — the architecture kit (`world/kit/building_kit.gd`) and a town's look:
+  `puerto` (Porto/Lisbon rowhouses, azulejo, iron balconies), `valdoro` (alpine rubble, timber,
+  slate), `sarmada` (whitewashed desert port, blue shutters, crenellated ochre walls), `isola`
+  (pastel island cubes, vaults, loggias, outside stairs), `campo` (honey stone and brick, porticoes,
+  barns, granaries, windmills) and `core` (the island's whitewash and terracotta). A **module** is
+  an instanced piece (window, door, balcony, chimney...); a **party wall** is a side a plot shares
+  with its neighbour (`BuildingKit.annotate`): no windows, no eaves there.
 - **Sea lane** — a shipping route between **ports** (the core harbour, Puerto Alto, Sarmada, Isola
   Serena) through water >= 8 m deep and >= 60 m from the coast; bridges over them clear 12 m.
 - **Camp** — a bandit camp or pirate cove candidate point for the combat system.

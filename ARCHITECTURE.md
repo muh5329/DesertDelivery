@@ -24,10 +24,14 @@ res://
 │   │                        outer_ground.gd (the lattice surface), outer_terrain_view.gd + .gdshader (CDLOD),
 │   │                        outer_roads.gd (network, ribbons, bridges), outer_towns.gd (towns, plots, landmarks),
 │   │                        outer_flora.gd (wilderness)
-│   ├── kit/                 world_kit.gd (every builder: houses, rocks, kits, arcades, sea, sky)
+│   ├── kit/                 world_kit.gd (every builder: houses, rocks, kits, arcades, sea, sky),
+│   │                        building_kit.gd (BuildingKit: plots -> buildings, per-town styles) + building/
+│   │                        (ArchStyles plans, ArchFacade walls/openings/roofs, ArchModules instanced pieces,
+│   │                        ArchSpecial towers/churches/walls/gates, ArchMaterials + arch.gdshader, ArchMesh)
 │   ├── island/              island.gd (the generator for THIS island: hubs, places, roads, biomes)
 │   └── mapgen/              extract.py (painting → 720 m map), expand.py (→ 1248 m world + new land), textures.py,
-│                            outer.py (+ outer_*.py: the outer world → data/outer), outer_textures.py
+│                            outer.py (+ outer_*.py: the outer world → data/outer), outer_textures.py,
+│                            facades.py (the architecture kit's PBR layers → assets/buildings)
 ├── assets/terrain/          ground textures for Terrain3D
 ├── addons/terrain_3d/       the Terrain3D GDExtension (rendering + collision of the ground)
 ├── entities/
@@ -143,6 +147,26 @@ the autopilot, traffic, the reset key and `nearest_road` (a coarse 256 m grid an
 the core) cover the whole network. Towns and hamlets are WorldDatabase locations and recipes:
 `BuildingKit.build_group(parent, plots, origin)` builds the plots when
 `res://world/kit/building_kit.gd` exists, a placeholder otherwise. See ADR 0010.
+
+## The architecture kit
+
+`BuildingKit` turns a plot into a building and is shared by the outer towns and the core island
+(`WorldKit._house` builds a style `core` plot). A group of plots becomes three kinds of node:
+
+- **one merged mesh** — walls cut around their openings, trim, plinths, roofs, baked one- or
+  two-off pieces — one surface with one material (`arch.gdshader`): every texture is a layer of
+  two `Texture2DArray`s (`ArchMaterials`, baked by `world/mapgen/facades.py`), a vertex carries its
+  layer, tint, height above the ground and depth below the eaves, so grime, streaks, eave shadow
+  and worn plaster come from the shader;
+- **one MultiMeshInstance3D per module** (`ArchModules`: windows, French windows with balconies,
+  doors, shopfronts, awnings, chimneys, dormers, merlons...), each module bringing its own reveal;
+  instance data carry the paint, the window-frame colour and the host wall's plaster;
+- **one StaticBody3D** with a box / convex shape per building part (walkable flat roofs, portico
+  galleries and gate passages left open).
+
+The plan of a building (`ArchStyles.plan`) is a pure function of the plot and its seed, so the far
+silhouette (`BuildingKit.build_lod`) always matches the detailed building. `tests/building_showcase.gd`
+builds every style x kind and renders them.
 
 ## Persistence
 
