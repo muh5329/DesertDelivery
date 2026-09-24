@@ -13,6 +13,8 @@ var outer: OuterWorld
 var runs: Array = []                  # [{id, pts: PackedVector3Array, width: PackedFloat32Array}]
 var total_km := 0.0
 var material: ShaderMaterial
+var channel: Dictionary = {}          # 4 m cells under the water (flora keeps out of them)
+const CELL := 4.0
 
 
 func setup(p_outer: OuterWorld) -> void:
@@ -27,12 +29,35 @@ func setup(p_outer: OuterWorld) -> void:
 			pts.append(Vector3(q[0], q[1], q[2])); wd.append(float(q[3]))
 		if pts.size() < 3: continue
 		runs.append({"id": r.id, "pts": pts, "width": wd})
+		_stamp(pts, wd)
 		for k in range(1, pts.size()): total_km += pts[k].distance_to(pts[k - 1]) / 1000.0
 		var k0 := 0
 		while k0 < pts.size() - 1:
 			var k1 := mini(k0 + PIECE, pts.size() - 1)
 			_piece(r.id, pts, wd, k0, k1)
 			k0 = k1
+
+
+## Is (x, z) under a river's water (to the nearest 4 m cell)? Cheap: the flora asks per instance.
+func in_channel(x: float, z: float) -> bool:
+	return channel.has(Vector2i(floori(x / CELL), floori(z / CELL)))
+
+
+func _stamp(pts: PackedVector3Array, wd: PackedFloat32Array) -> void:
+	# cross-sections every ~3 m down the run, a point every 2 m across (70k lookups for all the rivers)
+	for k in range(pts.size() - 1):
+		var a := Vector2(pts[k].x, pts[k].z); var b := Vector2(pts[k + 1].x, pts[k + 1].z)
+		var ab := b - a
+		if ab.length() < 0.01: continue
+		var side := Vector2(-ab.y, ab.x).normalized()
+		var half := wd[k] * 0.5 + 2.0          # the water's edge and a little of the bank
+		var steps := maxi(1, ceili(ab.length() / 3.0))
+		var m := ceili(half / 2.0)
+		for s in range(steps):
+			var c := a + ab * (float(s) / steps)
+			for o in range(-m, m + 1):
+				var q := c + side * clampf(o * 2.0, -half, half)
+				channel[Vector2i(floori(q.x / CELL), floori(q.y / CELL))] = true
 
 
 ## Is (x, z) in a river channel? Returns the water level there, or NAN (swimming, splashes).

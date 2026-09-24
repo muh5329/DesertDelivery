@@ -385,6 +385,7 @@ func _define_landmark(lm: Dictionary) -> void:
 		var lid := StringName(String(lm.id).replace(".", "_"))
 		db.add_location(lid, pos, Vector3(0, 0, 1), _landmark_name(lm))
 		names[lm.id] = _landmark_name(lm)
+	if lm.get("plot", false): return           # built by its plot (Puerto Alto's lighthouse on the mole)
 	db.add(pos.x, pos.z, func(): _build_landmark(kit.sink, kind, pos, yaw), reach)
 	recipe_count += 1
 

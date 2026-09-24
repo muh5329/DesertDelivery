@@ -48,10 +48,11 @@ func setup(p_terrain: Terrain, database: WorldDatabase, kit: WorldKit, seed_valu
 	build_ms["roads"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
 	towns = OuterTowns.new(); add_child(towns); towns.setup(self, database, kit)
 	build_ms["towns"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
-	flora = OuterFlora.new(); add_child(flora); flora.setup(self, seed_value)
-	build_ms["flora"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
+	# rivers before the flora: the scatter keeps its trees and grass out of the channels
 	rivers = OuterRivers.new(); add_child(rivers); rivers.setup(self)
-	build_ms["rivers"] = Time.get_ticks_msec() - t0
+	build_ms["rivers"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
+	flora = OuterFlora.new(); add_child(flora); flora.setup(self, seed_value)
+	build_ms["flora"] = Time.get_ticks_msec() - t0
 	_build_lake()
 	_hook_sea()
 	print("[outer] loaded in %s ms" % [build_ms])

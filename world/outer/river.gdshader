@@ -10,7 +10,7 @@ uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;
 uniform vec3 shallow : source_color = vec3(0.16, 0.22, 0.15);
-uniform vec3 deep : source_color = vec3(0.03, 0.10, 0.10);
+uniform vec3 deep : source_color = vec3(0.05, 0.13, 0.12);
 uniform vec3 sky : source_color = vec3(0.42, 0.56, 0.68);
 uniform vec3 foam_col : source_color = vec3(0.92, 0.93, 0.90);
 uniform float speed = 0.9;
@@ -46,7 +46,7 @@ void fragment() {
 	float e = 0.02;
 	float ax = texture(noise_tex, f1 + vec2(e, 0.0)).r - a; float ay = texture(noise_tex, f1 + vec2(0.0, e)).r - a;
 	float bx = texture(noise_tex, f2 + vec2(e, 0.0)).r - b; float by = texture(noise_tex, f2 + vec2(0.0, e)).r - b;
-	float amp = (0.9 + drop * 2.5) * (1.0 - smoothstep(80.0, 600.0, dist) * 0.8);
+	float amp = (0.9 + drop * 1.2) * (1.0 - smoothstep(80.0, 600.0, dist) * 0.8);
 	vec3 n = normalize(vec3((ax + bx) * amp * 6.0, 1.0, (ay + by) * amp * 6.0));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	// water thickness over the bed along the view ray
@@ -58,11 +58,14 @@ void fragment() {
 	vec3 col = mix(mix(bed, shallow, 0.45), deep, t);
 	// banks: the water thins to a foam line where it meets the ground; rapids go white
 	float edge = 1.0 - smoothstep(0.0, 0.35, thick);
-	float froth = smoothstep(0.45, 0.8, a * 0.6 + b * 0.5) * smoothstep(0.15, 0.6, drop);
+	// the rivers run steep (4-7 % is common here): white water only in patches where both noise
+	// bands peak and only on the steepest reaches; the mip-averaged noise far off stays below the
+	// threshold, so a distant river is water, not a grey sheet of froth
+	float froth = smoothstep(0.66, 0.82, a * 0.6 + b * 0.5) * smoothstep(0.55, 1.0, drop);
 	float foam = clamp(edge * 0.3 * smoothstep(0.45, 0.7, b) + froth * 0.8, 0.0, 1.0) * (1.0 - smoothstep(300.0, 900.0, dist));
 	float ndv = clamp(dot(NORMAL, normalize(-VERTEX)), 0.0, 1.0);
 	float fres = 0.03 + 0.97 * pow(1.0 - ndv, 5.0);
-	col = mix(col, sky, fres * 0.25);
+	col = mix(col, sky, fres * 0.35);
 	col = mix(col, foam_col, foam);
 	ALBEDO = col;
 	// no screen-space reflections on a transparent surface: the engine's specular mirrors only the

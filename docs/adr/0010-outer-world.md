@@ -61,6 +61,8 @@ itself (a bigger world), or finer road beds than 12.5 m can carry.
   run is split where an embankment or a town pad buries it), wadis and the Rambla (dry beds), the
   erg (a basin raised into transverse dunes) and the oases. Roads treat river cells as water to
   cross and bridge them (deck 3.4 m over the level); the road carve's blend is undone in the channel.
+  At runtime `OuterRivers` is built before the flora and stamps a 4 m cell mask of the channels
+  (`in_channel`) so no tree or grass card stands in the water.
 - Profiles are biased to cuts (`CUT_BIAS`), and fills up to 14-15 m are embankments, so land
   viaducts only remain where a valley really needs one; mountain roads into Valdoro and the dam
   road have their own grade limits (`ROAD_GMAX`). The north spoke joins the ring below Valdoro, the

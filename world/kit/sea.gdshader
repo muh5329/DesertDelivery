@@ -326,6 +326,7 @@ void fragment() {
 	caps *= 1.0 - smoothstep(0.1, 0.25, prox);                          // r3: open water only, never in the 3-12 m band
 	// in patches (a 25 m mask at ~30 % cover), not an even sprinkle: the reference shows a few streaks per 100 m
 	caps *= smoothstep(0.6, 0.74, texture(foam_noise, wpos.xz / 25.0 + vec2(TIME * 0.004, 0.0)).r);
+	caps *= 1.0 - 0.7 * lines_w;                                         // the current drew the caps out into dashes
 	float foam = clamp(ring + streak + caps, 0.0, 1.0) * foam_opacity * (1.0 - far_w);
 	// the current's lines: foam and slicks drawn out along the flow (estuary, lagoon)
 	if (lines_w > 0.01) {

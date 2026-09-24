@@ -263,6 +263,7 @@ func _rng_for(k: Vector2i, salt: int) -> RandomNumberGenerator:
 func _site(x: float, z: float, max_slope: float) -> float:
 	if maxf(absf(x), absf(z)) < 1200.0: return NAN
 	if ground.flatten_at(x, z) > 0.2: return NAN
+	if outer.rivers != null and outer.rivers.in_channel(x, z): return NAN
 	var h := ground.data_height(x, z)
 	if h < 1.6: return NAN
 	var e := 3.0

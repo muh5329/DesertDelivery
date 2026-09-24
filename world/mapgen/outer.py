@@ -1134,6 +1134,7 @@ def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, 
             y = float(surface_at(h, flat, micro, [p[0]], [p[1]])[0])
             e = {"id": lm["id"], "kind": lm["kind"], "pos": [r2(p[0]), r2(y), r2(p[1])], "yaw_deg": r2(lm.get("yaw_deg", 0.0))}
             if "radius" in lm: e["radius"] = lm["radius"]
+            if lm.get("plot"): e["plot"] = True        # the building is a plot; the landmark only names it
             landmarks.append(e)
     for q in pois:
         if "pos3" in q:

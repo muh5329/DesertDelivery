@@ -226,8 +226,10 @@ def layout_puerto(town, ctx):
     mo = town.add_street("quay", 10.0, [cp + cn * 4, mole1 + cn * 13]); set_rule(town, mo, ("flat", 2.4))
     town.quay_edges.append([(cp + ct * 6.5).tolist(), (mole1 + ct * 6.5).tolist()])
     town.quay_edges.append([(mole1 - ct * 6.5).tolist(), (cp - ct * 6.5).tolist()])
+    # the tower is a plot (the kit's lighthouse, with a far silhouette seen across the bay); the
+    # landmark only names the place (`plot`: no second, landmark-built tower inside the first)
     town.try_plot("lighthouse", mole1 + cn * 2, -cn, 7, 7, 7, [], None, check_bounds=False, check_streets=False)
-    town.landmarks.append({"id": "puerto_alto.lighthouse", "kind": "lighthouse", "pos": mole1 + cn * 2, "yaw_deg": 0.0})
+    town.landmarks.append({"id": "puerto_alto.lighthouse", "kind": "lighthouse", "pos": mole1 + cn * 2, "yaw_deg": 0.0, "plot": True})
     for k in range(6):
         p, t = along(quay, 60 + k * 60)
         n = ctx.inland_normal(p, t)
