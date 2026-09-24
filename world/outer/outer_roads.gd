@@ -63,6 +63,7 @@ func setup(p_outer: OuterWorld, p_terrain: Terrain) -> void:
 				var br := PackedByteArray(); br.resize(pts.size())
 				roads.append({"id": "%s.%s" % [t.id, st.kind], "cls": st.kind, "kind": KIND.get(st.kind, 4), "width": float(st.width),
 					"pts": pts, "bridge": br, "bridges": [], "nav": -1, "from": "", "to": "", "style": STYLE_ID.get(t.style, 0)})
+	_core_seams()
 	_junction_trims()
 	terrain._road_grid.clear()
 	_bucket()
@@ -87,6 +88,64 @@ func _register(pts: PackedVector3Array, spans: Array) -> int:
 		for k in range(a, b + 1): deck = maxf(deck, pts[k].y)
 		terrain.bridges.append(Bridge.new(idx, pts, a, b, deck))
 	return idx
+
+
+## C-4: where a spoke leaves the core, the core exit's own bridge (a 5 m stone arcade, Island's
+## `_gen_aqueducts`, which skips the exits while the outer world is up) is replaced by the highway's
+## concrete deck: from the core exit's bridgehead on land to the seam at the core edge, its width
+## growing from the core road's to the highway's, same parapets, collision and asphalt, so the two
+## decks meet edge to edge at the same height. Drawn and built like any other bridge (render and
+## collision only: the core exit stays the navigation road).
+const SEAM_START_WIDTH := 6.5
+var seams: Array = []                 # [{id, road (core road index), from, pts}]
+
+
+func _core_seams() -> void:
+	for ri in range(roads.size()):
+		var e: Dictionary = roads[ri]
+		if not String(e.get("from", "")).begins_with("core_"): continue
+		var p0: Vector3 = (e.pts as PackedVector3Array)[0]
+		# the core exit road that ends on the spoke's first sample
+		var core := -1
+		for ci in range(nav_first):
+			var cand: PackedVector3Array = terrain.road_samples[ci]
+			if cand.size() > 1 and Vector2(cand[cand.size() - 1].x - p0.x, cand[cand.size() - 1].z - p0.z).length() < 1.5:
+				core = ci; break
+		if core < 0: continue
+		var cs: PackedVector3Array = terrain.road_samples[core]
+		var start := cs.size() - 1
+		for b in terrain.bridges:
+			if b.road != core or b.to < cs.size() - 3: continue
+			start = mini(start, (b.deck_span(terrain) as Vector2i).x)
+		if start >= cs.size() - 2: continue
+		# samples every ~4 m from the bridgehead to the seam, the last exactly on the spoke's start
+		var pts := PackedVector3Array(); var acc := 4.0
+		for k in range(start, cs.size() - 1):
+			if k > start: acc += cs[k].distance_to(cs[k - 1])
+			if acc >= 4.0: pts.append(cs[k]); acc = 0.0
+		if pts.size() > 1 and pts[pts.size() - 1].distance_to(p0) < 2.0: pts.remove_at(pts.size() - 1)
+		pts.append(p0)
+		if pts.size() < 3: continue
+		# on the bank the deck lies on the core's ground (no lip where the dirt road meets it)
+		for k in range(pts.size() - 1):
+			var g := terrain.height_at(pts[k].x, pts[k].z)
+			if absf(pts[k].y - g) > 0.8: break
+			pts[k].y = g if k == 0 else maxf(pts[k].y, g)
+		var L := 0.0
+		for k in range(1, pts.size()): L += pts[k].distance_to(pts[k - 1])
+		var full: float = e.width
+		var widths := PackedFloat32Array(); var s := 0.0
+		var ramp := clampf(L - 40.0, L * 0.35, L * 0.8)
+		for k in range(pts.size()):
+			if k > 0: s += pts[k].distance_to(pts[k - 1])
+			widths.append(lerpf(SEAM_START_WIDTH, full, smoothstep(0.0, ramp, s)))
+		var br := PackedByteArray(); br.resize(pts.size()); br.fill(1)
+		# the deck's collision runs 0.6 m on over the spoke's own deck: no seam between two shapes
+		var sp: PackedVector3Array = e.pts
+		var tail := p0 + (sp[1] - p0).normalized() * 0.6
+		roads.append({"id": "seam.%s" % e.id, "cls": "highway", "kind": 0, "width": full, "pts": pts, "bridge": br,
+			"bridges": [[0, pts.size() - 1]], "nav": -1, "from": "", "to": "", "widths": widths, "seam": true, "tail": tail})
+		seams.append({"id": "seam.%s" % e.id, "road": core, "from": start, "pts": pts})
 
 
 ## A road that joins another starts (or ends) on the parent's centre line; its ribbon is trimmed
@@ -310,11 +369,13 @@ func _ribbon(e: Dictionary, k0: int, k1: int, surfaces: Dictionary) -> void:
 	if e.kind == 5:
 		for q in range(pts.size() - 1): plaza_len += pts[q].distance_to(pts[q + 1])
 	var along := float(k0) * 4.0
+	var widths: PackedFloat32Array = e.get("widths", PackedFloat32Array())
 	for k in range(k0, k1 + 1):
 		var p := pts[k]
 		var a := pts[maxi(k - 1, 0)]; var b := pts[mini(k + 1, pts.size() - 1)]
 		var tan := Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
 		var right := Vector3(-tan.z, 0.0, tan.x)
+		if not widths.is_empty(): right *= widths[k] / float(e.width)      # a tapering deck (core seams)
 		var on_bridge: bool = e.bridge[k] == 1
 		var nrm := Vector3.UP if on_bridge else outer.normal_at(p.x, p.z)
 		for c in range(nc):
@@ -513,10 +574,15 @@ func _build_bridge(e: Dictionary, a: int, b: int) -> void:
 		var p := pts[k]
 		var pa := pts[maxi(k - 1, 0)]; var pb := pts[mini(k + 1, pts.size() - 1)]
 		var tan := Vector3(pb.x - pa.x, 0.0, pb.z - pa.z).normalized()
-		C.append(p); Rt.append(Vector3(-tan.z, 0.0, tan.x))
+		var wsc := 1.0
+		if e.has("widths"): wsc = (float(e.widths[k]) + 1.6) / (float(e.width) + 1.6)      # a tapering deck
+		C.append(p); Rt.append(Vector3(-tan.z, 0.0, tan.x) * wsc)
 		var g := outer.height_at(p.x, p.z)
 		foot.append(minf(g, 0.0) - 2.5 if g < 0.5 else g - 0.8)
 		if k > a: length += p.distance_to(pts[k - 1])
+	if e.has("tail"):
+		# (a core seam: its deck runs on a little over the spoke's, see _core_seams)
+		C.append(e.tail); Rt.append(Rt[Rt.size() - 1]); foot.append(foot[foot.size() - 1])
 	var m := ArchMesh.new()
 	m.uv_off = Vector2(absf(C[0].x) * 0.37, absf(C[0].z) * 0.21)
 	var faces := PackedVector3Array()

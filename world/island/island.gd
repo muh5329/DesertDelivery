@@ -47,6 +47,8 @@ const K := Terrain.CORE_SIZE / 720.0   # scale from the painting's 720 m world t
 var _ppm := 1.34
 var _islets: Array = []
 var _cover_seed := 0
+## road indices of the four core exits (the outer highways start on their last samples)
+var exit_roads := Vector2i(-1, -1)
 
 
 func hub_table() -> Dictionary:
@@ -376,6 +378,7 @@ func _define_roads() -> void:
 	# from the core network to the core edge (+-622 m), where the outer world's highways begin at
 	# their last samples (world/mapgen/core_exits.json, world/mapgen/outer.py). Their over-water
 	# parts become bridges like any other core road.
+	exit_roads = Vector2i(terrain.roads.size(), terrain.roads.size() + 4)
 	# north: off the monastery road below the refugio junction, round the west wall of the monastery
 	terrain.add_road([Vector2(-321.59, -430.91), Vector2(-338, -448), Vector2(-343, -480), Vector2(-340, -530), Vector2(-332, -580), Vector2(-327, -622)])
 	# east: from the lighthouse road's end, north of the lighthouse, out over the eastern lagoon
@@ -1162,7 +1165,20 @@ func _gen_aqueducts() -> void:
 		var deck: float = b.deck
 		var reach := 8.0   # the arcade runs the whole deck: its extent is the farthest sample plus the arches' footing
 		for q in pts: reach = maxf(reach, Vector2(q.x - mid.x, q.z - mid.z).length() + 8.0)
-		_at(mid.x, mid.z, func(): _arcade(sink, pts, deck, stone), reach)
+		# the core exits' bridges belong to the outer highways when the outer world is up: their
+		# concrete decks run on over the lagoon to the exit's bridgehead (OuterRoads._core_seams, C-4)
+		var exit: bool = b.road >= exit_roads.x and b.road < exit_roads.y
+		_at(mid.x, mid.z, _aqueduct.bind(pts, deck, stone, exit), reach)
+
+
+func _aqueduct(pts: PackedVector3Array, deck: float, stone: Material, exit: bool) -> void:
+	if exit and _outer_up(): return
+	_arcade(sink, pts, deck, stone)
+
+
+## Is the outer world loaded (its highways take over the core exits' bridges)?
+func _outer_up() -> bool:
+	return terrain.expanse != null and bool(terrain.expanse.get("ok"))
 
 
 # ---------------------------------------------------------------- hubs
