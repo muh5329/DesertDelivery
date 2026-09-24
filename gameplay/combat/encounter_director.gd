@@ -55,6 +55,8 @@ var ambush_note := ""                # why the last ambush attempt did not happe
 
 var _claims: Dictionary = {}        # Enemy -> Vector3
 var _spawn_queue: Array[StringName] = []   # streamed camps still bringing their men in
+## The dearest streamed camp build (props + crate) and man, in ms (tests, the debug overlay).
+var spawn_stats := {"props_ms_max": 0.0, "man_ms_max": 0.0}
 var _check_t := 0.0
 var _ambush_t := AMBUSH_EVERY
 var _last_ambush := -9999.0
@@ -246,7 +248,9 @@ func _stream() -> void:
 		var r: Dictionary = camps[id]
 		var d := Vector2(p.x - r.pos.x, p.z - r.pos.z).length()
 		if r.node == null and d < SPAWN_RADIUS:
+			var t0 := Time.get_ticks_usec()
 			spawn_camp(id, true)
+			spawn_stats.props_ms_max = maxf(float(spawn_stats.props_ms_max), (Time.get_ticks_usec() - t0) / 1000.0)
 		elif r.node != null and d > DESPAWN_RADIUS:
 			despawn_camp(id)
 			if r.transient: camps.erase(id)
@@ -298,7 +302,9 @@ func _spawn_pending() -> void:
 			_spawn_queue.pop_front()
 			continue
 		var next: Array = (r.pending as Array).pop_front()
+		var t0 := Time.get_ticks_usec()
 		_spawn_enemy(r, int(next[0]), next[1])
+		spawn_stats.man_ms_max = maxf(float(spawn_stats.man_ms_max), (Time.get_ticks_usec() - t0) / 1000.0)
 		if (r.pending as Array).is_empty(): _spawn_queue.pop_front()
 		return
 

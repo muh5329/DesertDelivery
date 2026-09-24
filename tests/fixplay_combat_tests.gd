@@ -94,7 +94,7 @@ func _outer_camp() -> void:
 	await _secs(2.0)
 	_measure = false
 	var men: Array = dir.enemies_of(id)
-	print("  C-5: camp streamed in: %d men, worst frame %.1f ms" % [men.size(), _frame_worst])
+	print("  C-5: camp streamed in: %d men, worst frame %.1f ms (props %.1f ms, dearest man %.1f ms)" % [men.size(), _frame_worst, dir.spawn_stats.props_ms_max, dir.spawn_stats.man_ms_max])
 	_check(dir.is_spawned(id) and men.size() >= 4, "C-5: riding up to the camp streams it in with its men (%d)" % men.size())
 	_check(_frame_worst < 60.0, "C-5: no frame stall while the camp streams in (worst %.1f ms; was ~2600-3000 ms)" % _frame_worst)
 	var tiers := men.map(func(e): return game.entities.tier_of(e.enemy_id))

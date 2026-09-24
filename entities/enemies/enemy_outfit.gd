@@ -93,20 +93,26 @@ static func _bandit_gear(m: RiderModel, rng: RandomNumberGenerator) -> void:
 	var crown := _node(m.head, "Outfit")
 	var y0 := 0.058
 	# the wide brim, a slight roll, and the tall pinched crown
-	var hat := MeshKit.new()
-	hat.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.2, 0.2, 2.0, 32), MeshKit.ring(-0.012, 0.0, 0.0, 0.21, 0.21, 2.0, 32)])
-	var hm := MeshInstance3D.new(); hm.mesh = hat.commit(null, felt)
+	var hm := MeshInstance3D.new(); hm.mesh = _kit_get("loft8704854846917245739")
+	if hm.mesh == null:
+		var k := MeshKit.new(); k.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.2, 0.2, 2.0, 32), MeshKit.ring(-0.012, 0.0, 0.0, 0.21, 0.21, 2.0, 32)])
+		hm.mesh = _kit_put("loft8704854846917245739", k)
+	hm.material_override = felt
 	hm.rotation_degrees = Vector3(-90 + rng.randf_range(-5, 3), 0, rng.randf_range(-4, 4)); hm.position = Vector3(0, y0, 0.004)
 	crown.add_child(hm)
-	var cr := MeshKit.new()
-	cr.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.098, 0.108, 2.2, 24), MeshKit.ring(-0.07, 0.0, 0.0, 0.092, 0.1, 2.4, 24),
-		MeshKit.ring(-0.115, 0.0, 0.0, 0.074, 0.07, 2.6, 24), MeshKit.ring(-0.13, 0.0, 0.0, 0.04, 0.03, 2.0, 24)])
-	var cm := MeshInstance3D.new(); cm.mesh = cr.commit(null, felt)
+	var cm := MeshInstance3D.new(); cm.mesh = _kit_get("loft3974486431446630765")
+	if cm.mesh == null:
+		var k := MeshKit.new(); k.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.098, 0.108, 2.2, 24), MeshKit.ring(-0.07, 0.0, 0.0, 0.092, 0.1, 2.4, 24),
+			MeshKit.ring(-0.115, 0.0, 0.0, 0.074, 0.07, 2.6, 24), MeshKit.ring(-0.13, 0.0, 0.0, 0.04, 0.03, 2.0, 24)])
+		cm.mesh = _kit_put("loft3974486431446630765", k)
+	cm.material_override = felt
 	cm.rotation_degrees = Vector3(90, 0, 0); cm.position = Vector3(0, y0 - 0.004, 0.004)
 	crown.add_child(cm)
-	var hb := MeshKit.new()
-	hb.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.101, 0.111, 2.2, 24), MeshKit.ring(-0.02, 0.0, 0.0, 0.1, 0.11, 2.2, 24)], false, false)
-	var hbm := MeshInstance3D.new(); hbm.mesh = hb.commit(null, band)
+	var hbm := MeshInstance3D.new(); hbm.mesh = _kit_get("loft8003565597160422863")
+	if hbm.mesh == null:
+		var k := MeshKit.new(); k.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.101, 0.111, 2.2, 24), MeshKit.ring(-0.02, 0.0, 0.0, 0.1, 0.11, 2.2, 24)], false, false)
+		hbm.mesh = _kit_put("loft8003565597160422863", k)
+	hbm.material_override = band
 	hbm.rotation_degrees = Vector3(90, 0, 0); hbm.position = Vector3(0, y0, 0.004)
 	crown.add_child(hbm)
 	# the bandana pulled up over nose and mouth, knotted behind, a point hanging over the chin
@@ -123,14 +129,16 @@ static func _bandit_gear(m: RiderModel, rng: RandomNumberGenerator) -> void:
 	crown.add_child(tm)
 	# a bandolier across the chest, brass cartridge tips
 	var outfit := _node(m.torso, "Outfit")
-	var strap := MeshKit.new()
 	var pts := PackedVector3Array()
 	for i in range(9):
 		var t := float(i) / 8.0
 		var p := Vector3(0.12, 0.5, 0.0).lerp(Vector3(-0.15, 0.05, 0.0), t)
 		pts.append(p + Vector3(0, 0, -0.128 - sin(t * PI) * 0.012))
-	strap.tube(pts, 0.004, 8, Vector2(1.0, 5.0), true, true, Vector3(0, 0, -1))
-	var sm := MeshInstance3D.new(); sm.mesh = strap.commit(null, leather); outfit.add_child(sm)
+	var sm := MeshInstance3D.new(); sm.mesh = _kit_get("strap1_%d" % pts.size())
+	if sm.mesh == null:
+		var k := MeshKit.new(); k.tube(pts, 0.004, 8, Vector2(1.0, 5.0), true, true, Vector3(0, 0, -1))
+		sm.mesh = _kit_put("strap1_%d" % pts.size(), k)
+	sm.material_override = leather; outfit.add_child(sm)
 	for i in range(1, 8):
 		outfit.add_child(Mats.cylinder(0.006, 0.022, brass, pts[i] + Vector3(0, 0.0, -0.006), Vector3(0, 0, -58), 6))
 	# a gun belt with a holster on the right hip
@@ -159,14 +167,30 @@ static func _pirate_gear(m: RiderModel, rng: RandomNumberGenerator) -> void:
 		hips.add_child(Mats.box(Vector3(0.055, 0.22 - i * 0.05, 0.014), sash, Vector3(-0.155 - i * 0.015, 0.06 - i * 0.02, -0.05 + i * 0.03), Vector3(0, -30, 8 + i * 10)))
 	# a bag strap over one shoulder and a pouch on the right hip
 	var outfit := _node(m.torso, "Outfit")
-	var strap := MeshKit.new()
 	var pts := PackedVector3Array()
 	for i in range(7):
 		var t := float(i) / 6.0
 		pts.append(Vector3(-0.12, 0.5, 0.0).lerp(Vector3(0.15, 0.06, 0.0), t) + Vector3(0, 0, -0.122 - sin(t * PI) * 0.01))
-	strap.tube(pts, 0.003, 8, Vector2(1.0, 4.0), true, true, Vector3(0, 0, -1))
-	var sm := MeshInstance3D.new(); sm.mesh = strap.commit(null, Mats.solid(Color("5a4230"), 0.85)); outfit.add_child(sm)
+	var sm := MeshInstance3D.new(); sm.mesh = _kit_get("strap2_%d" % pts.size())
+	if sm.mesh == null:
+		var k := MeshKit.new(); k.tube(pts, 0.003, 8, Vector2(1.0, 4.0), true, true, Vector3(0, 0, -1))
+		sm.mesh = _kit_put("strap2_%d" % pts.size(), k)
+	sm.material_override = Mats.solid(Color("5a4230"), 0.85); outfit.add_child(sm)
 	hips.add_child(Mats.box(Vector3(0.05, 0.14, 0.08), Mats.solid(Color("4a3322"), 0.85), Vector3(0.18, 0.04, 0.0), Vector3(0, 0, -6)))
+
+
+## Outfit geometry is the same for every man of a kind (only the colours differ): built once,
+## shared, each piece coloured by its MeshInstance's material. Keeps a camp's man a few ms.
+static var _kit_cache: Dictionary = {}
+
+
+static func _kit_get(key: String) -> Mesh:
+	return _kit_cache.get(key)
+
+
+static func _kit_put(key: String, k: MeshKit) -> Mesh:
+	_kit_cache[key] = k.commit(null, null)
+	return _kit_cache[key]
 
 
 static func _pick(rng: RandomNumberGenerator, a: Array) -> Color:
@@ -187,20 +211,26 @@ static func _bandit(m: RiderModel, rng: RandomNumberGenerator) -> void:
 	_recolor(m, ["Torso_Geometry"], "Neckerchief", (bandana as StandardMaterial3D).albedo_color)
 	var crown := _node(m.head, "Outfit")
 	# hat: a flat brim with a slight roll and a tall pinched crown
-	var hat := MeshKit.new()
-	hat.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.215, 0.215, 2.0, 32), MeshKit.ring(-0.012, 0.0, 0.0, 0.225, 0.225, 2.0, 32)])
-	var hm := MeshInstance3D.new(); hm.mesh = hat.commit(null, felt)
+	var hm := MeshInstance3D.new(); hm.mesh = _kit_get("loft6675554949610858749")
+	if hm.mesh == null:
+		var k := MeshKit.new(); k.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.215, 0.215, 2.0, 32), MeshKit.ring(-0.012, 0.0, 0.0, 0.225, 0.225, 2.0, 32)])
+		hm.mesh = _kit_put("loft6675554949610858749", k)
+	hm.material_override = felt
 	hm.rotation_degrees = Vector3(-90 + rng.randf_range(-6, 4), 0, rng.randf_range(-4, 4)); hm.position = Vector3(0, 0.16, 0.0)
 	crown.add_child(hm)
-	var cr := MeshKit.new()
-	cr.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.118, 0.105, 2.2, 24), MeshKit.ring(-0.07, 0.0, 0.0, 0.110, 0.098, 2.4, 24),
-		MeshKit.ring(-0.12, 0.0, 0.0, 0.090, 0.070, 2.6, 24), MeshKit.ring(-0.135, 0.0, 0.0, 0.050, 0.030, 2.0, 24)])
-	var cm := MeshInstance3D.new(); cm.mesh = cr.commit(null, felt)
+	var cm := MeshInstance3D.new(); cm.mesh = _kit_get("loft4121626944553728172")
+	if cm.mesh == null:
+		var k := MeshKit.new(); k.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.118, 0.105, 2.2, 24), MeshKit.ring(-0.07, 0.0, 0.0, 0.110, 0.098, 2.4, 24),
+			MeshKit.ring(-0.12, 0.0, 0.0, 0.090, 0.070, 2.6, 24), MeshKit.ring(-0.135, 0.0, 0.0, 0.050, 0.030, 2.0, 24)])
+		cm.mesh = _kit_put("loft4121626944553728172", k)
+	cm.material_override = felt
 	cm.rotation_degrees = Vector3(90, 0, 0); cm.position = Vector3(0, 0.155, 0.0)
 	crown.add_child(cm)
-	var hb := MeshKit.new()
-	hb.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.121, 0.108, 2.2, 24), MeshKit.ring(-0.022, 0.0, 0.0, 0.119, 0.106, 2.2, 24)], false, false)
-	var hbm := MeshInstance3D.new(); hbm.mesh = hb.commit(null, band)
+	var hbm := MeshInstance3D.new(); hbm.mesh = _kit_get("loft2327801525867571127")
+	if hbm.mesh == null:
+		var k := MeshKit.new(); k.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.121, 0.108, 2.2, 24), MeshKit.ring(-0.022, 0.0, 0.0, 0.119, 0.106, 2.2, 24)], false, false)
+		hbm.mesh = _kit_put("loft2327801525867571127", k)
+	hbm.material_override = band
 	hbm.rotation_degrees = Vector3(90, 0, 0); hbm.position = Vector3(0, 0.16, 0.0)
 	crown.add_child(hbm)
 	# bandana over nose and mouth, knotted behind
@@ -221,14 +251,16 @@ static func _bandit(m: RiderModel, rng: RandomNumberGenerator) -> void:
 		hips.add_child(Mats.box(Vector3(0.012, 0.64, 0.10), cloth, Vector3(side * 0.16, -0.24, -0.15), Vector3(0, side * -20.0, side * 4.0)))
 	# bandolier across the chest with brass cartridge tips
 	var outfit := _node(m.torso, "Outfit")
-	var strap := MeshKit.new()
 	var pts := PackedVector3Array()
 	for i in range(9):
 		var t := float(i) / 8.0
 		var p := Vector3(0.14, 0.64, 0.0).lerp(Vector3(-0.16, 0.12, 0.0), t)
 		pts.append(p + Vector3(0, 0, -0.112 - sin(t * PI) * 0.035))
-	strap.tube(pts, 0.004, 8, Vector2(1.0, 5.0), true, true, Vector3(0, 0, -1))
-	var sm := MeshInstance3D.new(); sm.mesh = strap.commit(null, leather); outfit.add_child(sm)
+	var sm := MeshInstance3D.new(); sm.mesh = _kit_get("strap3_%d" % pts.size())
+	if sm.mesh == null:
+		var k := MeshKit.new(); k.tube(pts, 0.004, 8, Vector2(1.0, 5.0), true, true, Vector3(0, 0, -1))
+		sm.mesh = _kit_put("strap3_%d" % pts.size(), k)
+	sm.material_override = leather; outfit.add_child(sm)
 	for i in range(1, 8):
 		outfit.add_child(Mats.cylinder(0.006, 0.022, brass, pts[i] + Vector3(0, 0.0, -0.006), Vector3(0, 0, -58), 6))
 	# a gun belt with a holster on the right hip
@@ -260,13 +292,15 @@ static func _pirate(m: RiderModel, rng: RandomNumberGenerator) -> void:
 		hips.add_child(Mats.box(Vector3(0.06, 0.22 - i * 0.05, 0.014), sash, Vector3(-0.17 - i * 0.02, -0.07 - i * 0.02, -0.07 + i * 0.03), Vector3(0, -30, 8 + i * 10)))
 	# a powder-horn style bag strap over one shoulder (a satchel for the loot)
 	var outfit := _node(m.torso, "Outfit")
-	var strap := MeshKit.new()
 	var pts := PackedVector3Array()
 	for i in range(7):
 		var t := float(i) / 6.0
 		pts.append(Vector3(-0.13, 0.63, 0.0).lerp(Vector3(0.17, 0.10, 0.0), t) + Vector3(0, 0, -0.108 - sin(t * PI) * 0.03))
-	strap.tube(pts, 0.003, 8, Vector2(1.0, 4.0), true, true, Vector3(0, 0, -1))
-	var sm := MeshInstance3D.new(); sm.mesh = strap.commit(null, Mats.solid(Color("5a4230"), 0.85)); outfit.add_child(sm)
+	var sm := MeshInstance3D.new(); sm.mesh = _kit_get("strap4_%d" % pts.size())
+	if sm.mesh == null:
+		var k := MeshKit.new(); k.tube(pts, 0.003, 8, Vector2(1.0, 4.0), true, true, Vector3(0, 0, -1))
+		sm.mesh = _kit_put("strap4_%d" % pts.size(), k)
+	sm.material_override = Mats.solid(Color("5a4230"), 0.85); outfit.add_child(sm)
 	hips.add_child(Mats.box(Vector3(0.05, 0.14, 0.08), Mats.solid(Color("4a3322"), 0.85), Vector3(0.19, -0.02, 0.0), Vector3(0, 0, -6)))
 
 
@@ -282,6 +316,13 @@ static func _node(parent: Node3D, n: String) -> Node3D:
 ## A band of cloth round a pivot: radius, centre height, depth offset, height, from/to angle
 ## (degrees, 0 = straight ahead), flare (radius growth toward the bottom).
 static func _band(radius: float, y: float, z: float, h: float, a0: float, a1: float, mat: Material, flare: float, bulge: float = 0.0) -> MeshInstance3D:
+	var key := "band_%s" % str([radius, y, z, h, a0, a1, flare, bulge])
+	if _kit_cache.has(key):
+		var cached := MeshInstance3D.new(); cached.mesh = _kit_cache[key]
+		var m2: StandardMaterial3D = (mat as StandardMaterial3D).duplicate()
+		m2.cull_mode = BaseMaterial3D.CULL_DISABLED
+		cached.material_override = m2
+		return cached
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var segs := 20
 	for i in range(segs):
@@ -292,6 +333,7 @@ static func _band(radius: float, y: float, z: float, h: float, a0: float, a1: fl
 		for k in [0, 1, 2, 0, 2, 3]: st.add_vertex(q[k])
 	st.generate_normals()
 	var mi := MeshInstance3D.new(); mi.mesh = st.commit()
+	_kit_cache[key] = mi.mesh
 	var mat2: StandardMaterial3D = (mat as StandardMaterial3D).duplicate()
 	mat2.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = mat2
