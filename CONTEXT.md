@@ -126,6 +126,21 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Sea lane** — a shipping route between **ports** (the core harbour, Puerto Alto, Sarmada, Isola
   Serena) through water >= 8 m deep and >= 60 m from the coast; bridges over them clear 12 m.
 - **Camp** (in the plan) — a bandit camp or pirate cove point the `EncounterDirector` reads.
+- **River** — a channel traced by drainage from the mountains to the sea, the estuary or the lagoon
+  (`world/mapgen/outer_water.py`), carved as a bed with banks; its water surface is a polyline of
+  (x, level, z, width) in `plan.json` `rivers`, drawn by `OuterRivers`. Roads cross on bridges.
+- **Wadi** — a dry river bed of the arid south (and the **Rambla**, the big valley down to the south
+  bay): sand and braided gravel, oleander and tamarisk on the banks (`feat.png` R).
+- **Erg** — the sand sea east of the mesas: a basin of transverse dunes (`feat.png` B, biome DUNES).
+- **Oasis** — irrigated plots and palm groves in the desert (`feat.png` G, `oasis` landmarks).
+- **Feature map** — `data/outer/feat.png`: wadi bed, irrigation, erg, cavity (valleys darker from
+  afar; 0.5 = none).
+- **Quay / quay wall** — a town's paved waterfront behind a `quay_edges` polyline; the water in front
+  is dredged, and `OuterProps` stands a stone quay wall where the ground meets it. A **mole** is a
+  breakwater filled out into the sea (Sarmada's and Puerto Alto's carry the lighthouses).
+- **Prop** — a piece of town dressing (`plan.json` town `props`: kind, x, y, z, yaw, variant) placed
+  by `world/mapgen/outer_props.py` and built by `OuterProps` / `ArchProps`. **Terraces** — Valdoro's
+  dry-stone terrace walls along the slope's contours.
 
 ## Colonies (ADR 0011)
 

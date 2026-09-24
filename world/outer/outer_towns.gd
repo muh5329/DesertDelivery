@@ -41,6 +41,7 @@ var plot_count := 0
 var recipe_count := 0
 var locations: Array[StringName] = []
 var names: Dictionary = {}          # id -> display name
+var props: OuterProps
 var _mat_cache: StandardMaterial3D
 var _lamp_mm_mesh: ArrayMesh
 var _kit_methods: Dictionary = {}
@@ -62,6 +63,8 @@ func setup(p_outer: OuterWorld, p_db: WorldDatabase, p_kit: WorldKit) -> void:
 	for lm: Dictionary in plan.get("landmarks", []):
 		_define_landmark(lm)
 	_define_signposts()
+	props = OuterProps.new()
+	props.setup(outer, db, kit)
 	if Events.has_signal("chunk_loaded"):
 		Events.chunk_loaded.connect(_on_chunk_loaded)
 		Events.chunk_unloaded.connect(_on_chunk_unloaded)
@@ -382,6 +385,7 @@ func _define_landmark(lm: Dictionary) -> void:
 		var lid := StringName(String(lm.id).replace(".", "_"))
 		db.add_location(lid, pos, Vector3(0, 0, 1), _landmark_name(lm))
 		names[lm.id] = _landmark_name(lm)
+	if lm.get("plot", false): return           # built by its plot (Puerto Alto's lighthouse on the mole)
 	db.add(pos.x, pos.z, func(): _build_landmark(kit.sink, kind, pos, yaw), reach)
 	recipe_count += 1
 

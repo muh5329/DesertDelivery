@@ -11,9 +11,10 @@ const P := 32                       # quads per patch side
 const LEAF := 200.0                 # level-0 node size (m)
 const LEVELS := 8                   # 200 m .. 25.6 km
 const ROOT := 25600.0
-const RANGE0 := 560.0               # level 0 is used within this distance; each level doubles
+const RANGE0 := 800.0               # level 0 is used within this distance; each level doubles (560 left coarse 200 m triangles
+                                    # sawing the far coastlines into teeth)
 const MORPH_START := 0.72
-const MAX_INSTANCES := 900
+const MAX_INSTANCES := 1600
 const LAYERS := [   # the texture array layers (outer_terrain.gdshader layer ids)
 	"meadow", "ground015", "alpine", "ground024", "ground004", "soil", "sand",
 	"rock019", "rock021", "gravel009", "snow", "clay", "rocks002"]
@@ -46,6 +47,9 @@ func setup(p_ground: OuterGround) -> void:
 	material.set_shader_parameter("aux_lin", atex)
 	material.set_shader_parameter("splat_tex", ImageTexture.create_from_image(ground.splat_image))
 	material.set_shader_parameter("tint_tex", ImageTexture.create_from_image(ground.tint_image))
+	var fimg: Image = ground.feat_image.duplicate()
+	fimg.generate_mipmaps()
+	material.set_shader_parameter("feat_tex", ImageTexture.create_from_image(fimg))
 	var rimg: Image = ground.roads_image.duplicate()
 	rimg.generate_mipmaps()
 	material.set_shader_parameter("road_tex", ImageTexture.create_from_image(rimg))
@@ -158,10 +162,16 @@ func update_selection(p: Vector3, dir: Vector3 = Vector3.FORWARD) -> void:
 	multimesh.visible_instance_count = selected
 
 
+## The LOD distance: height above the ground counts half (VERT_WEIGHT; the vertex shader's morph
+## uses the same metric). From a plane at 9 km a plain 3-D distance put the whole island on 100 m
+## triangles and their slanted crossings of the sea level sawed the cliff coasts into teeth.
+const VERT_WEIGHT := 0.5
+
+
 func _dist_to_box(p: Vector3, x0: float, z0: float, size: float, hr: Vector2) -> float:
 	var dx := maxf(maxf(x0 - p.x, 0.0), p.x - (x0 + size))
 	var dz := maxf(maxf(z0 - p.z, 0.0), p.z - (z0 + size))
-	var dy := maxf(maxf(hr.x - p.y, 0.0), p.y - hr.y)
+	var dy := maxf(maxf(hr.x - p.y, 0.0), p.y - hr.y) * VERT_WEIGHT
 	return sqrt(dx * dx + dy * dy + dz * dz)
 
 

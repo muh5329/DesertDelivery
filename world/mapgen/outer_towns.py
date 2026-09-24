@@ -242,6 +242,7 @@ class Town:
                "radius": self.radius, "sea_side": bool(self.sea_side), "streets": streets, "plots": plots,
                "plaza": self.plaza, "port": self.port,
                "quay_edges": [[[round(float(p[0]), 2), round(float(p[1]), 2)] for p in e] for e in self.quay_edges],
+               "props": getattr(self, "props", []), "terraces": getattr(self, "terraces", []),
                "walls": [[[round(float(p[0]), 2), round(float(p[1]), 2)] for p in w] for w in self.walls]}
         return out
 

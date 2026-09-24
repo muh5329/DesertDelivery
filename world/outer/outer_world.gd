@@ -15,6 +15,9 @@ const TILE := OuterGround.LAT * TILE_CELLS      # 200 m
 const TILES := 125                              # 25 km / 200 m
 const COLLISION_RADIUS := 2                     # 5 x 5 tiles round the focus
 const CORE_HALF := 624.0
+## the estuary's centre line (world/mapgen/outer_land.py ESTUARY; plan.json "estuary" when present)
+const ESTUARY := [[1350, 260], [2300, 420], [3300, 640], [4300, 520], [5300, 760], [6300, 1060],
+	[7000, 1240], [7700, 1330], [8400, 1560], [9200, 1750], [10400, 1900]]
 
 var ground := OuterGround.new()
 var terrain: Terrain
@@ -23,6 +26,7 @@ var view: OuterTerrainView
 var roads: OuterRoads
 var towns: OuterTowns
 var flora: OuterFlora
+var rivers: OuterRivers
 var loaded: Dictionary = {}                     # Vector2i -> StaticBody3D
 var pending: Array[Vector2i] = []
 var _focus_tile := Vector2i(-9999, -9999)
@@ -44,6 +48,9 @@ func setup(p_terrain: Terrain, database: WorldDatabase, kit: WorldKit, seed_valu
 	build_ms["roads"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
 	towns = OuterTowns.new(); add_child(towns); towns.setup(self, database, kit)
 	build_ms["towns"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
+	# rivers before the flora: the scatter keeps its trees and grass out of the channels
+	rivers = OuterRivers.new(); add_child(rivers); rivers.setup(self)
+	build_ms["rivers"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
 	flora = OuterFlora.new(); add_child(flora); flora.setup(self, seed_value)
 	build_ms["flora"] = Time.get_ticks_msec() - t0
 	_build_lake()
@@ -62,14 +69,21 @@ var _fog_height_base := 0.0
 var _fog_scale := -1.0
 
 
+var _sea: MeshInstance3D
+var _abyss: MeshInstance3D
+const SEA_PLANE := 240000.0
+
+
 func _process(_delta: float) -> void:
 	if _env == null: return
 	var vp := get_viewport()
 	var cam := vp.get_camera_3d() if vp else null
 	if cam == null: return
 	var y := cam.global_position.y
-	var s := lerpf(0.62, 0.16, clampf((y - 30.0) / 1500.0, 0.0, 1.0))
-	s = lerpf(s, 0.025, clampf((y - 1500.0) / 6000.0, 0.0, 1.0))
+	_follow_camera(cam)
+	# (polish: from the air the land kept ~55 % haze at 10 km; now ~35 %, the mountains read)
+	var s := lerpf(0.62, 0.11, clampf((y - 30.0) / 1500.0, 0.0, 1.0))
+	s = lerpf(s, 0.02, clampf((y - 1500.0) / 5000.0, 0.0, 1.0))
 	if absf(s - _fog_scale) < 0.01: return
 	_fog_scale = s
 	_env.fog_density = _fog_base * s
@@ -79,6 +93,21 @@ func _process(_delta: float) -> void:
 		var k := 1.0 + maxf(y, 0.0) / 350.0
 		_sea_mat.set_shader_parameter("horizon_fade_start", 400.0 * k)
 		_sea_mat.set_shader_parameter("horizon_fade_end", 2000.0 * k)
+
+
+## From the air the view reaches past the 30 km the ground needs: the far plane grows with the
+## camera's height, the sea plane (and the abyss under it) follow the camera, and the sea fogs into
+## the sky's horizon colour before the far plane, so no band of sky shows under the horizon.
+func _follow_camera(cam: Camera3D) -> void:
+	var p := cam.global_position
+	var want := clampf(30000.0 + maxf(p.y - 250.0, 0.0) * 11.0, 30000.0, 110000.0)
+	if absf(cam.far - want) > 400.0: cam.far = want
+	var snap := Vector3(snappedf(p.x, 2000.0), 0.0, snappedf(p.z, 2000.0))
+	if _sea: _sea.global_position = Vector3(snap.x, _sea.global_position.y, snap.z)
+	if _abyss: _abyss.global_position = Vector3(snap.x, _abyss.global_position.y, snap.z)
+	if _sea_mat:
+		_sea_mat.set_shader_parameter("far_fade_start", cam.far * 0.42)
+		_sea_mat.set_shader_parameter("far_fade_end", cam.far * 0.96)
 
 
 func _find_env(env_root: Node) -> void:
@@ -97,20 +126,31 @@ func _hook_sea() -> void:
 	_find_env(env)
 	var sea := env.get_node_or_null("Sea") as MeshInstance3D
 	if sea and sea.mesh is PlaneMesh:
-		# reach well past the far plane so no edge of the water shows from the air
+		# reach well past the far plane (which grows with altitude) so no edge of the water shows
 		var spm := (sea.mesh as PlaneMesh).duplicate() as PlaneMesh
-		spm.size = Vector2(120000, 120000)
+		spm.size = Vector2(SEA_PLANE, SEA_PLANE)
 		sea.mesh = spm
+		sea.custom_aabb = AABB(Vector3(-SEA_PLANE * 0.5, -1.0, -SEA_PLANE * 0.5), Vector3(SEA_PLANE, 2.0, SEA_PLANE))
+		_sea = sea
 	if sea and sea.material_override is ShaderMaterial:
 		var m: ShaderMaterial = sea.material_override
 		_sea_mat = m
 		m.set_shader_parameter("outer_height", view.material.get_shader_parameter("height_lin"))
 		m.set_shader_parameter("outer_enabled", true)
+		var est := PackedVector2Array()
+		for q in ground.plan.get("estuary", ESTUARY): est.append(Vector2(q[0], q[1]))
+		m.set_shader_parameter("estuary", est)
+		m.set_shader_parameter("estuary_n", mini(est.size(), 12))
 	var abyss := env.get_node_or_null("Abyss") as MeshInstance3D
 	if abyss and abyss.mesh is PlaneMesh:
 		var pm := (abyss.mesh as PlaneMesh).duplicate() as PlaneMesh
-		pm.size = Vector2(30000, 30000)
+		pm.size = Vector2(SEA_PLANE, SEA_PLANE)
 		abyss.mesh = pm
+		_abyss = abyss
+	# the sky's lower half shows only under the far edge of the sea: keep it the horizon colour
+	if _env and _env.sky and _env.sky.sky_material is ShaderMaterial:
+		var skm: ShaderMaterial = _env.sky.sky_material
+		skm.set_shader_parameter("ground_bottom_color", (WorldKit.Atmosphere.sky_horizon as Color).darkened(0.06))
 
 
 func load_ms_total() -> int:

@@ -84,7 +84,28 @@ const Atmosphere := {
 	"glow_bloom": 0.025,
 	"glow_threshold": 1.5,
 	"vignette": 0.035,
+	# Forward+ only (the Compatibility renderer ignores these; see _forward_plus_quality):
+	# screen-space AO for contact darkening where the baked AO cannot reach (plinths, props,
+	# canopy undersides), SSIL for the warm bounce off sunlit walls and paving, a thin volumetric fog
+	# near the camera for depth and sun shafts through foliage, and four shadow cascades.
+	"ssao_radius": 1.1,
+	"ssao_intensity": 1.5,
+	"ssao_power": 1.35,
+	"ssao_detail": 0.6,
+	"ssao_light_affect": 0.12,
+	"ssil_radius": 4.5,
+	"ssil_intensity": 0.55,
+	"vol_fog_density": 0.0009,
+	"vol_fog_length": 180.0,
+	"vol_fog_anisotropy": 0.55,
+	"vol_fog_albedo": Color("d6e2ee"),
+	"shadow_splits": Vector3(0.045, 0.14, 0.38),
+	"shadow_max_distance_fp": 520.0,
 }
+
+
+static func forward_plus() -> bool:
+	return RenderingServer.get_current_rendering_method() == "forward_plus"
 
 
 func _build_environment() -> void:
@@ -163,6 +184,8 @@ func _build_environment() -> void:
 	gt.gradient = grad
 	gt.width = 256
 	env.adjustment_color_correction = gt
+	# (--nopost on the command line keeps the plain look, to measure what the post stack costs)
+	if forward_plus() and not "--nopost" in OS.get_cmdline_user_args(): _forward_plus_quality(env)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	sink.add_child(we)
@@ -184,8 +207,63 @@ func _build_environment() -> void:
 	sun.shadow_bias = 0.12
 	sun.shadow_normal_bias = 3.0
 	sun.shadow_blur = 2.5   # Forward+ parity only; ignored by Compatibility
+	if forward_plus():
+		# four cascades: ~23 m of crisp contact shadow round the rider, 520 m of stable far shadow
+		# (terrain relief, town blocks), soft PCSS-like edges from the light's angular size
+		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+		sun.directional_shadow_max_distance = A.shadow_max_distance_fp
+		var sp: Vector3 = A.shadow_splits
+		sun.directional_shadow_split_1 = sp.x
+		sun.directional_shadow_split_2 = sp.y
+		sun.directional_shadow_split_3 = sp.z
+		sun.directional_shadow_fade_start = 0.85
+		sun.directional_shadow_pancake_size = 40.0
+		sun.shadow_bias = 0.04
+		sun.shadow_normal_bias = 1.1
+		sun.shadow_blur = 1.2
+		sun.light_angular_distance = 0.6
 	sink.add_child(sun)
 	_build_vignette()
+
+
+## The Forward+ post stack. Tuned to keep the reference look (reference/BRIEF.md) - the baked
+## occlusion in rocks, trees and buildings is already there, so SSAO is short-range contact AO and
+## SSIL a gentle warm bounce; the volumetric fog is thin (a few % over 100 m) and adds sun shafts.
+static func _forward_plus_quality(env: Environment) -> void:
+	var A := Atmosphere
+	env.ssao_enabled = true
+	env.ssao_radius = A.ssao_radius
+	env.ssao_intensity = A.ssao_intensity
+	env.ssao_power = A.ssao_power
+	env.ssao_detail = A.ssao_detail
+	env.ssao_horizon = 0.06
+	env.ssao_sharpness = 0.98
+	env.ssao_light_affect = A.ssao_light_affect
+	env.ssao_ao_channel_affect = 0.3
+	env.ssil_enabled = true
+	env.ssil_radius = A.ssil_radius
+	env.ssil_intensity = A.ssil_intensity
+	env.ssil_sharpness = 0.98
+	env.ssil_normal_rejection = 1.0
+	env.volumetric_fog_enabled = true
+	env.volumetric_fog_density = A.vol_fog_density
+	env.volumetric_fog_albedo = A.vol_fog_albedo
+	env.volumetric_fog_length = A.vol_fog_length
+	env.volumetric_fog_detail_spread = 2.5
+	env.volumetric_fog_anisotropy = A.vol_fog_anisotropy
+	env.volumetric_fog_ambient_inject = 0.35
+	env.volumetric_fog_sky_affect = 0.0
+	env.volumetric_fog_gi_inject = 0.0
+	env.volumetric_fog_temporal_reprojection_enabled = true
+	env.volumetric_fog_temporal_reprojection_amount = 0.9
+	# glow picks up the lamps, glints and foam a little earlier (the look's bloom stays as tuned)
+	env.glow_hdr_threshold = 1.25
+	# far land fades toward the sky's own colour in that direction (the sea does the same in its
+	# shader), so a distant ridge and the sea horizon meet the sky in the same haze
+	env.fog_aerial_perspective = 0.45
+	# SDFGI is left off: its cascades cannot cover a 25 km world whose ground is displaced on the GPU
+	# (CDLOD patches), and at bike / plane speeds the cascade scrolls light-leak; SSIL + the sky
+	# ambient carry the bounce instead.
 
 
 ## A mild radial darkening drawn on its own CanvasLayer (layer 1, below the HUD which is added later).

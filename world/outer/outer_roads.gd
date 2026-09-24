@@ -13,6 +13,8 @@ const TILE := 250.0
 const RADIUS := 4
 const KIND := {"highway": 0, "road": 1, "track": 2, "street": 3, "main": 3, "lane": 4, "plaza": 5, "quay": 6}
 const RIBBON_FAR := 1150.0
+## town style -> id carried to the street shader in COLOR.g (paving by town: Lisbon calcada in Puerto)
+const STYLE_ID := {"campo": 0, "puerto": 1, "valdoro": 2, "sarmada": 3, "isola": 4}
 
 var outer: OuterWorld
 var terrain: Terrain
@@ -57,9 +59,10 @@ func setup(p_outer: OuterWorld, p_terrain: Terrain) -> void:
 				var pts := PackedVector3Array()
 				for p in st.points: pts.append(Vector3(p[0], p[1], p[2]))
 				if pts.size() < 2: continue
+				pts = _densify(pts, 4.0)
 				var br := PackedByteArray(); br.resize(pts.size())
 				roads.append({"id": "%s.%s" % [t.id, st.kind], "cls": st.kind, "kind": KIND.get(st.kind, 4), "width": float(st.width),
-					"pts": pts, "bridge": br, "bridges": [], "nav": -1, "from": "", "to": ""})
+					"pts": pts, "bridge": br, "bridges": [], "nav": -1, "from": "", "to": "", "style": STYLE_ID.get(t.style, 0)})
 	_junction_trims()
 	terrain._road_grid.clear()
 	_bucket()
@@ -88,6 +91,18 @@ func _register(pts: PackedVector3Array, spans: Array) -> int:
 
 ## A road that joins another starts (or ends) on the parent's centre line; its ribbon is trimmed
 ## back to the parent's edge so the two surfaces do not overlap.
+## Samples at most `step` apart (a plaza or a quay may be two points 90 m apart; its ribbon has to
+## drape over the ground between them).
+static func _densify(pts: PackedVector3Array, step: float) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	for k in range(pts.size() - 1):
+		var a := pts[k]; var b := pts[k + 1]
+		var n := maxi(int(ceil(a.distance_to(b) / step)), 1)
+		for i in range(n): out.append(a.lerp(b, float(i) / n))
+	out.append(pts[pts.size() - 1])
+	return out
+
+
 func _junction_trims() -> void:
 	for e in roads:
 		e["trim0"] = 0; e["trim1"] = (e.pts as PackedVector3Array).size() - 1
@@ -149,7 +164,7 @@ func _make_materials() -> void:
 		m.set_shader_parameter("noise_tex", noise)
 		materials[kind] = m
 	rail_mat = StandardMaterial3D.new(); rail_mat.albedo_color = Color(0.72, 0.73, 0.74); rail_mat.metallic = 0.6; rail_mat.roughness = 0.45
-	post_mat = StandardMaterial3D.new(); post_mat.albedo_color = Color(0.9, 0.9, 0.88); post_mat.roughness = 0.7
+	post_mat = StandardMaterial3D.new(); post_mat.vertex_color_use_as_albedo = true; post_mat.roughness = 0.7
 
 
 static func _tex(name: String) -> ImageTexture:
@@ -219,6 +234,7 @@ func _build_tile_impl(t: Vector2i) -> void:
 	var rail_faces := PackedVector3Array()
 	var posts := SurfaceTool.new(); posts.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var has_rails := false; var has_posts := false
+	var lamp_pts: Array[Transform3D] = []
 	for run in tiles[t]:
 		var e: Dictionary = roads[run[0]]
 		var k0: int = maxi(maxi(run[1] - 1, 0), int(e.get("trim0", 0))); var k1: int = mini(mini(run[2] + 1, e.pts.size() - 1), int(e.get("trim1", 1 << 30)))
@@ -227,12 +243,14 @@ func _build_tile_impl(t: Vector2i) -> void:
 			has_rails = _rails(e, run[1], run[2], rails, rail_faces) or has_rails
 		if e.kind == 0:
 			has_posts = _km_posts(e, run[1], run[2], posts) or has_posts
+		if e.kind <= 2 and e.nav >= 0:
+			has_posts = _furniture(e, run[1], run[2], posts, lamp_pts) or has_posts
 	for key in surfaces:
 		var s: Array = surfaces[key]
 		if (s[4] as PackedInt32Array).is_empty(): continue
 		var arr := []; arr.resize(Mesh.ARRAY_MAX)
 		arr[Mesh.ARRAY_VERTEX] = s[0]; arr[Mesh.ARRAY_NORMAL] = s[1]; arr[Mesh.ARRAY_TEX_UV] = s[2]
-		arr[Mesh.ARRAY_TANGENT] = s[3]; arr[Mesh.ARRAY_INDEX] = s[4]
+		arr[Mesh.ARRAY_TANGENT] = s[3]; arr[Mesh.ARRAY_INDEX] = s[4]; arr[Mesh.ARRAY_COLOR] = s[6]
 		var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 		var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.material_override = s[5]
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -247,28 +265,50 @@ func _build_tile_impl(t: Vector2i) -> void:
 		var cs := CollisionShape3D.new(); cs.shape = shape; body.add_child(cs); node.add_child(body)
 	if has_posts:
 		var mi := MeshInstance3D.new(); mi.mesh = posts.commit(); mi.material_override = post_mat
-		mi.visibility_range_end = 300.0; node.add_child(mi)
+		mi.visibility_range_end = 380.0; node.add_child(mi)
+	if not lamp_pts.is_empty():
+		var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = _lamp_mesh()
+		mm.instance_count = lamp_pts.size()
+		for i in range(lamp_pts.size()): mm.set_instance_transform(i, lamp_pts[i])
+		var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.visibility_range_end = 900.0
+		node.add_child(mmi)
+
+
+## Offsets across the ribbon. Highways, roads and tracks carry a gravel shoulder beyond the
+## carriageway (the outermost vertices, COLOR.a = 1 in outer_road.gdshader).
+const SHOULDER := {0: 1.6, 1: 1.1, 2: 0.7}
 
 
 func _cross(e: Dictionary) -> PackedFloat32Array:
 	var hw: float = e.width * 0.5
-	if e.kind == 2: return PackedFloat32Array([-hw, 0.0, hw])
-	if e.kind >= 5: return PackedFloat32Array([-hw, -hw * 0.5, 0.0, hw * 0.5, hw])
-	return PackedFloat32Array([-hw, -hw * 0.5, 0.0, hw * 0.5, hw])
+	var sh: float = SHOULDER.get(e.kind, 0.0)
+	if e.kind == 2: return PackedFloat32Array([-hw - sh, -hw, 0.0, hw, hw + sh])
+	if e.kind >= 3:
+		# wide plazas and quays drape over the ground with a vertex every ~4 m across
+		var nseg := maxi(4, int(ceil(e.width / 4.0)))
+		var out := PackedFloat32Array()
+		for i in range(nseg + 1): out.append(-hw + e.width * i / nseg)
+		return out
+	return PackedFloat32Array([-hw - sh, -hw, -hw * 0.5, 0.0, hw * 0.5, hw, hw + sh])
 
 
 func _ribbon(e: Dictionary, k0: int, k1: int, surfaces: Dictionary) -> void:
 	var mat := material_for(e.kind, e.width)
 	var key := mat.get_instance_id()
 	if not surfaces.has(key):
-		surfaces[key] = [PackedVector3Array(), PackedVector3Array(), PackedVector2Array(), PackedFloat32Array(), PackedInt32Array(), mat]
+		surfaces[key] = [PackedVector3Array(), PackedVector3Array(), PackedVector2Array(), PackedFloat32Array(), PackedInt32Array(), mat, PackedColorArray()]
 	var s: Array = surfaces[key]
 	var V: PackedVector3Array = s[0]; var Nn: PackedVector3Array = s[1]; var U: PackedVector2Array = s[2]
-	var Tg: PackedFloat32Array = s[3]; var I: PackedInt32Array = s[4]
+	var Tg: PackedFloat32Array = s[3]; var I: PackedInt32Array = s[4]; var Cl: PackedColorArray = s[6]
 	var pts: PackedVector3Array = e.pts
 	var cross := _cross(e)
 	var nc := cross.size()
 	var base := V.size()
+	var hw: float = e.width * 0.5
+	# a plaza is drawn as one long piece: its length rides in COLOR.r (the pattern is centred on it)
+	var plaza_len := 0.0
+	if e.kind == 5:
+		for q in range(pts.size() - 1): plaza_len += pts[q].distance_to(pts[q + 1])
 	var along := float(k0) * 4.0
 	for k in range(k0, k1 + 1):
 		var p := pts[k]
@@ -280,16 +320,21 @@ func _ribbon(e: Dictionary, k0: int, k1: int, surfaces: Dictionary) -> void:
 		for c in range(nc):
 			var off := cross[c]
 			var q := p + right * off
-			q.y = (p.y + 0.03) if on_bridge else (outer.height_at(q.x, q.z) + 0.045)
+			var outer_v := absf(off) > hw + 0.01
+			if on_bridge and outer_v: q = p + right * signf(off) * hw     # no shoulder on a deck
+			# where ribbons overlap (a main street crossing its plaza) the plaza wins: it rides 3 cm higher
+			var lift := 0.045 + (0.03 if e.kind == 5 else (0.015 if e.kind == 6 else 0.0))
+			q.y = (p.y + 0.03) if on_bridge else (outer.height_at(q.x, q.z) + (0.015 if outer_v else lift))
 			V.append(q); Nn.append(nrm)
 			U.append(Vector2((off / e.width) + 0.5, along))
 			Tg.append_array(PackedFloat32Array([tan.x, tan.y, tan.z, 1.0]))
+			Cl.append(Color(plaza_len / 200.0, float(e.get("style", 0)) / 8.0, 0.0, 1.0 if outer_v else 0.0))
 		if k < k1:
 			along += p.distance_to(pts[k + 1])
 			var r0 := base + (k - k0) * nc; var r1 := r0 + nc
 			for c in range(nc - 1):
 				I.append_array(PackedInt32Array([r0 + c, r1 + c, r0 + c + 1, r0 + c + 1, r1 + c, r1 + c + 1]))
-	s[0] = V; s[1] = Nn; s[2] = U; s[3] = Tg; s[4] = I
+	s[0] = V; s[1] = Nn; s[2] = U; s[3] = Tg; s[4] = I; s[6] = Cl
 
 
 ## Guard rails where the ground falls away more than 3 m beside the road (not on bridges).
@@ -324,6 +369,96 @@ func _rails(e: Dictionary, k0: int, k1: int, st: SurfaceTool, faces: PackedVecto
 	return made
 
 
+## Road furniture: white delineator posts with a black band every ~48 m beyond the shoulder,
+## red-and-white chevron boards before sharp bends, and street lights on the approaches to the towns.
+var _town_centres: Array = []
+
+
+func _near_town(p: Vector3, extra: float) -> bool:
+	if _town_centres.is_empty():
+		for t: Dictionary in outer.ground.plan.get("towns", []):
+			_town_centres.append([Vector2(t.center[0], t.center[1]), float(t.radius)])
+	for tc in _town_centres:
+		if Vector2(p.x, p.z).distance_to(tc[0]) < float(tc[1]) + extra: return true
+	return false
+
+
+func _furniture(e: Dictionary, k0: int, k1: int, st: SurfaceTool, lamps: Array[Transform3D]) -> bool:
+	var pts: PackedVector3Array = e.pts
+	var n := pts.size()
+	var hw: float = e.width * 0.5 + SHOULDER.get(e.kind, 0.0)
+	var made := false
+	for k in range(k0, k1 + 1):
+		if k < 3 or k > n - 4 or e.bridge[k] == 1: continue
+		var a := pts[k - 1]; var b := pts[k + 1]
+		var tan := Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
+		var right := Vector3(-tan.z, 0.0, tan.x)
+		var town := _near_town(pts[k], 120.0)
+		if town and e.kind <= 1 and _near_town(pts[k], 350.0) and k % 8 == 0:
+			# street lights on the approaches: alternate sides, arm over the carriageway
+			var side := 1.0 if (k / 8) % 2 == 0 else -1.0
+			var q := pts[k] + right * side * (hw + 0.4)
+			q.y = outer.height_at(q.x, q.z)
+			lamps.append(Transform3D(Basis(Vector3.UP, atan2(-right.x * side, -right.z * side)), q))
+		if town: continue
+		if k % 12 == 0 and e.kind <= 1:
+			for side: float in [-1.0, 1.0]:
+				var q := pts[k] + right * side * (hw + 0.7)
+				q.y = outer.height_at(q.x, q.z)
+				_cbox(st, q + Vector3(0, 0.5, 0), Vector3(0.12, 1.0, 0.12), Color(0.94, 0.94, 0.92))
+				_cbox(st, q + Vector3(0, 0.86, 0), Vector3(0.13, 0.14, 0.13), Color(0.08, 0.08, 0.08))
+				_cbox(st, q + Vector3(0, 0.86, 0) - Vector3(tan.x, 0, tan.z) * side * 0.066, Vector3(0.05, 0.06, 0.02), Color(1.0, 0.55, 0.1))
+			made = true
+		# bend warnings: the heading turns > 40 degrees over the next 100 m
+		if k % 6 == 0 and k + 25 < n and e.kind <= 1:
+			var t2 := (pts[k + 25] - pts[k + 23]); t2.y = 0.0
+			var turn := tan.angle_to(t2.normalized())
+			if turn > deg_to_rad(40.0):
+				var left_turn := tan.cross(t2.normalized()).y > 0.0
+				var q := pts[k] + right * (hw + 0.9)
+				q.y = outer.height_at(q.x, q.z)
+				_chevron(st, q, tan, right, left_turn)
+				made = true
+	return made
+
+
+## A chevron board on two posts facing the oncoming traffic (red with white arrows).
+static func _chevron(st: SurfaceTool, q: Vector3, tan: Vector3, right: Vector3, left_turn: bool) -> void:
+	for s in [-0.45, 0.45]:
+		_cbox(st, q + right * s + Vector3(0, 0.7, 0), Vector3(0.07, 1.4, 0.07), Color(0.6, 0.6, 0.6))
+	var c := q + Vector3(0, 1.55, 0)
+	var face := -tan
+	var w := right * 0.6
+	# the board
+	_cquad(st, c - w + Vector3(0, -0.25, 0), c + w + Vector3(0, -0.25, 0), c + w + Vector3(0, 0.25, 0), c - w + Vector3(0, 0.25, 0), face, Color(0.8, 0.12, 0.1))
+	# two white arrows
+	var dir := -1.0 if left_turn else 1.0
+	for i in range(2):
+		var o := c + right * (-0.25 + i * 0.45) * 1.0 + face * 0.01
+		var tip := o + right * dir * 0.14
+		_cquad(st, o - right * dir * 0.08 + Vector3(0, 0.18, 0), tip + Vector3(0, 0.0, 0), tip + Vector3(0, 0.0, 0), o - right * dir * 0.08 + Vector3(0, 0.08, 0), face, Color(0.96, 0.96, 0.94))
+		_cquad(st, o - right * dir * 0.08 + Vector3(0, -0.08, 0), tip, tip, o - right * dir * 0.08 + Vector3(0, -0.18, 0), face, Color(0.96, 0.96, 0.94))
+		_cquad(st, o - right * dir * 0.08 + Vector3(0, 0.08, 0), tip, tip, o - right * dir * 0.08 + Vector3(0, -0.08, 0), face, Color(0.96, 0.96, 0.94))
+
+
+static func _cquad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, col: Color) -> void:
+	for v in [a, b, c, a, c, d]:
+		st.set_normal(n); st.set_color(col); st.add_vertex(v)
+	for v in [a, c, b, a, d, c]:
+		st.set_normal(-n); st.set_color(col); st.add_vertex(v)
+
+
+static func _cbox(st: SurfaceTool, c: Vector3, s: Vector3, col: Color) -> void:
+	var h := s * 0.5
+	var p := [c + Vector3(-h.x, -h.y, -h.z), c + Vector3(h.x, -h.y, -h.z), c + Vector3(h.x, h.y, -h.z), c + Vector3(-h.x, h.y, -h.z),
+		c + Vector3(-h.x, -h.y, h.z), c + Vector3(h.x, -h.y, h.z), c + Vector3(h.x, h.y, h.z), c + Vector3(-h.x, h.y, h.z)]
+	var faces := [[0, 3, 2, 1, Vector3(0, 0, -1)], [4, 5, 6, 7, Vector3(0, 0, 1)], [0, 4, 7, 3, Vector3(-1, 0, 0)],
+		[1, 2, 6, 5, Vector3(1, 0, 0)], [3, 7, 6, 2, Vector3(0, 1, 0)]]
+	for f in faces:
+		for i in [0, 2, 1, 0, 3, 2]:
+			st.set_normal(f[4]); st.set_color(col); st.add_vertex(p[f[i]])
+
+
 func _km_posts(e: Dictionary, k0: int, k1: int, st: SurfaceTool) -> bool:
 	var made := false
 	for k in range(k0, k1 + 1):
@@ -332,8 +467,9 @@ func _km_posts(e: Dictionary, k0: int, k1: int, st: SurfaceTool) -> bool:
 		var a := pts[maxi(k - 1, 0)]; var b := pts[mini(k + 1, pts.size() - 1)]
 		var tan := Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
 		var q: Vector3 = pts[k] + Vector3(-tan.z, 0, tan.x) * (float(e.width) * 0.5 + 1.2)
-		q.y = outer.height_at(q.x, q.z)
-		_box(st, q + Vector3(0, 0.5, 0), Vector3(0.22, 1.0, 0.12))
+		q.y = outer.height_at(q.x, q.z) - 0.1
+		_cbox(st, q + Vector3(0, 0.4, 0), Vector3(0.3, 0.8, 0.18), Color(0.93, 0.92, 0.88))
+		_cbox(st, q + Vector3(0, 0.86, 0), Vector3(0.3, 0.14, 0.19), Color(0.75, 0.15, 0.12))
 		made = true
 	return made
 
@@ -358,59 +494,43 @@ static func _box(st: SurfaceTool, c: Vector3, s: Vector3) -> void:
 
 
 # ---------------------------------------------------------------- bridges
+## A bridge or viaduct over samples a..b. Highways cross on concrete: a box-girder deck on tapered
+## wall piers with hammerhead caps, concrete barriers topped with a steel rail. Roads and tracks
+## (and the causeway) cross on masonry: arches springing from piers, spandrel walls, a string
+## course, a parapet with coping. Both are ArchMesh geometry in the architecture kit's material, so
+## the stone and concrete weather like the towns. Collision: the deck and the parapets' inner faces.
 func _build_bridge(e: Dictionary, a: int, b: int) -> void:
 	var pts: PackedVector3Array = e.pts
 	a = maxi(a - 1, 0); b = mini(b + 1, pts.size() - 1)
 	if b - a < 2: return
 	var hw: float = e.width * 0.5 + 0.8
 	var stone: bool = e.kind >= 1
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var faces := PackedVector3Array()
-	var prev_l := Vector3.INF; var prev_r := Vector3.INF
+	var n := b - a + 1
+	# the frame at every sample: centre, right, deck height, foot (ground or sea bed)
+	var C := PackedVector3Array(); var Rt := PackedVector3Array(); var foot := PackedFloat32Array()
 	var length := 0.0
-	var lamps: Array[Transform3D] = []
 	for k in range(a, b + 1):
 		var p := pts[k]
 		var pa := pts[maxi(k - 1, 0)]; var pb := pts[mini(k + 1, pts.size() - 1)]
 		var tan := Vector3(pb.x - pa.x, 0.0, pb.z - pa.z).normalized()
-		var right := Vector3(-tan.z, 0.0, tan.x)
-		var l := p - right * hw; var r := p + right * hw
-		if prev_l != Vector3.INF:
-			length += p.distance_to(pts[k - 1])
-			# deck top (collision at the sample height), slab sides, soffit, parapets
-			faces.append_array(PackedVector3Array([prev_l, prev_r, r, prev_l, r, l]))
-			_quad_one(st, prev_l + Vector3(0, -0.02, 0), prev_r + Vector3(0, -0.02, 0), r + Vector3(0, -0.02, 0), l + Vector3(0, -0.02, 0), Vector3.UP)
-			var dn := Vector3(0, -1.3, 0)
-			_quad_one(st, prev_l + dn, l + dn, r + dn, prev_r + dn, Vector3.DOWN)
-			for side: float in [-1.0, 1.0]:
-				var e0: Vector3 = prev_l if side < 0 else prev_r
-				var e1: Vector3 = l if side < 0 else r
-				var out: Vector3 = right * side
-				var wall_in0 := e0 - out * 0.35; var wall_in1 := e1 - out * 0.35
-				var up := Vector3(0, 1.0, 0)
-				_quad(st, e0 + dn, e1 + dn, e1 + up, e0 + up)                 # outer face down to the soffit
-				_quad(st, wall_in0, wall_in1, wall_in1 + up, wall_in0 + up)   # inner face of the parapet
-				_quad_one(st, wall_in0 + up, e0 + up, e1 + up, wall_in1 + up, Vector3.UP)
-				faces.append_array(PackedVector3Array([wall_in0, wall_in1, wall_in1 + up, wall_in0, wall_in1 + up, wall_in0 + up]))
-		prev_l = l; prev_r = r
-		# piers every ~32 m where the deck stands clear of the ground or the sea
-		if (k - a) % 8 == 4 and k < b - 2:
-			var g := outer.height_at(p.x, p.z)
-			var foot := minf(g, 0.0) - 2.0 if g < 0.5 else g - 1.0
-			var h := p.y - 1.3 - foot
-			if h > 1.5:
-				for side: float in [-1.0, 1.0]:
-					var c := p + right * side * (hw * 0.55) + Vector3(0, -1.3 - h * 0.5, 0)
-					_box(st, c, Vector3(1.8 if h < 25 else 2.6, h, 1.8 if h < 25 else 2.6) if not stone else Vector3(2.2, h, 3.0))
-				# a crossbeam under the deck
-				_box(st, p + Vector3(0, -1.6, 0), Vector3(1.2, 0.7, hw * 2.0) if absf(tan.x) > absf(tan.z) else Vector3(hw * 2.0, 0.7, 1.2))
-		if (k - a) % 12 == 6 and (b - a) > 50:
-			var side := 1.0 if ((k - a) / 12) % 2 == 0 else -1.0
-			lamps.append(Transform3D(Basis(), p + right * side * (hw - 0.25)))
-	var mesh := st.commit()
+		C.append(p); Rt.append(Vector3(-tan.z, 0.0, tan.x))
+		var g := outer.height_at(p.x, p.z)
+		foot.append(minf(g, 0.0) - 2.5 if g < 0.5 else g - 0.8)
+		if k > a: length += p.distance_to(pts[k - 1])
+	var m := ArchMesh.new()
+	m.uv_off = Vector2(absf(C[0].x) * 0.37, absf(C[0].z) * 0.21)
+	var faces := PackedVector3Array()
+	var lamps: Array[Transform3D] = []
+	if stone: _masonry_bridge(m, C, Rt, foot, hw, faces)
+	else: _concrete_bridge(m, C, Rt, foot, hw, faces)
+	for k in range(n):
+		if k % 12 == 6 and length > 200.0:
+			var side := 1.0 if (k / 12) % 2 == 0 else -1.0
+			lamps.append(Transform3D(Basis(), C[k] + Rt[k] * side * (hw - 0.25)))
+	var mesh := m.commit(null, ArchMaterials.merged())
 	var mi := MeshInstance3D.new(); mi.name = "Bridge_%s_%d" % [e.id, a]
-	mi.mesh = mesh; mi.material_override = _bridge_material(stone)
-	mi.visibility_range_end = 6000.0
+	mi.mesh = mesh
+	mi.visibility_range_end = 7000.0
 	bridges_node.add_child(mi)
 	var body := StaticBody3D.new(); body.collision_layer = 1
 	var shape := ConcavePolygonShape3D.new(); shape.backface_collision = true; shape.set_faces(faces)
@@ -425,6 +545,197 @@ func _build_bridge(e: Dictionary, a: int, b: int) -> void:
 	bridge_count += 1
 
 
+## Deck collision (top at the sample heights) and the parapets' inner faces up to `ph`.
+static func _deck_faces(C: PackedVector3Array, Rt: PackedVector3Array, hw: float, inset: float, ph: float, faces: PackedVector3Array) -> void:
+	for k in range(C.size() - 1):
+		var l0 := C[k] - Rt[k] * hw; var r0 := C[k] + Rt[k] * hw
+		var l1 := C[k + 1] - Rt[k + 1] * hw; var r1 := C[k + 1] + Rt[k + 1] * hw
+		faces.append_array(PackedVector3Array([l0, r0, r1, l0, r1, l1]))
+		for side: float in [-1.0, 1.0]:
+			var e0: Vector3 = C[k] + Rt[k] * side * (hw - inset); var e1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - inset)
+			var up := Vector3(0, ph, 0)
+			faces.append_array(PackedVector3Array([e0, e1, e1 + up, e0, e1 + up, e0 + up]))
+
+
+## Both windings of a quad (walls whose outward side depends on the road's curve direction).
+static func _q2(m: ArchMesh, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+	m.quad(a, b, c, d); m.quad(b, a, d, c)
+
+
+func _masonry_bridge(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, foot: PackedFloat32Array, hw: float, faces: PackedVector3Array) -> void:
+	var n := C.size()
+	var hmax := 0.0
+	for k in range(n): hmax = maxf(hmax, C[k].y - foot[k])
+	# span in samples (4 m): short arches on a low causeway, longer ones on a tall viaduct
+	var span := clampi(roundi(hmax * 0.14), 3, 6)
+	var ashlar := Color(0.86, 0.8, 0.7)
+	var deck_t := 1.1
+	# piers at the span joints; each span an arch from pier face to pier face
+	var joints: Array[int] = [0]
+	var k := span
+	while k < n - 2:
+		joints.append(k); k += span
+	joints.append(n - 1)
+	var pier_w := 1.6 if hmax < 14.0 else 2.4
+	for j in range(joints.size() - 1):
+		var k0 := joints[j]; var k1 := joints[j + 1]
+		# dense points along the span (1 m), each with its centre, right and deck height
+		var S: Array = []
+		var slen := 0.0
+		for q in range(k0, k1):
+			var d := C[q].distance_to(C[q + 1])
+			var sub := maxi(int(ceil(d)), 1)
+			for u in range(sub):
+				var t := float(u) / sub
+				S.append([C[q].lerp(C[q + 1], t), Rt[q].lerp(Rt[q + 1], t).normalized(), lerpf(foot[q], foot[q + 1], t), slen + d * t])
+			slen += d
+		S.append([C[k1], Rt[k1], foot[k1], slen])
+		var fmax := -INF
+		for sp in S: fmax = maxf(fmax, sp[2])
+		var deck_lo: float = minf(C[k0].y, C[k1].y) - deck_t
+		var open := slen - pier_w
+		var rise := minf(open * 0.5, deck_lo - 0.6 - (fmax + 0.5))
+		var ys := deck_lo - 0.6 - rise
+		for side: float in [-1.0, 1.0]:
+			m.layer = float(ArchMaterials.ASHLAR) + 0.35; m.tint = ashlar
+			m.ground = fmax - 1.0; m.eave = C[k0].y
+			for i in range(S.size() - 1):
+				var A: Array = S[i]; var B: Array = S[i + 1]
+				var ca: Vector3 = A[0]; var cb: Vector3 = B[0]
+				var pa: Vector3 = ca + (A[1] as Vector3) * side * hw; var pb: Vector3 = cb + (B[1] as Vector3) * side * hw
+				var ya: float = _arch_y(A[3], slen, pier_w, ys, rise, A[2]); var yb: float = _arch_y(B[3], slen, pier_w, ys, rise, B[2])
+				var ta := ca.y - 0.02; var tb := cb.y - 0.02
+				_q2(m, Vector3(pa.x, ya, pa.z), Vector3(pb.x, yb, pb.z), Vector3(pb.x, tb, pb.z), Vector3(pa.x, ta, pa.z))
+				if side > 0.0:
+					# the arch barrel (intrados) and, under the piers, their feet
+					var la: Vector3 = ca - (A[1] as Vector3) * hw; var lb: Vector3 = cb - (B[1] as Vector3) * hw
+					m.layer = float(ArchMaterials.RUBBLE) + 0.5; m.tint = ashlar.darkened(0.12)
+					_q2(m, Vector3(la.x, ya, la.z), Vector3(lb.x, yb, lb.z), Vector3(pb.x, yb, pb.z), Vector3(pa.x, ya, pa.z))
+					m.layer = float(ArchMaterials.ASHLAR) + 0.35; m.tint = ashlar
+			# the string course under the parapet
+			m.layer = float(ArchMaterials.STONE) + 0.2; m.tint = Color(0.92, 0.88, 0.8)
+			for i in range(S.size() - 1):
+				var A: Array = S[i]; var B: Array = S[i + 1]
+				var pa: Vector3 = (A[0] as Vector3) + (A[1] as Vector3) * side * (hw + 0.18); var pb: Vector3 = (B[0] as Vector3) + (B[1] as Vector3) * side * (hw + 0.18)
+				var y0: float = (A[0] as Vector3).y; var y1: float = (B[0] as Vector3).y
+				_q2(m, Vector3(pa.x, y0 - 0.35, pa.z), Vector3(pb.x, y1 - 0.35, pb.z), Vector3(pb.x, y1 - 0.05, pb.z), Vector3(pa.x, y0 - 0.05, pa.z))
+				_q2(m, Vector3(pa.x, y0 - 0.05, pa.z), Vector3(pb.x, y1 - 0.05, pb.z), pb - (B[1] as Vector3) * side * 0.18 + Vector3(0, -0.05, 0), pa - (A[1] as Vector3) * side * 0.18 + Vector3(0, -0.05, 0))
+		# the pier at the span's start (not at the abutment)
+		if j > 0:
+			_pier_box(m, C[k0], Rt[k0], hw + 0.35, pier_w, foot[k0] - 0.5, ys + 0.3, ashlar, true)
+	# parapets with coping, the deck soffit edge
+	_parapets(m, C, Rt, hw, 0.42, 1.0, Color(0.88, 0.83, 0.74), Color(0.93, 0.9, 0.84))
+	_deck_faces(C, Rt, hw, 0.42, 1.0, faces)
+
+
+static func _arch_y(s: float, slen: float, pier_w: float, ys: float, rise: float, foot_y: float) -> float:
+	if rise < 0.8: return foot_y
+	var u := (s - pier_w * 0.5) / maxf(slen - pier_w, 0.1)
+	if u <= 0.0 or u >= 1.0: return maxf(foot_y, ys) if u <= 0.0 or u >= 1.0 else ys
+	var c := u * 2.0 - 1.0
+	return maxf(ys + rise * sqrt(maxf(1.0 - c * c, 0.0)), foot_y)
+
+
+func _pier_box(m: ArchMesh, c: Vector3, rt: Vector3, half_across: float, along: float, y0: float, y1: float, tint: Color, cutwater: bool) -> void:
+	if y1 - y0 < 0.3: return
+	var fw := Vector3(rt.z, 0.0, -rt.x)
+	m.layer = float(ArchMaterials.ASHLAR) + 0.4; m.tint = tint
+	m.ground = y0 + 0.5; m.eave = y1 + 2.0
+	var corners: Array[Vector3] = []
+	for sa: float in [-1.0, 1.0]:
+		for sb: float in [-1.0, 1.0]:
+			corners.append(c + rt * sa * half_across + fw * sb * along * 0.5)
+	# sides
+	var ring := [corners[0], corners[1], corners[3], corners[2]]
+	for i in range(4):
+		var p: Vector3 = ring[i]; var q: Vector3 = ring[(i + 1) % 4]
+		_q2(m, Vector3(p.x, y0, p.z), Vector3(q.x, y0, q.z), Vector3(q.x, y1, q.z), Vector3(p.x, y1, p.z))
+	if cutwater and y0 < 0.0:
+		# pointed cutwaters up- and downstream on a pier standing in the water
+		for sa: float in [-1.0, 1.0]:
+			var tip := c + rt * sa * (half_across + along * 0.7)
+			var p0 := c + rt * sa * half_across + fw * along * 0.5; var p1 := c + rt * sa * half_across - fw * along * 0.5
+			var top := minf(y1, 2.5)
+			_q2(m, Vector3(p0.x, y0, p0.z), Vector3(tip.x, y0, tip.z), Vector3(tip.x, top, tip.z), Vector3(p0.x, top, p0.z))
+			_q2(m, Vector3(tip.x, y0, tip.z), Vector3(p1.x, y0, p1.z), Vector3(p1.x, top, p1.z), Vector3(tip.x, top, tip.z))
+
+
+## Parapet walls on both deck edges: outer and inner faces, a coping on top.
+static func _parapets(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, hw: float, thick: float, h: float, wall: Color, cope: Color) -> void:
+	for side: float in [-1.0, 1.0]:
+		for k in range(C.size() - 1):
+			var o0: Vector3 = C[k] + Rt[k] * side * hw; var o1: Vector3 = C[k + 1] + Rt[k + 1] * side * hw
+			var i0: Vector3 = C[k] + Rt[k] * side * (hw - thick); var i1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - thick)
+			var up := Vector3(0, h, 0)
+			m.layer = float(ArchMaterials.ASHLAR) + 0.3; m.tint = wall
+			m.ground = minf(C[k].y, C[k + 1].y) - 3.0; m.eave = maxf(C[k].y, C[k + 1].y) + h + 0.5
+			_q2(m, o0 - Vector3(0, 0.02, 0), o1 - Vector3(0, 0.02, 0), o1 + up, o0 + up)
+			_q2(m, i0, i1, i1 + up, i0 + up)
+			m.layer = float(ArchMaterials.STONE) + 0.15; m.tint = cope
+			var cu := Vector3(0, 0.1, 0)
+			var o0c := o0 + Rt[k] * side * 0.06; var o1c := o1 + Rt[k + 1] * side * 0.06
+			_q2(m, o0c + up, o1c + up, i1 + up + cu, i0 + up + cu)
+			_q2(m, o0c + up - cu, o1c + up - cu, o1c + up, o0c + up)
+
+
+func _concrete_bridge(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, foot: PackedFloat32Array, hw: float, faces: PackedVector3Array) -> void:
+	var n := C.size()
+	var conc := Color(0.8, 0.79, 0.76)
+	var girder := 2.1
+	for k in range(n - 1):
+		var up0 := C[k]; var up1 := C[k + 1]
+		for side: float in [-1.0, 1.0]:
+			# the slab edge (a fascia 0.45 m deep) and the cantilever underside, then the box web
+			var e0 := up0 + Rt[k] * side * hw; var e1 := up1 + Rt[k + 1] * side * hw
+			var w0 := up0 + Rt[k] * side * hw * 0.55; var w1 := up1 + Rt[k + 1] * side * hw * 0.55
+			m.layer = float(ArchMaterials.STONE) + 0.5; m.tint = conc
+			m.ground = up0.y - girder - 1.0; m.eave = up0.y + 1.5
+			_q2(m, e0 + Vector3(0, -0.45, 0), e1 + Vector3(0, -0.45, 0), e1 - Vector3(0, 0.02, 0), e0 - Vector3(0, 0.02, 0))
+			_q2(m, e0 + Vector3(0, -0.45, 0), e1 + Vector3(0, -0.45, 0), w1 + Vector3(0, -0.7, 0), w0 + Vector3(0, -0.7, 0))
+			_q2(m, w0 + Vector3(0, -0.7, 0), w1 + Vector3(0, -0.7, 0), w1 + Vector3(0, -girder, 0), w0 + Vector3(0, -girder, 0))
+		var l0 := up0 - Rt[k] * hw * 0.55 - Vector3(0, girder, 0); var r0 := up0 + Rt[k] * hw * 0.55 - Vector3(0, girder, 0)
+		var l1 := up1 - Rt[k + 1] * hw * 0.55 - Vector3(0, girder, 0); var r1 := up1 + Rt[k + 1] * hw * 0.55 - Vector3(0, girder, 0)
+		_q2(m, l0, r0, r1, l1)
+		# piers every ~40 m where the deck stands clear of the ground or the sea
+		if k % 10 == 5 and k < n - 3:
+			var h := C[k].y - girder - foot[k]
+			if h > 1.0:
+				_wall_pier(m, C[k], Rt[k], hw, foot[k], C[k].y - girder, conc)
+	# barriers: a concrete safety kerb with a steel rail on posts
+	_parapets(m, C, Rt, hw, 0.45, 0.85, Color(0.84, 0.83, 0.8), Color(0.86, 0.85, 0.82))
+	m.layer = float(ArchMaterials.IRON) + 0.3; m.tint = Color(0.62, 0.64, 0.66)
+	for side: float in [-1.0, 1.0]:
+		for k in range(n - 1):
+			var p0 := C[k] + Rt[k] * side * (hw - 0.22) + Vector3(0, 1.1, 0); var p1 := C[k + 1] + Rt[k + 1] * side * (hw - 0.22) + Vector3(0, 1.1, 0)
+			_q2(m, p0, p1, p1 + Vector3(0, 0.12, 0), p0 + Vector3(0, 0.12, 0))
+			if k % 1 == 0:
+				var c := C[k] + Rt[k] * side * (hw - 0.22)
+				m.cbox(c + Vector3(0, 0.98, 0), Vector3(0.08, 0.26, 0.08))
+	_deck_faces(C, Rt, hw, 0.45, 1.2, faces)
+
+
+func _wall_pier(m: ArchMesh, c: Vector3, rt: Vector3, hw: float, y0: float, y1: float, conc: Color) -> void:
+	var fw := Vector3(rt.z, 0.0, -rt.x)
+	m.layer = float(ArchMaterials.STONE) + 0.55; m.tint = conc.darkened(0.04)
+	m.ground = y0 + 0.6; m.eave = y1 + 1.0
+	# a tapered wall pier: narrow at the foot, wider under the hammerhead cap
+	var hb := hw * 0.32; var ht := hw * 0.45; var th := 1.1
+	var cap := hw * 0.62
+	for side: float in [-1.0, 1.0]:
+		var b0 := c + rt * side * hb - fw * th; var b1 := c + rt * side * hb + fw * th
+		var t0 := c + rt * side * ht - fw * th; var t1 := c + rt * side * ht + fw * th
+		_q2(m, Vector3(b0.x, y0, b0.z), Vector3(b1.x, y0, b1.z), Vector3(t1.x, y1 - 1.4, t1.z), Vector3(t0.x, y1 - 1.4, t0.z))
+	for sf: float in [-1.0, 1.0]:
+		var bl := c - rt * hb + fw * sf * th; var br := c + rt * hb + fw * sf * th
+		var tl := c - rt * ht + fw * sf * th; var tr := c + rt * ht + fw * sf * th
+		_q2(m, Vector3(bl.x, y0, bl.z), Vector3(br.x, y0, br.z), Vector3(tr.x, y1 - 1.4, tr.z), Vector3(tl.x, y1 - 1.4, tl.z))
+	# the cap
+	var keep := m.xf
+	m.xf = Transform3D(Basis(rt, Vector3.UP, -fw), Vector3(c.x, 0, c.z))
+	m.box(Vector3(-cap, y1 - 1.4, -th - 0.2), Vector3(cap, y1, th + 0.2))
+	m.xf = keep
+
+
 static func _quad_one(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3) -> void:
 	# one-sided quad facing n (winding chosen from n)
 	var fn := (b - a).cross(c - a)
@@ -434,18 +745,6 @@ static func _quad_one(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Ve
 	else:
 		for v in [a, b, c, a, c, d]:
 			st.set_normal(n); st.add_vertex(v)
-
-
-var _bridge_mats := {}
-func _bridge_material(stone: bool) -> StandardMaterial3D:
-	if _bridge_mats.has(stone): return _bridge_mats[stone]
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.78, 0.72, 0.62) if stone else Color(0.74, 0.73, 0.70)
-	m.albedo_texture = _tex("rock019_alb_ht") if stone else _tex("gravel009_alb_ht")
-	m.uv1_triplanar = true; m.uv1_scale = Vector3(0.25, 0.25, 0.25) if stone else Vector3(0.6, 0.6, 0.6)
-	m.roughness = 0.9
-	_bridge_mats[stone] = m
-	return m
 
 
 var _lamp: ArrayMesh

@@ -24,6 +24,8 @@ uniform float grime = 1.0;
 // hemisphere sky fill (as the rock shader does): keeps shaded walls from going muddy
 uniform vec3 sky_fill_color : source_color = vec3(0.70, 0.74, 0.82);
 uniform float sky_fill = 0.10;
+// floating props (OuterProps boats): a slow heave, pitch and roll phased by the instance position
+uniform float bob = 0.0;
 
 // metres per texture tile, per layer (facades.py LAYERS)
 const float TILE[17] = float[](3.0, 3.0, 3.0, 3.0, 1.8, 3.0, 1.12, 2.0, 2.4, 2.0, 1.0, 1.0, 1.0, 2.0, 2.4, 2.0, 3.0);
@@ -68,6 +70,13 @@ void vertex() {
 	} else {
 		v_h = UV2.y;
 		v_eave = COLOR.a * 32.0;
+	}
+	if (bob > 0.0) {
+		vec3 o = MODEL_MATRIX[3].xyz;
+		float ph = o.x * 0.37 + o.z * 0.21;
+		float roll = sin(TIME * 0.83 + ph) * 0.045 * bob;
+		float pitch = sin(TIME * 0.61 + ph * 1.7) * 0.02 * bob;
+		VERTEX.y += VERTEX.x * roll + VERTEX.z * pitch + sin(TIME * 0.95 + ph * 0.5) * 0.07 * bob;
 	}
 	v_wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }

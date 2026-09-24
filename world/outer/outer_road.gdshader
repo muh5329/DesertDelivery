@@ -18,9 +18,15 @@ uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;
 uniform vec3 tint = vec3(1.0);
 
 varying vec3 wpos;
+varying float shoulder;
+varying float plaza_len;              // plaza ribbons: the plaza's length (COLOR.r x 200; its centre is at along = len / 2)
+varying float style;                  // town style (COLOR.g x 8): 0 campo, 1 puerto, 2 valdoro, 3 sarmada, 4 isola
 
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	shoulder = COLOR.a;
+	plaza_len = COLOR.r * 200.0;
+	style = floor(COLOR.g * 8.0 + 0.5);
 	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	float d = length(v.xyz);
 	// pull toward the camera: a few cm near, more far away (depth precision)
@@ -51,6 +57,22 @@ void fragment() {
 		}
 		col *= 0.92 + 0.14 * n1;
 		col = mix(col, col * 1.15 + 0.02, wheel * 0.35);
+		// patches of newer (darker, smoother) asphalt, a lane wide and a few metres long
+		vec2 pc = vec2(floor(across / (width * 0.5)), floor(along / 9.0));
+		float ph = fract(sin(dot(pc, vec2(12.9898, 78.233))) * 43758.5453);
+		float pf = fract(along / 9.0);
+		float patch_ = step(0.82, ph) * smoothstep(0.08, 0.14, pf) * (1.0 - smoothstep(0.62 + ph * 0.3, 0.7 + ph * 0.3, pf));
+		col = mix(col, col * 0.72, patch_ * 0.8);
+		rough = mix(rough, 0.62, patch_);
+		// cracks: thin dark lines (longitudinal near the edges, a web elsewhere) and sealed tar snakes
+		float cn = texture(noise_tex, vec2(wpos.x + wpos.z, along) / vec2(1.7, 5.0)).r;
+		float crack = (1.0 - smoothstep(0.0, 0.018, abs(cn - 0.5))) * smoothstep(0.45, 0.7, n2);
+		float edge_crack = (1.0 - smoothstep(0.0, 0.03, abs(abs(across) - width * 0.5 + 0.9 + (n1 - 0.5) * 0.6))) * step(0.5, n2);
+		float tar = (1.0 - smoothstep(0.0, 0.05, abs(texture(noise_tex, wpos.xz / 3.3 + 0.21).r - 0.5))) * smoothstep(0.55, 0.75, n1);
+		float d_fade = 1.0 - smoothstep(25.0, 90.0, dist);
+		col = mix(col, col * 0.45, clamp(crack + edge_crack * 0.8, 0.0, 1.0) * d_fade * 0.8);
+		col = mix(col, vec3(0.07, 0.07, 0.075), tar * d_fade * 0.7);
+		rough = mix(rough, 0.35, tar * d_fade);
 		col *= 1.0 - 0.12 * line(across, width * 0.25, 0.6) - 0.12 * line(across, -width * 0.25, 0.6);
 		// markings
 		float m = 0.0;
@@ -81,18 +103,60 @@ void fragment() {
 		float edge = smoothstep(width * 0.5 - 0.8, width * 0.5, abs(across));
 		col = mix(col, vec3(0.36, 0.38, 0.22), edge * 0.5 * n1);
 	} else {
-		float s = kind >= 5 ? 1.9 : 1.2;
+		// setts: small granite cubes in the streets, larger flags on the quays; the plazas a size
+		// between (the old 7.6 m tile drew 1 m "cobbles")
+		float s = kind == 6 ? 1.6 : (kind == 5 ? 0.8 : 0.75);
 		vec2 uv = wpos.xz / (4.0 * s);
 		col = texture(sett_tex, uv).rgb;
 		nm = texture(sett_nrm, uv).rgb * 2.0 - 1.0;
 		rough = 0.82;
 		col *= 0.9 + 0.2 * n1;
+		// by town: pale limestone calcada in Puerto Alto, honey sandstone in Campo, grey granite in
+		// Valdoro, beaten ochre in Sarmada, pale stone in Isola
+		vec3 stone_tint = style == 1.0 ? vec3(1.28, 1.25, 1.18) : (style == 2.0 ? vec3(0.9, 0.92, 0.95) : (style == 3.0 ? vec3(1.22, 1.06, 0.84) : (style == 4.0 ? vec3(1.2, 1.17, 1.1) : vec3(1.14, 1.04, 0.88))));
+		col *= stone_tint;
+		if (style == 1.0 && kind == 5) {
+			// Lisbon calcada: small white limestone cubes (the sett texture's grain only) with black
+			// basalt waves laid through them, crisp-edged
+			float lum = dot(texture(sett_tex, wpos.xz / 1.6).rgb, vec3(0.33));
+			col = vec3(0.84, 0.82, 0.77) * (0.8 + 0.34 * lum) * (0.94 + 0.12 * n1);
+			float wave = sin(along * 0.42 + sin(across * 0.21) * 2.2);
+			float band = 1.0 - smoothstep(0.2, 0.26, abs(wave));
+			col = mix(col, vec3(0.11, 0.11, 0.12) * (0.8 + 0.5 * lum), band);
+		}
+		if (kind == 5) {
+			// the plaza: a border of long kerb stones, bands of pale stone every 8 m across a darker
+			// field, a compass rosette at the centre, wear in the middle
+			float L = max(plaza_len, 1.0);
+			float u = along - L * 0.5;
+			float border = step(width * 0.5 - 1.6, abs(across)) + step(L * 0.5 - 1.6, abs(u));
+			float bands = (1.0 - smoothstep(0.35, 0.5, abs(fract(across / 8.0) - 0.5) * 8.0)) + (1.0 - smoothstep(0.35, 0.5, abs(fract(u / 8.0) - 0.5) * 8.0));
+			float r = length(vec2(across, u));
+			float ang = atan(u, across);
+			float rose = (1.0 - smoothstep(0.1, 0.25, abs(r - 6.0))) + (1.0 - smoothstep(0.1, 0.25, abs(r - 3.5)))
+				+ step(r, 6.0) * (1.0 - smoothstep(0.02, 0.06, abs(sin(ang * 4.0)) * r / 6.0)) * step(0.5, r);
+			vec3 pale = texture(sett_tex, wpos.xz / 2.6 + 0.4).rgb * vec3(1.18, 1.12, 1.02);
+			col = mix(col * vec3(0.9, 0.88, 0.86), pale, clamp(border + bands * 0.8, 0.0, 1.0));
+			// inlaid darker stone (basalt in the port, red porphyry inland), not paint
+			vec3 inlay = style == 1.0 ? vec3(0.16, 0.16, 0.17) : vec3(0.42, 0.3, 0.26);
+			col = mix(col, inlay * (0.8 + 0.4 * n2), clamp(rose, 0.0, 1.0) * step(r, 6.3) * 0.65);
+			col *= 1.0 - 0.08 * (1.0 - smoothstep(4.0, 16.0, r));
+		}
 		if (kind == 6) {
 			// the quay's edge stones
 			float kerb = smoothstep(width * 0.5 - 0.9, width * 0.5 - 0.7, abs(across));
 			col = mix(col, vec3(0.62, 0.60, 0.55), kerb);
 		}
 		col *= tint;
+	}
+	// the shoulder strip beyond the asphalt / the track's edge: packed gravel and dust thinning out
+	// into the verge (its outer edge sinks under the grass)
+	if (shoulder > 0.01) {
+		vec2 guv = wpos.xz / 2.2;
+		vec3 gravel = texture(dirt_tex, guv).rgb * vec3(0.95, 0.9, 0.82) * (0.85 + 0.3 * n2);
+		col = mix(col, gravel, smoothstep(0.02, 0.35, shoulder));
+		nm = mix(nm, texture(dirt_nrm, guv).rgb * 2.0 - 1.0, smoothstep(0.02, 0.35, shoulder));
+		rough = mix(rough, 0.95, shoulder);
 	}
 	ALBEDO = col;
 	ROUGHNESS = rough;

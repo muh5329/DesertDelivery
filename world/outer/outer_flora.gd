@@ -32,8 +32,10 @@ var _last_near := Vector2i(-9999, -9999)
 var species: Dictionary = {}        # name -> {full: Array[PropPart], card: Array[PropPart]}
 var grass_parts: Dictionary = {}
 var rock_parts: Array = []
+var desert_rock_parts: Array = []
 var oases: Array = []               # [Vector2 centre, radius]
 var instance_total := 0
+var _clump := FastNoiseLite.new()
 
 
 func setup(p_outer: OuterWorld, world_seed: int) -> void:
@@ -41,6 +43,10 @@ func setup(p_outer: OuterWorld, world_seed: int) -> void:
 	name = "OuterFlora"
 	for lm: Dictionary in ground.plan.get("landmarks", []):
 		if lm.kind == "oasis": oases.append([Vector2(lm.pos[0], lm.pos[2]), float(lm.get("radius", 180.0))])
+	_clump.seed = world_seed + 404
+	_clump.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	_clump.frequency = 1.0 / 90.0
+	_clump.fractal_octaves = 2
 	_make_species()
 
 
@@ -57,6 +63,20 @@ func _make_species() -> void:
 	var palm: Array = IslandArt.prop_parts("harbour_palm") if ResourceLoader.exists("res://assets/models/harbour_palm.glb") else []
 	species.palm = {"full": [palm], "card": [palm]}
 	species.scrub = {"full": [_bush("scrub_clump", 2.2, 1.4)], "card": [_bush("scrub_clump", 2.2, 1.4)]}
+	# riparian and oasis growth: oleander (a dark shrub in pink flower) and feathery grey tamarisk
+	# along the wadis, tall pale poplars on the river banks
+	species.oleander = {"full": [_oleander()], "card": [_oleander()]}
+	species.tamarisk = {"full": _card_tree("pine_clump", 3.8, 4.4, 0.12, false, Color(0.78, 0.84, 0.72), 1.3),
+		"card": _card_tree("pine_clump", 3.8, 4.4, 0.12, false, Color(0.78, 0.84, 0.72), 1.3)}
+	species.poplar = {"full": [_poplar()], "card": [_poplar()]}
+	species.understory = {"full": [_bush("scrub_clump", 1.6, 0.9)], "card": [_bush("scrub_clump", 1.6, 0.9)]}
+	species.fern = {"full": [_bush("heather_clump", 1.3, 0.7)], "card": [_bush("heather_clump", 1.3, 0.7)]}
+	species.vine = {"full": [_vine_row()], "card": [_vine_row()]}
+	var am := ArchMaterials.instanced()
+	species.log = {"full": [[WorldKit.PropPart.new(ArchModules.mesh(_log_key()), am, Transform3D())]], "card": []}
+	for v in range(3):
+		species["hay%d" % v] = {"full": [[WorldKit.PropPart.new(ArchModules.mesh(ArchProps.haybale(v)), am, Transform3D())]], "card": []}
+	species.fieldwall = {"full": [[WorldKit.PropPart.new(ArchModules.mesh(ArchProps.field_wall()), am, Transform3D())]], "card": []}
 	species.maquis = {"full": [_bush("heather_clump", 2.6, 1.6)], "card": [_bush("heather_clump", 2.6, 1.6)]}
 	species.hedge = {"full": [_bush("scrub_clump", 3.0, 2.2)], "card": [_bush("scrub_clump", 3.0, 2.2)]}
 	grass_parts.grass = _grass("grass_card", 1.3, 0.75)
@@ -66,8 +86,18 @@ func _make_species() -> void:
 	grass_parts.flower_p = _grass("flower_card_pink", 0.9, 0.6)
 	grass_parts.flower_w = _grass("flower_card_white", 0.9, 0.6)
 	var rmat := WorldKit.rock_material("rock024", WorldKit.LIMESTONE_TINT, 0.12)
-	for i in range(3):
-		rock_parts.append([WorldKit.PropPart.new(_rock_mesh(31 + i), rmat, Transform3D())])
+	# the desert's boulders are the mesas' red-brown sandstone, not the coast's limestone
+	var dmat := WorldKit.rock_material("rock024", Color(0.74, 0.52, 0.38), 0.0)
+	# the kit's bedded limestone boulders (RockGen, the baked library's LOD1), scaled to the old
+	# sphere-rock size (~2 m across at scale 1), not smooth grey blobs
+	for i in range(4):
+		var r := RockGen.cached({"size": Vector3(4.0, 3.4, 3.6), "seed": 300 + i, "cell": 0.4, "cell_lod1": 1.2,
+			"boulder": true, "noise_amp": 0.55, "noise_metres": 2.5, "detail_amp": 0.1, "detail_metres": 0.8,
+			"top_cut": 0.0 if i == 3 else 0.78 + 0.03 * i, "top_amp": 0.15, "ground_y": -1.0})
+		var mesh: Mesh = r.get("mesh_lod1", null)
+		if mesh == null: mesh = _rock_mesh(31 + i)
+		rock_parts.append([WorldKit.PropPart.new(mesh, rmat, Transform3D(Basis().scaled(Vector3(0.5, 0.5, 0.5)), Vector3.ZERO))])
+		desert_rock_parts.append([WorldKit.PropPart.new(mesh, dmat, Transform3D(Basis().scaled(Vector3(0.5, 0.5, 0.5)), Vector3.ZERO))])
 
 
 func _card_tree(tex: String, w: float, h: float, trunk_r: float, conifer: bool, tint: Color, trunk_h: float = -1.0) -> Array:
@@ -93,6 +123,55 @@ func _cypress() -> Array[WorldKit.PropPart]:
 	WorldKit._tier(parts, mat, 1.5, 4.0, 3.6, 3, false, 0.0, 1)
 	WorldKit._tier(parts, mat, 1.0, 3.2, 6.4, 3, true, 0.0, 2)
 	return parts
+
+
+func _oleander() -> Array[WorldKit.PropPart]:
+	var parts: Array[WorldKit.PropPart] = []
+	WorldKit._tier(parts, WorldKit._leaf_material("scrub_clump", Color(0.72, 0.85, 0.6)), 2.8, 2.2, -0.1, 3, true, 0.15)
+	WorldKit._tier(parts, WorldKit._leaf_material("flower_card_pink"), 2.4, 1.6, 0.55, 2, false, 0.0, 1)
+	return parts
+
+
+func _poplar() -> Array[WorldKit.PropPart]:
+	var parts: Array[WorldKit.PropPart] = []
+	var trunk := CylinderMesh.new(); trunk.top_radius = 0.1; trunk.bottom_radius = 0.2; trunk.height = 3.0; trunk.radial_segments = 5
+	parts.append(WorldKit.PropPart.new(trunk, Mats.solid(Color(0.62, 0.6, 0.55), 0.9), Transform3D(Basis(), Vector3(0, 1.5, 0))))
+	var mat := WorldKit._leaf_material("broadleaf_clump", Color(0.86, 0.95, 0.66))
+	WorldKit._tier(parts, mat, 2.6, 5.0, 1.8, 3, false)
+	WorldKit._tier(parts, mat, 2.2, 5.0, 5.8, 3, false, 0.0, 1)
+	WorldKit._tier(parts, mat, 1.4, 3.6, 9.8, 3, true, 0.0, 2)
+	return parts
+
+
+## A vineyard row: an 8 m strip of vine foliage on its wires (one card each side).
+func _vine_row() -> Array[WorldKit.PropPart]:
+	var parts: Array[WorldKit.PropPart] = []
+	var mat := WorldKit._leaf_material("scrub_clump", Color(0.8, 0.95, 0.55))
+	parts.append(WorldKit.PropPart.new(WorldKit._card_mesh(8.0, 1.25, true), mat, Transform3D(Basis(), Vector3(0, 0.1, 0))))
+	parts.append(WorldKit.PropPart.new(WorldKit._card_mesh(8.0, 1.1, true), mat, Transform3D(Basis(Vector3.UP, PI), Vector3(0, 0.15, 0.05))))
+	return parts
+
+
+## A fallen trunk: bark, a pale broken end, a few stubs.
+static func _log_key() -> String:
+	var key := "p_log"
+	if ArchModules.has(key): return key
+	var m := ArchMesh.new(); m.module = true
+	m.layer = float(ArchMaterials.TIMBER); m.tint = Color(0.42, 0.34, 0.27); m.flag = 0.0
+	var keep := m.xf
+	m.xf = Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(3.0, 0.32, 0))
+	m.cylinder(Vector3.ZERO, 0.34, 0.26, 6.0, 8, false, false)
+	m.tint = Color(0.8, 0.7, 0.55)
+	m.cylinder(Vector3(0, 6.0, 0), 0.26, 0.26, 0.02, 8, true, false)
+	m.cylinder(Vector3(0, 0, 0), 0.34, 0.34, 0.02, 8, false, true)
+	m.xf = keep
+	m.tint = Color(0.42, 0.34, 0.27)
+	m.rbox(Vector3(0.8, 0.6, 0.2), Vector3(0.12, 0.7, 0.12), Basis(Vector3.BACK, 0.5))
+	m.rbox(Vector3(-1.6, 0.55, -0.2), Vector3(0.1, 0.6, 0.1), Basis(Vector3.RIGHT, 0.6))
+	ArchModules._cache[key] = m.commit()
+	ArchModules.shadows[key] = true
+	ArchModules.details[key] = true
+	return key
 
 
 func _bush(tex: String, w: float, h: float) -> Array[WorldKit.PropPart]:
@@ -184,6 +263,7 @@ func _rng_for(k: Vector2i, salt: int) -> RandomNumberGenerator:
 func _site(x: float, z: float, max_slope: float) -> float:
 	if maxf(absf(x), absf(z)) < 1200.0: return NAN
 	if ground.flatten_at(x, z) > 0.2: return NAN
+	if outer.rivers != null and outer.rivers.in_channel(x, z): return NAN
 	var h := ground.data_height(x, z)
 	if h < 1.6: return NAN
 	var e := 3.0
@@ -195,7 +275,13 @@ func _site(x: float, z: float, max_slope: float) -> float:
 
 func _pick_species(x: float, z: float, h: float, biome: int, dry: float, r: float) -> String:
 	for o in oases:
-		if Vector2(x, z).distance_to(o[0]) < o[1]: return "palm"
+		if Vector2(x, z).distance_to(o[0]) < o[1]: return "palm" if r < 0.72 else "olive"
+	var ft := ground.feat_at(x, z)
+	if ft.g > 0.3: return "palm" if r < 0.6 else "olive"
+	if ft.r > 0.12 and (biome == Terrain.Biome.BADLANDS or biome == Terrain.Biome.DUNES):
+		return "oleander" if r < 0.55 else "tamarisk"
+	# gravel bars and sand on a northern river bank: poplars
+	if biome != Terrain.Biome.BADLANDS and ground.splat_at(x, z).g > 0.3 and h > 4.0 and r < 0.6: return "poplar"
 	match biome:
 		Terrain.Biome.LIMESTONE: return "pine" if h > 400.0 else "umbrella"
 		Terrain.Biome.MOOR:
@@ -229,12 +315,30 @@ func _build_tile_impl(k: Vector2i) -> void:
 	var rocks: Array = [[], []]
 	var n := int(TILE / TREE_GRID)
 	var count := 0
+	var extras := 0
 	for j in range(n):
 		for i in range(n):
 			var x := k.x * TILE + (i + rng.randf()) * TREE_GRID
 			var z := k.y * TILE + (j + rng.randf()) * TREE_GRID
 			var roll := rng.randf(); var r2 := rng.randf(); var sc := rng.randf_range(0.8, 1.3); var yaw := rng.randf() * TAU
+			var r3 := rng.randf(); var r4 := rng.randf()
 			var dens := ground.forest_at(x, z)
+			# forests are not an even carpet: dense stands, glades and edges (a ~90 m clump field)
+			var clump := _clump.get_noise_2d(x, z) * 0.5 + 0.5
+			dens *= 0.45 + 1.1 * clump
+			# the understory and the forest floor: shrubs and ferns under the trees, fallen trunks
+			if dens > 0.45 and extras < 520 and r3 < (dens - 0.35) * 0.9:
+				var hu := _site(x + 2.5, z - 1.5, 0.8)
+				if not is_nan(hu):
+					var usp := "fern" if int(x - z) % 3 == 0 and hu > 250.0 else "understory"
+					if r4 < 0.03 * dens and ground.biome_at(x, z) == Terrain.Biome.FOREST: usp = "log"
+					if not groups.has(usp): groups[usp] = [[] as Array[Transform3D], [] as Array[Color]]
+					var us := rng.randf_range(0.7, 1.25)
+					var ub := Basis(Vector3.UP, r4 * TAU * 7.0)
+					if usp == "log": ub = ub * Basis(Vector3.RIGHT, rng.randf_range(-0.08, 0.08))
+					groups[usp][0].append(Transform3D(ub.scaled(Vector3(us, us, us)), Vector3(x + 2.5, hu - (0.15 if usp == "log" else 0.05), z - 1.5) - node.position))
+					groups[usp][1].append(Color(0.9 + r4 * 0.2, 0.95, 0.8))
+					extras += 1
 			var base_chance := 0.012
 			var b0 := ground.biome_at(x, z)
 			if b0 == Terrain.Biome.BADLANDS or b0 == Terrain.Biome.DUNES: base_chance = 0.05
@@ -264,7 +368,18 @@ func _build_tile_impl(k: Vector2i) -> void:
 		if is_nan(h): continue
 		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).rotated(Vector3.RIGHT, rng.randf_range(-0.3, 0.3)).scaled(Vector3(s, s * rng.randf_range(0.5, 1.0), s)), Vector3(x, h - s * 0.3, z) - node.position))
 		rocks[1].append(Color(1, 1, 1))
+	# scree and boulders under the cliffs and in the forests
+	for i in range(40):
+		var x := k.x * TILE + rng.randf() * TILE; var z := k.y * TILE + rng.randf() * TILE
+		var f := ground.forest_at(x, z)
+		var s := rng.randf_range(0.3, 1.4)
+		if rng.randf() > f * 0.35: continue
+		var h := _site(x, z, 1.1)
+		if is_nan(h): continue
+		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.45, 0.8), s)), Vector3(x, h - s * 0.35, z) - node.position))
+		rocks[1].append(Color(1, 1, 1))
 	_hedges(k, node, groups, rng)
+	_fields(k, node, groups, rng)
 	for sp in groups:
 		var set: Dictionary = species[sp]
 		var xf: Array = groups[sp][0]; var cl: Array = groups[sp][1]
@@ -274,17 +389,19 @@ func _build_tile_impl(k: Vector2i) -> void:
 		for i in range(xf.size()):
 			var b: int = i % variants.size()
 			buckets[b][0].append(xf[i]); buckets[b][1].append(cl[i])
-		var is_tree: bool = sp in ["pine", "oak", "olive", "umbrella"]
+		var is_tree: bool = sp in ["pine", "oak", "olive", "umbrella", "tamarisk"]
 		for v in range(variants.size()):
 			if buckets[v][0].is_empty(): continue
 			_emit(node, variants[v], buckets[v][0], buckets[v][1], 0.0, FULL_RANGE if is_tree else 420.0, is_tree)
 			if is_tree: _emit(node, set.card[0], buckets[v][0], buckets[v][1], FULL_RANGE, CARD_RANGE, false)
 		instance_total += xf.size()
-	for v in range(rock_parts.size()):
+	var cb := ground.biome_at(k.x * TILE + TILE * 0.5, k.y * TILE + TILE * 0.5)
+	var rparts: Array = desert_rock_parts if (cb == Terrain.Biome.BADLANDS or cb == Terrain.Biome.DUNES) else rock_parts
+	for v in range(rparts.size()):
 		var xs: Array[Transform3D] = []; var cs: Array[Color] = []
-		for i in range(v, rocks[0].size(), rock_parts.size()):
+		for i in range(v, rocks[0].size(), rparts.size()):
 			xs.append(rocks[0][i]); cs.append(rocks[1][i])
-		if not xs.is_empty(): _emit(node, rock_parts[v], xs, cs, 0.0, 600.0, true)
+		if not xs.is_empty(): _emit(node, rparts[v], xs, cs, 0.0, 600.0, true)
 	instance_total += rocks[0].size()
 
 
@@ -292,6 +409,17 @@ func _build_tile_impl(k: Vector2i) -> void:
 func _hedges(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGenerator) -> void:
 	var x0 := k.x * TILE; var z0 := k.y * TILE
 	if ground.splat_at(x0 + TILE * 0.5, z0 + TILE * 0.5).b < 0.2 and ground.splat_at(x0, z0).b < 0.2: return
+	# the hill and island country fences its fields with dry-stone walls, the plains with hedges
+	var walls := false
+	var c := Vector2(x0 + TILE * 0.5, z0 + TILE * 0.5)
+	if _vine_centres.is_empty(): _fields_centres()
+	var best := 1e9
+	for vc in _vine_centres:
+		var d: float = c.distance_to(vc[0])
+		if d < best: best = d; walls = vc[1] in ["valdoro", "isola", "sarmada"]
+	if walls and best < 3500.0:
+		_walls(k, node, groups, rng)
+		return
 	for j in range(0, int(TILE / 3.0)):
 		for i in range(0, int(TILE / 3.0)):
 			var x := x0 + i * 3.0 + 1.5; var z := z0 + j * 3.0 + 1.5
@@ -305,6 +433,98 @@ func _hedges(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 			var s := rng.randf_range(0.8, 1.3)
 			groups.hedge[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.4), s)), Vector3(x, h - 0.1, z) - node.position))
 			groups.hedge[1].append(Color(0.8, 0.95, 0.7))
+
+
+## What the parcels grow: vine rows (crop 3) near the vineyard towns, hay bales on the mown parcels
+## (crop 5), olive orchards in grid rows (crop 4) round the towns and hamlets.
+var _vine_centres: Array = []
+
+
+func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGenerator) -> void:
+	var x0 := k.x * TILE; var z0 := k.y * TILE
+	var c := Vector2(x0 + TILE * 0.5, z0 + TILE * 0.5)
+	if ground.splat_at(c.x, c.y).b < 0.2 and ground.splat_at(x0, z0).b < 0.2 and ground.splat_at(x0 + TILE, z0 + TILE).b < 0.2: return
+	if _vine_centres.is_empty(): _fields_centres()
+	var near_vines := false; var near_town := false
+	for vc in _vine_centres:
+		var d: float = c.distance_to(vc[0])
+		if d < float(vc[3]) + 60.0: return          # no vineyard in the middle of a town
+		if d < vc[2] and vc[1] in ["campo", "valdoro", "puerto"]: near_vines = true
+		if d < vc[2] * 0.7: near_town = true
+	var added := 0
+	# rows run along the parcel's furrows: the shader's parcel frame is rotated 0.35 rad
+	var row_dir := Vector2(cos(-0.35), sin(-0.35))
+	var row_yaw := atan2(-row_dir.y, row_dir.x)
+	var perp_dir := Vector2(-row_dir.y, row_dir.x)
+	for j in range(-58, 59):
+		for i in range(-19, 20):
+			var q := c + perp_dir * (j * 2.6) + row_dir * (i * 8.0)
+			if q.x < x0 or q.y < z0 or q.x >= x0 + TILE or q.y >= z0 + TILE: continue
+			var x := q.x; var z := q.y
+			var f := OuterFlora.field_at(Vector2(x, z))
+			if f.y < 4.0 or ground.splat_at(x, z).b < 0.5: continue
+			if ground.biome_at(x, z) == Terrain.Biome.TOWN: continue
+			var crop := int(f.x)
+			if crop == 3 and near_vines and added < 2400:
+				var h := _site(x, z, 0.3)
+				if is_nan(h): continue
+				if not groups.has("vine"): groups["vine"] = [[] as Array[Transform3D], [] as Array[Color]]
+				groups.vine[0].append(Transform3D(Basis(Vector3.UP, row_yaw), Vector3(x, h - 0.05, z) - node.position))
+				groups.vine[1].append(Color(0.95 + rng.randf() * 0.1, 1.0, 0.85))
+				added += 1
+			elif crop == 5 and posmod(i * 3 + j * 7, 11) == 0 and added < 2400:
+				var h2 := _site(x, z, 0.25)
+				if is_nan(h2): continue
+				var v := int(f.w * 3.0) % 3
+				var key := "hay%d" % v
+				if not groups.has(key): groups[key] = [[] as Array[Transform3D], [] as Array[Color]]
+				groups[key][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(x, h2 - 0.05, z) - node.position))
+				groups[key][1].append(Color(1, 1, 1))
+				added += 1
+			elif crop == 4 and near_town and posmod(j, 3) == 0 and added < 2400:
+				var h3 := _site(x, z, 0.3)
+				if is_nan(h3): continue
+				if not groups.has("olive"): groups["olive"] = [[] as Array[Transform3D], [] as Array[Color]]
+				var s := rng.randf_range(0.8, 1.0)
+				groups.olive[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, h3 - 0.1, z) - node.position))
+				groups.olive[1].append(Color(1.0, 1.0, 0.95))
+				added += 1
+
+
+func _fields_centres() -> void:
+	for group in ["towns", "hamlets"]:
+		for t: Dictionary in ground.plan.get(group, []):
+			_vine_centres.append([Vector2(t.center[0], t.center[1]), t.style, 2200.0 if group == "towns" else 900.0, float(t.radius)])
+
+
+## Dry-stone walls along the parcel edges: 3 m segments laid along whichever edge is nearer.
+func _walls(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGenerator) -> void:
+	var x0 := k.x * TILE; var z0 := k.y * TILE
+	var ax := Vector2(cos(-0.35), sin(-0.35)); var ay := Vector2(-ax.y, ax.x)
+	for j in range(0, int(TILE / 3.0)):
+		for i in range(0, int(TILE / 3.0)):
+			var x := x0 + i * 3.0 + 1.5; var z := z0 + j * 3.0 + 1.5
+			var f := OuterFlora.field_at(Vector2(x, z))
+			if f.y > 1.5: continue
+			if ground.splat_at(x, z).b < 0.45: continue
+			if fmod(f.w * 7.0, 1.0) < 0.3: continue
+			var h := _site(x, z, 0.45)
+			if is_nan(h): continue
+			var along_x := OuterFlora.field_edge_along_x(Vector2(x, z))
+			var d := ax if along_x else ay
+			if not groups.has("fieldwall"): groups["fieldwall"] = [[] as Array[Transform3D], [] as Array[Color]]
+			groups.fieldwall[0].append(Transform3D(Basis(Vector3.UP, atan2(-d.y, d.x)).scaled(Vector3(1.0, rng.randf_range(0.85, 1.15), 1.0)), Vector3(x, h - 0.12, z) - node.position))
+			groups.fieldwall[1].append(Color(1, 1, 1))
+
+
+## Does the nearest parcel edge at w run along the parcel frame's x axis (true) or its y axis?
+static func field_edge_along_x(w: Vector2) -> bool:
+	var p := _rot(w, 0.35) + Vector2(sin(w.y * 0.0021) * 40.0, sin(w.x * 0.0017) * 35.0)
+	var cell := Vector2(190.0, 115.0)
+	var row := floorf(p.y / cell.y)
+	p.x += _hash21(Vector2(row, 17.0)) * cell.x
+	var fx := p.x / cell.x - floorf(p.x / cell.x); var fy := p.y / cell.y - floorf(p.y / cell.y)
+	return minf(fy, 1.0 - fy) * cell.y < minf(fx, 1.0 - fx) * cell.x
 
 
 ## The parcel pattern of outer_terrain.gdshader `fields()`: (crop, distance to the parcel edge,
@@ -357,7 +577,12 @@ func _build_near(k: Vector2i) -> void:
 		if r > dens: continue
 		var h := _site(x, z, 0.8)
 		if is_nan(h): continue
-		if kind == "grass" and rng.randf() < 0.07: kind = ["flower_y", "flower_p", "flower_w"][rng.randi_range(0, 2)]
+		# flowers: a sprinkle in the lowland grass, whole drifts on the alpine meadows (clumped by
+		# the same glade noise the forests use)
+		var fl := 0.07
+		if h > 600.0 and biome == Terrain.Biome.MOOR and ground.forest_at(x, z) < 0.3:
+			fl = 0.18 + 0.3 * smoothstep(0.45, 0.8, _clump.get_noise_2d(x * 3.0, z * 3.0) * 0.5 + 0.5)
+		if kind == "grass" and rng.randf() < fl: kind = ["flower_y", "flower_p", "flower_w"][rng.randi_range(0, 2)]
 		if not groups.has(kind): groups[kind] = [[] as Array[Transform3D], [] as Array[Color]]
 		groups[kind][0].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.8, 1.25), s)), Vector3(x, h - 0.05, z) - node.position))
 		var v := rng.randf_range(-0.12, 0.12)
@@ -392,4 +617,4 @@ func stats() -> Dictionary:
 			for v in node.get_children():
 				if v is MultiMeshInstance3D: instances += v.multimesh.instance_count; views += 1
 	return {"tiles": loaded.size(), "near_tiles": near_loaded.size(), "pending": pending.size() + near_pending.size(), "instances": instances, "views": views,
-		"max_tiles": (2 * RADIUS + 3) * (2 * RADIUS + 3), "max_instances": (2 * RADIUS + 3) * (2 * RADIUS + 3) * (MAX_TREES * 2 + 70 + 4500) + (2 * NEAR_RADIUS + 3) * (2 * NEAR_RADIUS + 3) * 900 * 2}
+		"max_tiles": (2 * RADIUS + 3) * (2 * RADIUS + 3), "max_instances": (2 * RADIUS + 3) * (2 * RADIUS + 3) * (MAX_TREES * 2 + 70 + 40 + 520 + 2400 + 4500) + (2 * NEAR_RADIUS + 3) * (2 * NEAR_RADIUS + 3) * 900 * 2}

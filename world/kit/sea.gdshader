@@ -93,6 +93,8 @@ uniform vec3 fog_color_lin = vec3(0.16, 0.25, 0.40);
 uniform float fog_density = 0.0028;
 uniform float fog_sun_scatter = 0.22;
 uniform float fog_sky_affect = 0.15;
+uniform float far_fade_start = 1e9;          // the outer world: the sea goes wholly to the horizon colour
+uniform float far_fade_end = 2e9;            // before the far plane (OuterWorld._follow_camera)
 uniform float horizon_fade_start = 400.0;   // r4: 250 / 1400 -> 400 / 2000: the sea behind the villa (600 m) had converged on the sky and read as a wall of mist
 uniform float horizon_fade_end = 2000.0;
 // the rendered sky horizon is rebuilt here the way sky.gdshader + the Compatibility sky template
@@ -112,6 +114,13 @@ uniform float alpha_shallow : hint_range(0.0, 1.0) = 0.6;   // r4: 0.75 -> 0.6, 
 uniform float alpha_deep_depth = 1.2;  // fully opaque beyond this vertical depth
 uniform float roughness_value : hint_range(0.0, 1.0) = 0.10;
 uniform int debug_depth = 0;           // 1 = vertical depth / 10, 2 = screen texture, 3 = buffer depth / 10, 4 = fallback weight
+
+// the outer world's moving water: the estuary flows seaward along its centre line, the lagoon turns
+// slowly round the core (OuterWorld sets the polyline); far coasts keep a surf line from the map
+uniform vec2 estuary[12];
+uniform int estuary_n = 0;
+uniform float flow_speed = 0.55;
+uniform float far_surf = 0.55;
 
 varying vec3 wpos;
 
@@ -206,9 +215,29 @@ void fragment() {
 	float map_w = max(far_w, smoothstep(4.0, 7.0, vdepth_buf));
 	float vdepth = mix(vdepth_buf, vdepth_map, map_w);
 
-	// ---------- moving normals: small chop + long swell ----------
-	vec2 ta = wpos.xz / wave_a_metres + normalize(wave_a_dir) * TIME * wave_speed * 4.0;
-	vec2 tb = wpos.xz / wave_b_metres + normalize(wave_b_dir) * TIME * wave_speed;
+	// ---------- currents (outer world): the estuary's seaward flow, the lagoon's slow turn ----------
+	vec2 flow = vec2(0.0);
+	float flow_w = 0.0;
+	float lines_w = 0.0;          // flow lines only along the estuary (the lagoon's turning field drew spokes)
+	bool in_core = abs(wpos.x) < 624.0 && abs(wpos.z) < 624.0;
+	if (outer_enabled && !in_core) {
+		float bd = 1e9; vec2 bt = vec2(1.0, 0.0);
+		for (int i = 0; i < estuary_n - 1; i++) {
+			vec2 a = estuary[i]; vec2 b = estuary[i + 1]; vec2 ab = b - a;
+			float t = clamp(dot(wpos.xz - a, ab) / max(dot(ab, ab), 1.0), 0.0, 1.0);
+			float d = length(wpos.xz - (a + ab * t));
+			if (d < bd) { bd = d; bt = normalize(ab); }
+		}
+		float ew = 1.0 - smoothstep(140.0, 330.0, bd);
+		float rr = max(abs(wpos.x), abs(wpos.z));
+		float lw = smoothstep(640.0, 780.0, rr) * (1.0 - smoothstep(1350.0, 1700.0, rr));
+		flow = bt * ew * flow_speed + normalize(vec2(-wpos.z, wpos.x) + 1e-3) * lw * flow_speed * 0.35;
+		flow_w = max(ew, lw * 0.5);
+		lines_w = ew;
+	}
+	// ---------- moving normals: small chop + long swell (advected by the current) ----------
+	vec2 ta = wpos.xz / wave_a_metres + normalize(wave_a_dir) * TIME * wave_speed * 4.0 - flow * TIME / wave_a_metres * 0.6;
+	vec2 tb = wpos.xz / wave_b_metres + normalize(wave_b_dir) * TIME * wave_speed - flow * TIME / wave_b_metres * 0.6;
 	vec3 na = texture(normal_a, ta).xyz * 2.0 - 1.0;
 	vec3 nb = texture(normal_b, tb).xyz * 2.0 - 1.0;
 	// flatten the chop with distance so the far sea does not turn into noise
@@ -288,6 +317,7 @@ void fragment() {
 	// streaks reach 2-3x further out than the ring and follow the chop
 	float streak_zone = max(1.0 - smoothstep(0.0, foam_depth * 2.5, vdepth), smoothstep(0.25, 0.8, prox));
 	streak_zone *= streak_zone * streak_zone;   // cubic: dense at the rock foot, gone over the 3 m shelf
+	streak_zone *= 1.0 - 0.9 * lines_w;         // the estuary is shallow bank to bank: no shore-break streaks mid-channel
 	// (FastNoiseLite images sit in ~0.3..0.7, so the thresholds below live in that range)
 	float streak = smoothstep(0.55, 0.75, streak_n * 0.6 + clump * 0.4) * streak_zone * 1.2;   // r5: x1.2, the trails carry the foam, the collar is lace
 	float caps_n = clamp((fn2 * 0.6 + fn * 0.4 - 0.3) / 0.4, 0.0, 1.0);   // 4-11 m scales: crests, not a 1.5 m sprinkle
@@ -297,7 +327,24 @@ void fragment() {
 	caps *= 1.0 - smoothstep(0.1, 0.25, prox);                          // r3: open water only, never in the 3-12 m band
 	// in patches (a 25 m mask at ~30 % cover), not an even sprinkle: the reference shows a few streaks per 100 m
 	caps *= smoothstep(0.6, 0.74, texture(foam_noise, wpos.xz / 25.0 + vec2(TIME * 0.004, 0.0)).r);
+	caps *= 1.0 - 0.7 * lines_w;                                         // the current drew the caps out into dashes
 	float foam = clamp(ring + streak + caps, 0.0, 1.0) * foam_opacity * (1.0 - far_w);
+	// the current's lines: foam and slicks drawn out along the flow (estuary, lagoon)
+	if (lines_w > 0.01) {
+		vec2 fd = normalize(flow + 1e-4);
+		vec2 fuv = vec2(dot(wpos.xz, fd) / 40.0 - TIME * length(flow) / 40.0, dot(wpos.xz, vec2(-fd.y, fd.x)) / 5.0);
+		// sparse: a few thin lines where two noise bands agree, gone past a few hundred metres. Drawn
+		// as smooth dark slicks, not foam: as foam they read as white speed-dashes over the whole mouth
+		float ln = texture(foam_noise, fuv).r * texture(foam_noise, fuv * vec2(0.37, 0.61) + 0.3).r;
+		float lines = smoothstep(0.45, 0.52, ln) * lines_w * (1.0 - smoothstep(60.0, 300.0, surf_d));
+		col *= 1.0 - 0.07 * lines;
+		col *= 1.0 - 0.05 * smoothstep(0.4, 0.6, texture(foam_noise, fuv * vec2(0.3, 0.5) + 0.5).r) * lines_w;
+	}
+	// far coasts: the surf line from the height map where the depth buffer's foam has faded out
+	if (outer_enabled && !in_core) {
+		float surf = (1.0 - smoothstep(0.1, 1.2, vdepth_map)) * smoothstep(250.0, 700.0, surf_d) * (1.0 - smoothstep(5000.0, 12000.0, surf_d));
+		foam = max(foam, surf * far_surf * (0.6 + 0.4 * fn));
+	}
 	col = mix(col, foam_color, foam);
 
 	// ---------- sun glints: the chop normal reflecting the sun, only where the normal actually faces
@@ -314,7 +361,8 @@ void fragment() {
 	ALPHA = 1.0;
 	// own fog (see fog_color_lin): engine formula near, sliding to the rendered sky horizon far out
 	{
-		float fog_amt = 1.0 - exp(-surf_d * fog_density);
+		float far_t = smoothstep(far_fade_start, far_fade_end, surf_d);
+		float fog_amt = max(1.0 - exp(-surf_d * fog_density), far_t);
 		// the sky's colour at the horizon in THIS azimuth (see sky.gdshader: narrow + wide glow lobes)
 		vec3 hz_dir = normalize(vec3(view_w.x, 0.0, view_w.z));
 		float gd = max(dot(hz_dir, sun_dir), 0.0);
@@ -324,7 +372,7 @@ void fragment() {
 		// blue channel of the far rows and drew a warm band under the sky on the sun side, r3)
 		vec3 hz_srgb = max((sky_horizon_srgb + glow) * sky_energy_mul, 0.0);
 		vec3 horizon_lin = mix(pow(hz_srgb, vec3(2.2)), fog_color_lin, fog_sky_affect) * horizon_gain;
-		float hz_w = smoothstep(horizon_fade_start, horizon_fade_end, surf_d);
+		float hz_w = max(smoothstep(horizon_fade_start, horizon_fade_end, surf_d), far_t);
 		vec3 fog_col = mix(fog_color_lin, horizon_lin, hz_w);
 		// the engine's sun-side scatter, so the near sea fogs exactly like the rock beside it; faded
 		// out with the horizon slide (the sky has no such term, so at the horizon it drew a warm band)

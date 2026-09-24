@@ -27,9 +27,10 @@ import outer_noise as NZ
 import outer_route as R
 import outer_towns as T
 import outer_layouts as LY
+import outer_water as W
 
 N, STEP, ORIGIN = L.N, L.STEP, L.ORIGIN
-OUT = os.path.join(ROOT, "data", "outer")
+OUT = os.environ.get("OUTER_OUT", os.path.join(ROOT, "data", "outer"))
 CACHE = os.environ.get("OUTER_CACHE", "/tmp/outer_cache")
 LATTICE = 6.25                     # the runtime surface: triangles on a 6.25 m lattice (half the data spacing)
 MICRO_TILE = 64.0                  # micro relief tile (m), 256 px
@@ -52,7 +53,13 @@ TOWN_DEFS = [
     ("sarmada", "Sarmada", "sarmada", (2650, 8650), 420, True, None),
     ("isola_serena", "Isola Serena", "isola", None, 240, True, None),
 ]
-ISOLA_JUNCTION = (-7470, 1330)      # the causeway's mainland end on the ring highway
+# the causeway's mainland end on the ring highway: at the head of the valley that comes down to the
+# strait (north of it the mainland meets the water in a 70 m cliff a road cannot descend)
+ISOLA_JUNCTION = (-7300, 2950)
+# grade limits for mountain roads that climb valley heads steeper than their class allows (the
+# alpine highway into Valdoro, the dam road): without them the pinned ends leave long fills
+ROAD_GMAX = {"ring.valdoro.campo_real": 0.095, "ring.isola_junction.valdoro": 0.095, "spoke.north": 0.095,
+             "road.dam": 0.12, "road.northwest": 0.12}
 
 
 def log(*a):
@@ -265,7 +272,41 @@ def town_heights(h, towns, flat):
                 for i in range(i0, i1):
                     if T.point_in_poly((ORIGIN + i * STEP, ORIGIN + j * STEP), poly):
                         dist[j, i] = 0; yt[j, i] = 2.3; hw[j, i] = 7
+    # quays: a paved strip at quay level behind every quay edge, the water in front of it dredged to
+    # a berth depth, so the quay wall (OuterProps) stands between land and deep water
+    dredge = np.zeros(h.shape, bool)
+    filled = np.zeros(h.shape, bool)
+    for t in towns:
+        for poly in t.fill:
+            poly = np.asarray(poly)
+            i0, j0 = ((poly.min(0) - ORIGIN) / STEP).astype(int) - 1; i1, j1 = ((poly.max(0) - ORIGIN) / STEP).astype(int) + 2
+            for j in range(j0, j1):
+                for i in range(i0, i1):
+                    if T.point_in_poly((ORIGIN + i * STEP, ORIGIN + j * STEP), poly): filled[j, i] = True
+    landish = np.where(filled, 5.0, h)
+    for t in towns:
+        for edge in t.quay_edges:
+            E = LY.resample_line(np.asarray(edge, float), 6.0)
+            if len(E) < 2: continue
+            for k in range(len(E) - 1):
+                a = E[k]; b = E[k + 1]; ab = b - a; L2 = ab @ ab
+                if L2 < 1e-6: continue
+                nrm = T.perp(T.unit(ab))
+                if bil(landish, [a[0] + nrm[0] * 9], [a[1] + nrm[1] * 9])[0] < bil(landish, [a[0] - nrm[0] * 9], [a[1] - nrm[1] * 9])[0]: nrm = -nrm
+                i0 = int((min(a[0], b[0]) - 32 - ORIGIN) / STEP); i1 = int((max(a[0], b[0]) + 32 - ORIGIN) / STEP) + 1
+                j0 = int((min(a[1], b[1]) - 32 - ORIGIN) / STEP); j1 = int((max(a[1], b[1]) + 32 - ORIGIN) / STEP) + 1
+                jj, ii = np.mgrid[j0:j1 + 1, i0:i1 + 1]
+                X = ORIGIN + ii * STEP; Z = ORIGIN + jj * STEP
+                tt = ((X - a[0]) * ab[0] + (Z - a[1]) * ab[1]) / L2
+                on = (tt >= -0.05) & (tt <= 1.05)
+                lat = (X - a[0]) * nrm[0] + (Z - a[1]) * nrm[1]
+                quay = on & (lat >= -0.5) & (lat <= 13.0)
+                sea = on & (lat < -0.5) & (lat > -65.0)
+                dist[jj[quay], ii[quay]] = 0.0; yt[jj[quay], ii[quay]] = 2.3; hw[jj[quay], ii[quay]] = 7.0
+                dredge[jj[sea], ii[sea]] = True
     h2, w = R.apply_carve(h, dist, yt, hw, 3.0, 40.0)
+    # (the quay edge follows the smoothed shoreline: whatever beach or spit lies in front of it goes)
+    h2 = np.where(dredge & ~ndimage.binary_dilation(filled, iterations=1), np.minimum(h2, -3.4), h2)
     # never lower the ground below the sea inside a town's pads (quays stay land)
     flat_new = np.clip((dist < hw + 4) * 1.0, 0, 1)
     flat[:] = np.maximum(flat, ndimage.uniform_filter(flat_new, 3))
@@ -356,6 +397,8 @@ def route_grid(h, towns, lake_mask):
     hr = ndimage.gaussian_filter(h, 1.5)[::step, ::step]
     n = hr.shape[0]
     water = (hr < 0.4).astype(np.uint8)
+    if RIVER_MASK is not None:
+        water |= ndimage.maximum_filter(RIVER_MASK, step)[::step, ::step].astype(np.uint8)
     forbid = np.zeros((n, n), np.uint8)
     a = ORIGIN + np.arange(n) * ROUTE_CELL
     X, Z = np.meshgrid(a, a)
@@ -387,7 +430,7 @@ def parallel_mult(roadcells, keep_free):
     return m.astype(np.float64)
 
 
-def route(grid, a, b, cls, roadcells, target=None, extra_forbid=None, clear_around=(), water=None):
+def route(grid, a, b, cls, roadcells, target=None, extra_forbid=None, clear_around=(), water=None, gmax=None):
     hr, wmask, forbid, X, Z = grid
     n = hr.shape[0]
     mult = parallel_mult(roadcells, list(clear_around) + [(a, 500.0)] + ([(b, 500.0)] if b is not None else []))
@@ -397,7 +440,8 @@ def route(grid, a, b, cls, roadcells, target=None, extra_forbid=None, clear_arou
         i = int(round((p[0] - ORIGIN) / ROUTE_CELL)); j = int(round((p[1] - ORIGIN) / ROUTE_CELL))
         k = int(r / ROUTE_CELL) + 1
         fb[max(j - k, 0):j + k + 1, max(i - k, 0):i + k + 1] = 0
-    c = CLASSES[cls]
+    c = dict(CLASSES[cls])
+    if gmax is not None: c["gmax"] = gmax
     s = to_node(a, n)
     if target is None:
         g = to_node(b, n)
@@ -451,39 +495,65 @@ def lane_crossings(pts, lanes, margin=70.0):
     return m
 
 
-def make_profile(h, pts, cls, fixed, lanes):
-    c = CLASSES[cls]
+def make_profile(h, pts, cls, fixed, lanes, gmax=None):
+    c = dict(CLASSES[cls])
+    if gmax is not None: c["gmax"] = gmax
     g = ground_along(h, pts)
     wet = g < 0.6
     # short wet runs (coves, a shoreline wobble) are crossed on an embankment, not a bridge
     lab, nl = ndimage.label(wet)
     for k in range(1, nl + 1):
         idx = np.where(lab == k)[0]
-        if len(idx) < 16: wet[idx] = False
+        if len(idx) < EMBANK[cls]: wet[idx] = False
     target = np.where(wet, np.maximum(g, 0) + 6.5, np.maximum(g, 1.6))
     lower = np.where(wet, 6.5, -1e9)
+    riv = river_samples(pts)
+    if riv is not None:
+        # rivers are crossed on a bridge: the deck clears the water by 3.4 m
+        rd, rl = riv
+        over = rd < 4.0
+        lower = np.where(over, np.maximum(lower, rl + 3.4), lower)
+        target = np.where(over, np.maximum(target, rl + 3.4), target)
     if lanes:
         under = lane_crossings(pts, lanes) & wet
         lower = np.where(under, 13.5, lower)
     target = ndimage.gaussian_filter1d(target, max(c["sigma"], 1.0), mode="nearest")
-    y = R.lipschitz_profile(target, 4.0, c["gmax"], fixed, lower)
+    # biased toward cuts: where the ground climbs faster than the grade allows, a road cuts into the
+    # hillside (the carve makes a cutting) rather than riding a long fill or a land viaduct
+    y = R.lipschitz_profile(target, 4.0, c["gmax"], fixed, lower, cut_bias=CUT_BIAS)
     y = R.smooth_profile(y, c["sigma"] * 0.7, fixed, np.where(lower > -1e8, lower, -1e9), c["gmax"], 4.0)
     # re-apply the grade limit after smoothing (tiny drift at pinned ends), keeping the clearances
     y = R.lipschitz_profile(y, 4.0, c["gmax"] * 1.02, fixed, lower)
     return y, g
 
 
-LAND_BRIDGE = {"highway": 8.0, "road": 9.0, "track": 12.0, "street": 99.0}
+# a deck this far above the ground is a viaduct; lower fills are embankments (the carve builds them)
+LAND_BRIDGE = {"highway": 15.0, "road": 14.0, "track": 14.0, "street": 99.0}
+CUT_BIAS = 0.62
+# wet runs shorter than this many samples (4 m) are filled as an embankment (a shore track crosses
+# its coves on a rubble causeway rather than a string of little bridges)
+EMBANK = {"highway": 16, "road": 16, "track": 50, "street": 16}
+RIVER_FN = None            # (pts) -> (distance to a river channel's edge, its water level): set by main()
+RIVER_MASK = None          # N x N: river channel cells (routing treats them as water to cross)
 
 
-def find_bridges(y, g, cls):
-    """Bridge spans: over water, or where the deck stands high above the ground (a viaduct)."""
+def river_samples(pts):
+    if RIVER_FN is None: return None
+    return RIVER_FN(pts)
+
+
+def find_bridges(y, g, cls, pts=None):
+    """Bridge spans: over water (the sea, a river), or where the deck stands high above the ground
+    (a viaduct)."""
     wet = g < 0.6
     lab, nl = ndimage.label(wet)
     for k in range(1, nl + 1):
         idx = np.where(lab == k)[0]
-        if len(idx) < 16: wet[idx] = False
+        if len(idx) < EMBANK[cls]: wet[idx] = False
     high = wet | (y - g > LAND_BRIDGE[cls])
+    riv = river_samples(pts) if pts is not None else None
+    if riv is not None:
+        high |= riv[0] < 4.0
     spans = []
     k = 0; n = len(y)
     while k < n:
@@ -500,7 +570,7 @@ def find_bridges(y, g, cls):
         else: merged.append(list(s))
     out = []
     for a, b in merged:
-        if b - a < 2 and g[a] > 0.6: continue
+        if b - a < 2 and g[a] > 0.6 and (riv is None or riv[0][a:b + 1].min() >= 4.0): continue
         out.append([max(a - 1, 0), min(b + 1, n - 1)])
     return out
 
@@ -516,8 +586,8 @@ def add_road(net, h, rid, cls, pts, lanes, fixed_ends, frm, to):
     fixed = {}
     if fixed_ends[0] is not None: fixed[0] = fixed_ends[0]
     if fixed_ends[1] is not None: fixed[len(pts) - 1] = fixed_ends[1]
-    y, g = make_profile(h, pts, cls, fixed, lanes)
-    br = find_bridges(y, g, cls)
+    y, g = make_profile(h, pts, cls, fixed, lanes, ROAD_GMAX.get(rid))
+    br = find_bridges(y, g, cls, pts)
     road = {"id": rid, "class": cls, "width": CLASSES[cls]["width"], "pts": pts, "y": y, "g": g, "g0": g.copy(), "y0": y.copy(), "bridges": br, "from": frm, "to": to}
     net.roads.append(road)
     return road
@@ -572,7 +642,8 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
         stops = [pa + (lead_a if lead_a is not None else 0)] + [np.asarray(v, float) for v in vias] + [pb]
         parts = []
         for s0, s1 in zip(stops[:-1], stops[1:]):
-            c = route(grid, s0, s1, cls, roadcell_mask(net, n), clear_around=clear + [(pa, 300.0), (s0, 200.0), (s1, 200.0)], water=water)
+            c = route(grid, s0, s1, cls, roadcell_mask(net, n), clear_around=clear + [(pa, 300.0), (s0, 200.0), (s1, 200.0)], water=water,
+                      gmax=ROAD_GMAX.get(rid))
             if c is None:
                 log("ROUTE FAILED", rid); return None
             parts.append(c if not parts else c[1:])
@@ -585,19 +656,37 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
     # --- the ring highway joining the five towns
     ring = [("valdoro", "campo_real"), ("campo_real", "puerto_alto"), ("puerto_alto", "sarmada"),
             ("sarmada", "isola_junction"), ("isola_junction", "valdoro")]
-    ring_vias = {("sarmada", "isola_junction"): [(-1800, 8700), (-5400, 6400)]}
+    # (a second via at (-5400, 6400) folded the highway into a loop on the south-west hills)
+    ring_vias = {("sarmada", "isola_junction"): [(-1800, 8700)]}
     for a_id, b_id in ring:
         link("ring.%s.%s" % (a_id, b_id), "highway", a_id, b_id, vias=ring_vias.get((a_id, b_id), ()))
     # --- the four spokes from the core exits
     spoke_vias = {}
+    # the north spoke meets the ring in the valley below Valdoro instead of at the town gate, so
+    # the gate is not a five-way knot of highways
+    spoke_join = {"north": ("ring.valdoro.campo_real", (-830.0, -4000.0))}
+    byid = {r["id"]: r for r in net.roads}
     for name, dest in (("north", "valdoro"), ("east", "campo_real"), ("south", "sarmada"), ("west", "isola_junction")):
         ex = exits[name]
         p = np.asarray(ex["points"], float)
         last = p[-1]; prev = p[-8]
         tan = T.unit(last[[0, 2]] - prev[[0, 2]])
+        if name in spoke_join and spoke_join[name][0] in byid:
+            pr = byid[spoke_join[name][0]]
+            k = junction_on(pr, int(np.argmin(np.hypot(*(pr["pts"] - np.asarray(spoke_join[name][1])).T))))
+            J = pr["pts"][k]; yJ = float(pr["y"][k])
+            t = pr["pts"][min(k + 1, len(pr["pts"]) - 1)] - pr["pts"][max(k - 1, 0)]
+            nrm = T.perp(T.unit(t))
+            if nrm @ (last[[0, 2]] - J) < 0: nrm = -nrm
+            r = link("spoke.%s" % name, "highway", "core_" + name, dest, a=last[[0, 2]], ya=float(last[1]), lead_a=tan * 160.0,
+                     b=J, yb=yJ, lead_b=nrm * 40.0)
+            if r is not None:
+                r["join_end"] = {"road": pr["id"], "index": int(k)}
+            continue
         link("spoke.%s" % name, "highway", "core_" + name, dest, a=last[[0, 2]], ya=float(last[1]), lead_a=tan * 160.0,
              vias=spoke_vias.get(name, ()))
     # --- the causeway to Isola Serena
+    # straight over the strait at its narrows (it used to run 2 km down the shore to a later crossing)
     link("causeway.isola_serena", "road", "isola_junction", "isola_serena", water=2.5)
     net.gy = gy
     return net
@@ -652,7 +741,7 @@ def branch(net, grid, h, lanes, rid, cls, p, frm, to, join_classes=("highway", "
         (r, k), d = nearest_sample(net, p, join_classes)
         cells = np.vstack([r["pts"][k], p])
     else:
-        cells = route(grid, p, None, cls, rc, target=rc, clear_around=[(p, 150.0)])
+        cells = route(grid, p, None, cls, rc, target=rc, clear_around=[(p, 150.0)], gmax=ROAD_GMAX.get(rid))
         if cells is None:
             log("BRANCH FAILED", rid); return None
         cells = cells[::-1]
@@ -717,6 +806,8 @@ def stage_extras(h, net, towns, lanes, lake_mask, gy):
         names = HAMLET_NAMES[style]
         name = names[used[style] % len(names)]; used[style] += 1
         hid = "hamlet_" + name.lower().replace(" ", "_").replace("'", "").replace("ï", "i").replace("ç", "c")
+        if used[style] > len(names):          # the names ran out: a second Casas del Trigo is "Casas del Trigo II"
+            name += " II"; hid += "_2"
         (r0, k0), d = nearest_sample(net, c, ("highway", "road"))
         kind = "farmstead" if style == "campo" or (style != "isola" and k % 3 == 1) else "village"
         road = branch(net, grid, h, lanes, "road.%s" % hid, "road", c, r0["id"], hid, straight=d < 450)
@@ -790,8 +881,8 @@ def stage_extras(h, net, towns, lanes, lake_mask, gy):
         ("road.plains_east", "road", (6600, -1400), (8800, -1500)),
         ("road.south_coast_east", "road", (3600, 8700), (7600, 6800)),
         ("road.plateau_cross", "road", (-900, 5200), (4600, 5600)),
-        ("road.west_coast", "road", (-6800, 200), (-6500, -3800)),
-        ("road.northwest", "road", (-3800, -3600), (-6000, -4400)),
+        # (the NW coast is a 200-400 m sea cliff: no coast road there, a lane out to the clifftops)
+        ("road.northwest", "road", (-3800, -3600), (-5300, -4000)),
         ("track.valdoro_head", "track", (-1700, -5700), (-2300, -7300)),
         ("track.canyon_floor", "track", (-2600, 4800), (-800, 7400)),
         ("track.southwest_hills", "track", (-4600, 5200), (-6300, 3300)),
@@ -819,7 +910,7 @@ def link_points(net, grid, h, lanes, rid, cls, a, b, snap=500.0):
         else:
             ends.append((p, None, None, None))
     pa, ya, ra, ka = ends[0]; pb, yb, rb, kb = ends[1]
-    cells = route(grid, pa, pb, cls, roadcell_mask(net, grid[0].shape[0]), clear_around=[(pa, 200.0), (pb, 200.0)])
+    cells = route(grid, pa, pb, cls, roadcell_mask(net, grid[0].shape[0]), clear_around=[(pa, 200.0), (pb, 200.0)], gmax=ROAD_GMAX.get(rid))
     if cells is None:
         log("LINK FAILED", rid); return None
     def lead(r, k, p, other):
@@ -990,7 +1081,19 @@ def lake_fill(h):
     return level, mask, [[round(float(p[0]), 1), round(float(p[1]), 1)] for p in pts]
 
 
-def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour, lake):
+def recarve_rivers(h, rivers, net):
+    """The road carve's blend may have filled a river channel next to a bridge: cut the channel
+    (only its bed and banks) again, lowering the ground only."""
+    dist = np.full(h.shape, 1e9); yt = np.zeros(h.shape); hw = np.zeros(h.shape)
+    for rv in rivers:
+        P = rv["pts"]
+        R.carve_roads(h, ORIGIN, STEP, P[:, 0].copy(), P[:, 1].copy(), rv["bed"].astype(np.float64), rv["width"] * 0.5,
+                      np.ones(len(P) - 1, np.uint8), 0.5, 5.0, dist, yt, hw)
+    hc, w = R.apply_carve(h, dist, yt, hw, 0.5, 5.0)
+    return np.minimum(h, hc)
+
+
+def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour, lake, feat=None, rivers=()):
     os.makedirs(OUT, exist_ok=True)
     h.astype("<f4").tofile(os.path.join(OUT, "height.f32"))
     Image.fromarray(np.round(splat * 255).astype(np.uint8), "RGBA").save(os.path.join(OUT, "splat.png"), optimize=True)
@@ -999,6 +1102,8 @@ def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, 
     Image.fromarray(t8, "RGB").save(os.path.join(OUT, "tint.png"), optimize=True)
     Image.fromarray(rmask, "L").save(os.path.join(OUT, "roads.png"), optimize=True)
     Image.fromarray(micro, "L").save(os.path.join(OUT, "micro.png"))
+    if feat is not None:
+        Image.fromarray(np.round(np.clip(feat, 0, 1) * 255).astype(np.uint8), "RGBA").save(os.path.join(OUT, "feat.png"), optimize=True)
     # min / max height per 200 m quadtree leaf over [-12800, 12800] (128 x 128) for the terrain LOD
     mm = np.zeros((128, 128, 2), np.float32)
     for j in range(128):
@@ -1029,10 +1134,16 @@ def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, 
             y = float(surface_at(h, flat, micro, [p[0]], [p[1]])[0])
             e = {"id": lm["id"], "kind": lm["kind"], "pos": [r2(p[0]), r2(y), r2(p[1])], "yaw_deg": r2(lm.get("yaw_deg", 0.0))}
             if "radius" in lm: e["radius"] = lm["radius"]
+            if lm.get("plot"): e["plot"] = True        # the building is a plot; the landmark only names it
             landmarks.append(e)
     for q in pois:
         if "pos3" in q:
             landmarks.append({"id": "poi." + q["id"], "kind": q["kind"], "pos": [r2(v) for v in q["pos3"]], "yaw_deg": 0.0})
+    # the desert oases (palm groves round irrigated plots; the flora reads kind "oasis")
+    for k, (ox, oz, orad) in enumerate(W.OASES):
+        if any(lm["kind"] == "oasis" and math.hypot(lm["pos"][0] - ox, lm["pos"][2] - oz) < orad for lm in landmarks): continue
+        oy = float(surface_at(h, flat, micro, [ox], [oz])[0])
+        landmarks.append({"id": "oasis.%d" % k, "kind": "oasis", "pos": [r2(ox), r2(oy), r2(oz)], "yaw_deg": 0.0, "radius": orad * 0.8})
     # the dam across the lake outlet and the lake itself
     landmarks.append({"id": "lake.dam", "kind": "dam", "pos": [r2(L.DAM[0]), r2(lake[0] + 3), r2(L.DAM[1])], "yaw_deg": 0.0})
     plan = {"version": 1, "grid": {"n": N, "step": STEP, "origin": ORIGIN},
@@ -1040,7 +1151,8 @@ def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, 
             "lake": {"x": L.LAKE[0], "z": L.LAKE[1], "radius": L.LAKE[2], "level": lake[0], "polygon": lake[2]},
             "towns": [t.to_json() for t in towns], "hamlets": [t.to_json() for t in hamlets], "roads": roads,
             "sea_lanes": [{"id": ln["id"], "from": ln["from"], "to": ln["to"], "points": [[r2(p[0]), r2(p[1])] for p in ln["points"]]} for ln in lanes],
-            "ports": ports, "camps": camps, "landmarks": landmarks}
+            "ports": ports, "camps": camps, "landmarks": landmarks, "rivers": list(rivers),
+            "estuary": [[float(a), float(b)] for a, b in L.ESTUARY]}
     with open(os.path.join(OUT, "plan.json"), "w") as f:
         json.dump(plan, f, separators=(",", ":"))
     sizes = {n_: os.path.getsize(os.path.join(OUT, n_)) // 1024 for n_ in os.listdir(OUT)}
@@ -1051,8 +1163,17 @@ def main():
     global T0
     T0 = time.time()
     exits = json.load(open(os.path.join(HERE, "core_exits.json")))
+    global RIVER_FN, RIVER_MASK
     h, fields = cached("terrain", stage_terrain)
     log("terrain", h.min(), h.max())
+    h, feat, rivers = cached("landscape", W.stage_landscape, h, fields)
+    log("landscape: %d rivers, erg, wadis, oases" % len(rivers))
+    RIVER_FN = W.river_distance_fn(rivers)
+    RIVER_MASK = np.zeros(h.shape, np.uint8)
+    for rv in rivers:
+        P = rv["pts"]
+        ii = np.round((P[:, 0] - ORIGIN) / STEP).astype(int); jj = np.round((P[:, 1] - ORIGIN) / STEP).astype(int)
+        RIVER_MASK[np.clip(jj, 0, N - 1), np.clip(ii, 0, N - 1)] = 1
     towns = cached("towns", stage_towns, h)
     flat = np.zeros_like(h)
     h1 = town_heights(h.copy(), towns, flat)
@@ -1065,20 +1186,26 @@ def main():
     total = sum(len(r["pts"]) for r in net.roads) * 0.004
     log("roads total %.1f km" % total)
     h2 = stage_carve(h1, net, flat)
+    h2 = recarve_rivers(h2, rivers, net)
     # the runtime reads float32 heights and an 8-bit flatten mask: finalise against exactly those
     h2 = h2.astype(np.float32).astype(np.float64)
     flat[:] = np.round(np.clip(flat, 0, 1) * 255) / 255
     log("roads carved")
     micro = micro_tile()
     finalise_heights(h2, flat, micro, net, towns + hamlets)
+    import outer_props as PR
+    nprops = PR.dress(towns + hamlets, h2, flat, micro, net.roads, surface_at, LY.Ctx(h2))
+    log("props", nprops)
     camps = pick_camps(h2, net, towns + hamlets, flat, micro)
     log("camps", len(camps))
     lake = lake_fill(h2)
+    river_out = W.river_levels(h2, rivers)
+    log("rivers: %d runs, %.1f km" % (len(river_out), sum(len(r["points"]) for r in river_out) * 0.004))
     import outer_paint as PT
-    splat, aux, tint, biome = PT.paint(h2, fields, flat, towns + hamlets, lake[1], lake[0])
+    splat, aux, tint, biome, feat = PT.paint(h2, fields, flat, towns + hamlets, lake[1], lake[0], feat=feat, rivers=river_out)
     rmask = PT.road_mask(net.roads)
     log("painted")
-    export(h2, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour, lake)
+    export(h2, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour, lake, feat, river_out)
     with open(os.path.join(CACHE, "debug.pkl"), "wb") as f:
         pickle.dump({"h": h2.astype(np.float32), "towns": towns + hamlets, "lanes": lanes, "roads": net.roads, "pois": pois}, f)
 
