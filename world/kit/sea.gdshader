@@ -9,14 +9,18 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
-uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
+// (nearest: depth formats need not support linear filtering (Vulkan / Metal), and a filtered depth
+// across a silhouette is a position that exists on neither side - m-16)
+uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 uniform sampler2D normal_a : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_b : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D foam_noise : filter_linear_mipmap, repeat_enable;
 uniform sampler2D height_map : filter_linear;            // sea_depth.png: r * 90 - 10 = ground height (m)
 uniform float world_size = 1000.0;                       // height_map covers -world_size/2 .. +world_size/2
-uniform sampler2D outer_height : filter_linear;          // the outer world's heightfield (RF, 2001^2 over 25 km)
+uniform sampler2D outer_height : filter_linear;          // the outer world's heightfield (2001^2 over 25 km): RF, then R16
+uniform float outer_height_scale = 1.0;                  // metres = r * scale + offset (OuterTerrainView's R16 copy, m-16)
+uniform float outer_height_offset = 0.0;
 uniform bool outer_enabled = false;
 uniform float water_level = 0.0;                         // the lake reuses this shader at its own level
 uniform float depth_fallback_start = 300.0;              // metres from camera where the height map takes over
@@ -49,7 +53,10 @@ uniform vec2 wave_b_dir = vec2(-0.4, 1.0);
 uniform float wave_speed = 0.06;
 uniform float wave_strength : hint_range(0.0, 1.0) = 0.36;
 uniform float sparkle : hint_range(0.0, 2.0) = 0.22;   // r6 (item 12): open water had 0.29 % at V>0.85, a glitter path the ref lacks   // r3: 0.9 -> 0.5, the glitter path laced the surf zone with dashes; r5: 0.35, the sun now faces the camera
-uniform vec3 sun_dir = vec3(0.0, 0.5, -0.8);              // world-space direction TOWARD the sun (set by _build_sea)
+uniform vec3 sun_dir = vec3(0.0, 0.5, -0.8);              // world-space direction TOWARD the light (the sun, or the moon at night: DayNight)
+uniform vec3 glow_dir = vec3(0.0);                        // toward the sun for the horizon glow (0 = sun_dir)
+// DayNight: the fills the water fakes (foam emission) scale with the light of the hour
+global uniform vec3 dn_fill;
 uniform vec3 sun_color : source_color = vec3(1.0, 0.84, 0.69);
 uniform float sun_energy = 1.6;
 uniform float refract_strength : hint_range(0.0, 0.1) = 0.02;
@@ -68,6 +75,7 @@ uniform float foam_opacity : hint_range(0.0, 1.0) = 0.9;   // r6: 0.7 -> 0.9   /
 uniform float foam_emission = 0.7;      // r6: 0.5 -> 0.7      // r5: 0.8 -> 0.5      // foam clips toward foam_color regardless of the sun/ambient
 uniform float whitecap_threshold : hint_range(0.5, 1.0) = 0.93;   // r6: 3-6 caps per 100 m
 uniform float whitecap_fade_metres = 220.0;   // whitecaps are sub-pixel past this, so fade them
+uniform float whitecap_amount : hint_range(0.0, 1.0) = 0.3;
 
 // r2: turquoise from DISTANCE TO ROCK, not depth alone — the seabed drops ~6:1 at every wall so a
 // depth band is a 1-px ring. The depth buffer is probed in a screen-space neighbourhood: any hit
@@ -153,13 +161,16 @@ vec3 view_pos_from_buffer(vec2 suv, mat4 inv_proj) {
 // directional weights are averaged (x gain) so the field falls off smoothly instead of drawing a
 // 12-gon around every rock. A rock face 20 m up a pillar is 20 m away in 3-D and contributes
 // nothing, so only feet, boulders and shorelines count — where the turquoise and the foam belong.
+uniform int prox_dirs = 12;    // the quality preset: 12 directions x 6 radii (High, Ultra), 8 (Medium), 6 (Low)
+
 float rock_proximity(vec2 suv, float surf_d, float radius_m, float near_m, float gain, float sea_y, vec3 frag_w, mat4 inv_proj, mat4 inv_view) {
 	float f_y = 1.0 / max(abs(inv_proj[1][1]), 1e-4);     // = P[1][1]
 	float f_x = 1.0 / max(abs(inv_proj[0][0]), 1e-4);     // = P[0][0]
 	vec2 r_uv = radius_m * 0.5 / surf_d * vec2(f_x, f_y);
 	float acc = 0.0;
-	for (int i = 0; i < 12; i++) {
-		float ang = float(i) * (2.0 * PI / 12.0) + 0.13;
+	int dirs = clamp(prox_dirs, 4, 12);
+	for (int i = 0; i < dirs; i++) {
+		float ang = float(i) * (2.0 * PI / float(dirs)) + 0.13;
 		vec2 dir = vec2(cos(ang), sin(ang));
 		float best = radius_m;
 		for (int j = 1; j <= 6; j++) {
@@ -173,7 +184,7 @@ float rock_proximity(vec2 suv, float surf_d, float radius_m, float near_m, float
 		}
 		acc += smoothstep(radius_m, near_m, best);
 	}
-	return clamp(acc / 12.0 * gain, 0.0, 1.0);
+	return clamp(acc / float(dirs) * gain, 0.0, 1.0);
 }
 
 // vertical water depth from the island height map (the far-distance fallback)
@@ -185,7 +196,7 @@ float heightmap_depth(vec2 xz) {
 		// the outer world: its own heightfield out to +-12.5 km, the deep sea beyond
 		vec2 ouv = (xz + 12500.0 + 6.25) / 25012.5;
 		h = -40.0;
-		if (ouv.x > 0.0 && ouv.x < 1.0 && ouv.y > 0.0 && ouv.y < 1.0) { h = texture(outer_height, ouv).r; }
+		if (ouv.x > 0.0 && ouv.x < 1.0 && ouv.y > 0.0 && ouv.y < 1.0) { h = textureLod(outer_height, ouv, 0.0).r * outer_height_scale + outer_height_offset; }
 	} else if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) { h = texture(height_map, uv).r * 90.0 - 10.0; }
 	return max(water_level - h, 0.0);
 }
@@ -322,7 +333,8 @@ void fragment() {
 	float streak = smoothstep(0.55, 0.75, streak_n * 0.6 + clump * 0.4) * streak_zone * 1.2;   // r5: x1.2, the trails carry the foam, the collar is lace
 	float caps_n = clamp((fn2 * 0.6 + fn * 0.4 - 0.3) / 0.4, 0.0, 1.0);   // 4-11 m scales: crests, not a 1.5 m sprinkle
 	// sparse whitecaps on open water (~1 % of pixels clip to foam), gone where they would be sub-pixel
-	float caps = smoothstep(whitecap_threshold, whitecap_threshold + 0.06, caps_n) * smoothstep(3.0, 12.0, vdepth);
+	// P-1: soft, faint crests; the hard 0.06 ramp at full opacity read as paper specks on the open sea
+	float caps = smoothstep(whitecap_threshold - 0.04, whitecap_threshold + 0.1, caps_n) * smoothstep(3.0, 12.0, vdepth) * whitecap_amount;
 	caps *= 1.0 - smoothstep(whitecap_fade_metres * 0.5, whitecap_fade_metres, surf_d);
 	caps *= 1.0 - smoothstep(0.1, 0.25, prox);                          // r3: open water only, never in the 3-12 m band
 	// in patches (a 25 m mask at ~30 % cover), not an even sprinkle: the reference shows a few streaks per 100 m
@@ -330,15 +342,17 @@ void fragment() {
 	caps *= 1.0 - 0.7 * lines_w;                                         // the current drew the caps out into dashes
 	float foam = clamp(ring + streak + caps, 0.0, 1.0) * foam_opacity * (1.0 - far_w);
 	// the current's lines: foam and slicks drawn out along the flow (estuary, lagoon)
+	// (the flow uv and its derivatives outside the branch: implicit derivatives are undefined in it)
+	vec2 fd = normalize(flow + 1e-4);
+	vec2 fuv = vec2(dot(wpos.xz, fd) / 40.0 - TIME * length(flow) / 40.0, dot(wpos.xz, vec2(-fd.y, fd.x)) / 5.0);
+	vec2 fuvx = dFdx(fuv); vec2 fuvy = dFdy(fuv);
 	if (lines_w > 0.01) {
-		vec2 fd = normalize(flow + 1e-4);
-		vec2 fuv = vec2(dot(wpos.xz, fd) / 40.0 - TIME * length(flow) / 40.0, dot(wpos.xz, vec2(-fd.y, fd.x)) / 5.0);
 		// sparse: a few thin lines where two noise bands agree, gone past a few hundred metres. Drawn
 		// as smooth dark slicks, not foam: as foam they read as white speed-dashes over the whole mouth
-		float ln = texture(foam_noise, fuv).r * texture(foam_noise, fuv * vec2(0.37, 0.61) + 0.3).r;
+		float ln = textureGrad(foam_noise, fuv, fuvx, fuvy).r * textureGrad(foam_noise, fuv * vec2(0.37, 0.61) + 0.3, fuvx * vec2(0.37, 0.61), fuvy * vec2(0.37, 0.61)).r;
 		float lines = smoothstep(0.45, 0.52, ln) * lines_w * (1.0 - smoothstep(60.0, 300.0, surf_d));
 		col *= 1.0 - 0.07 * lines;
-		col *= 1.0 - 0.05 * smoothstep(0.4, 0.6, texture(foam_noise, fuv * vec2(0.3, 0.5) + 0.5).r) * lines_w;
+		col *= 1.0 - 0.05 * smoothstep(0.4, 0.6, textureGrad(foam_noise, fuv * vec2(0.3, 0.5) + 0.5, fuvx * vec2(0.3, 0.5), fuvy * vec2(0.3, 0.5)).r) * lines_w;
 	}
 	// far coasts: the surf line from the height map where the depth buffer's foam has faded out
 	if (outer_enabled && !in_core) {
@@ -351,7 +365,7 @@ void fragment() {
 	// halfway between sun and eye (Blinn), broken up by the foam noise so it sparkles, not shines ----------
 	vec3 hv = normalize(sun_dir - view_w);
 	float glint = pow(clamp(dot(wn, hv), 0.0, 1.0), 180.0) * smoothstep(0.35, 0.7, fn2 + clump * 0.4);
-	col += sun_color * glint * sparkle * (1.0 - far_w) * 2.0;
+	col += sun_color * glint * sparkle * (1.0 - far_w) * 2.0 * clamp(sun_energy / 1.3, 0.0, 1.0);   // (the moon's path is a fraction of the sun's)
 
 	if (debug_depth == 1) { col = vec3(vdepth / 10.0); }
 	if (debug_depth == 2) { col = bed; }
@@ -365,8 +379,9 @@ void fragment() {
 		float fog_amt = max(1.0 - exp(-surf_d * fog_density), far_t);
 		// the sky's colour at the horizon in THIS azimuth (see sky.gdshader: narrow + wide glow lobes)
 		vec3 hz_dir = normalize(vec3(view_w.x, 0.0, view_w.z));
-		float gd = max(dot(hz_dir, sun_dir), 0.0);
-		float gaz = max(dot(normalize(hz_dir.xz), normalize(sun_dir.xz)), 0.0);
+		vec3 gdir = dot(glow_dir, glow_dir) > 0.5 ? glow_dir : sun_dir;
+		float gd = max(dot(hz_dir, gdir), 0.0);
+		float gaz = max(dot(normalize(hz_dir.xz), normalize(gdir.xz + vec2(1e-4, 0.0))), 0.0);
 		vec3 glow = sky_glow_srgb * pow(gd, sky_glow_power) * sky_glow_amount + sky_glow_wide_srgb * pow(gaz, 1.5) * sky_glow_wide * sky_glow_wide_mul;
 		// no upper clamp: the sky shader hands values > 1 to the tonemapper (a clamp here dropped the
 		// blue channel of the far rows and drew a warm band under the sky on the sun side, r3)
@@ -380,7 +395,7 @@ void fragment() {
 		fog_col += sun_lin * pow(clamp(dot(view_w, sun_dir), 0.0, 1.0), 8.0) * fog_sun_scatter * sun_energy * (1.0 - hz_w);
 		FOG = vec4(fog_col, fog_amt);
 	}
-	EMISSION = foam_color * foam * foam_emission;   // cream foam must clip, not get lit by the water's sun/ambient
+	EMISSION = foam_color * foam * foam_emission * dn_fill;   // cream foam must clip, not get lit by the water's sun/ambient
 	// the engine's own sky-radiance specular is the second reflection; keep it modest and let the
 	// far sea go rougher so the horizon does not turn into a sky-coloured mirror
 	ROUGHNESS = mix(mix(roughness_value, 0.4, far_w), 0.9, foam);

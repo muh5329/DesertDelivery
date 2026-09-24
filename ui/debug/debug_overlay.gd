@@ -64,6 +64,15 @@ func reload_chunk_under_player() -> void:
 		Events.message.emit("Reloaded chunk %s" % str(c), 2.0)
 
 
+## The hour, the lamp lights in use, texture memory and the preset (M-12, m-4, m-14).
+func _light_line() -> String:
+	var dn: DayNight = game.world.day_night
+	if dn == null: return ""
+	return "%02d:%02d  sun %.0f deg  night %.2f  lamp lights %d/%d   textures %.0f MB (arch %.0f MB)   quality %s" % [int(dn.hour), int(fmod(dn.hour, 1.0) * 60.0),
+		dn.sun_elevation, dn.night, dn.lights.active(), dn.lights.budget, Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0,
+		ArchMaterials.bytes_used / 1048576.0, GraphicsSettings.NAMES[GraphicsSettings.level]]
+
+
 func _process(_delta: float) -> void:
 	if not _visible or game == null: return
 	var st := game.world.streamer
@@ -81,6 +90,7 @@ func _process(_delta: float) -> void:
 		"nodes %d   objects %d   draw calls %d   primitives %d" % [game.get_tree().get_node_count(), Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)],
 		"biome %s   near %s   recipes %d" % [Terrain.Biome.keys()[game.world.terrain.biome_at(p.x, p.z)], String(db.nearest_location(p)), db.record_count],
 		"job %s -> %s   deliveries %d   save: %s" % [String(game.gm.target_location()), game.gm.target_name(), game.gm.deliveries, "quick" if Saves.has_save("quick") else "none"],
-		"F3 hide   F5 save   F9 load   F6 next hub   F7 reload chunk   F8 streaming",
+		_light_line(),
+		"F3 hide   F5 save   F9 load   F6 next hub   F7 reload chunk   F8 streaming   F10 graphics",
 	]
 	_label.text = "\n".join(lines)

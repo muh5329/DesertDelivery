@@ -378,16 +378,9 @@ func _sync_views(delta: float) -> void:
 		actor.rotation.y=lerp_angle(actor.rotation.y,yaw,clampf(delta*8,0,1))
 		actor.update_view(r,delta,focus.distance_to(r.position)<14.0)
 
+## The clock drives the light of the whole world (sun, moon, sky, fog, lamps): WorldManager's DayNight.
 func _update_daylight() -> void:
-	var hour:=minute_of_day()/60.0
-	var daylight:=smoothstep(5.0,7.5,hour)*(1.0-smoothstep(18.0,21.0,hour))
-	world.island.sun.light_energy=lerpf(.10,1.2,daylight)
-	world.island.sun.rotation_degrees.x=lerpf(-12,-63,sin(clampf((hour-6)/12,0,1)*PI))
-	for child in world.environment.get_children():
-		if child is WorldEnvironment:
-			var env: Environment=child.environment
-			env.ambient_light_energy=lerpf(.25,.47,daylight)
-			if env.sky.sky_material is ShaderMaterial: env.sky.sky_material.set_shader_parameter("daylight",lerpf(.08,1,daylight))
+	if world.day_night: world.day_night.set_hour(minute_of_day()/60.0)
 
 func save_state() -> Dictionary:
 	var records: Dictionary={}

@@ -174,13 +174,8 @@ func _campfire(x: float, z: float) -> void:
 	var charred := Mats.solid(Color(0.16, 0.12, 0.10), 0.9)
 	for i in range(3):
 		n.add_child(Mats.cylinder(0.055, 0.8, charred, Vector3(0, 0.12, 0), Vector3(80, i * 60.0, 0), 6))
-	var flame := Mats.solid(Color(1.0, 0.55, 0.15), 0.5, 0.0, Color(1.0, 0.45, 0.1))
-	n.add_child(Mats.cone(0.22, 0.55, flame, Vector3(0, 0.22, 0), 8))
-	n.add_child(Mats.cone(0.12, 0.4, Mats.solid(Color(1.0, 0.85, 0.4), 0.5, 0.0, Color(1.0, 0.8, 0.3)), Vector3(0.05, 0.2, 0.03), 6))
-	var light := OmniLight3D.new()
-	light.light_color = Color(1.0, 0.62, 0.3); light.light_energy = 1.4; light.omni_range = 7.0
-	light.position = Vector3(0, 0.8, 0)
-	n.add_child(light)
+	# flames, embers and a flickering light that carries the camp at night (world/sky, M-12)
+	CampfireGlow.attach(n, Vector3.ZERO, 0.8)
 	# logs to sit on
 	for side in [-1.0, 1.0]:
 		var lp := _w(x + side * 1.9, z + 0.4)

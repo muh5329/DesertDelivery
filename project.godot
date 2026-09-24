@@ -150,6 +150,29 @@ cargo_remove={
 
 common/physics_ticks_per_second=120
 
+[shader_globals]
+
+dn_fill={
+"type": "vec3",
+"value": Vector3(1, 1, 1)
+}
+dn_night={
+"type": "float",
+"value": 0.0
+}
+dn_lamps={
+"type": "float",
+"value": 0.0
+}
+dn_windows={
+"type": "float",
+"value": 0.0
+}
+dn_sun_dir={
+"type": "vec3",
+"value": Vector3(-0.52, 0.588, 0.62)
+}
+
 [rendering]
 
 rendering_device/driver.macos="vulkan"

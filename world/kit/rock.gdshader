@@ -80,6 +80,10 @@ uniform float roughness_value : hint_range(0.0, 1.0) = 0.95;
 uniform float specular_value : hint_range(0.0, 1.0) = 0.1;
 uniform int debug_mode = 0;   // 1 = show vertex AO, 2 = no AO/normal map, 3 = world normal
 
+// DayNight: the fills below are emission, so they follow the hour; the shade gate follows the light
+global uniform vec3 dn_fill;
+global uniform vec3 dn_sun_dir;
+
 varying vec3 wpos;
 varying vec3 wnrm;
 
@@ -135,11 +139,13 @@ void fragment() {
 	// a second, finer normal octave (0.8 m tiles at 0.4): at 15 m the 3 m grain read as stripes,
 	// this makes it pitting; it fades out beyond ~60 m so far faces keep the coarse relief
 	float fine_w = fine_normal * (1.0 - smoothstep(12.0, 30.0, dist_cam));   // r4: fades 12-30 m (was 30-70): only the nearest faces carry pitting
+	// (explicit gradients: implicit ones are undefined inside a per-pixel branch, m-16)
+	vec3 uvf = wpos / fine_metres;
+	vec3 fdx = dFdx(uvf); vec3 fdy = dFdy(uvf);
 	if (fine_w > 0.001) {
-		vec3 uvf = wpos / fine_metres;
-		tn_x.xy += (texture(normal_tex, uvf.zy + 0.29).xy * 2.0 - 1.0) * fine_w;
-		tn_y.xy += (texture(normal_tex, uvf.xz + 0.61).xy * 2.0 - 1.0) * fine_w;
-		tn_z.xy += (texture(normal_tex, uvf.xy + 0.83).xy * 2.0 - 1.0) * fine_w;
+		tn_x.xy += (textureGrad(normal_tex, uvf.zy + 0.29, fdx.zy, fdy.zy).xy * 2.0 - 1.0) * fine_w;
+		tn_y.xy += (textureGrad(normal_tex, uvf.xz + 0.61, fdx.xz, fdy.xz).xy * 2.0 - 1.0) * fine_w;
+		tn_z.xy += (textureGrad(normal_tex, uvf.xy + 0.83, fdx.xy, fdy.xy).xy * 2.0 - 1.0) * fine_w;
 	}
 	// UDN blend: each projection's tangent-space xy perturbs the world normal along the world axes
 	// its UVs came from (x-proj uv = zy, y-proj uv = xz, z-proj uv = xy); UVs are straight world
@@ -211,8 +217,9 @@ void fragment() {
 	float sky_w = mix(0.12, 1.0, up_w) * smoothstep(-0.6, 0.0, wn.y);
 	// r6: the shade fill is a SHADE term: full on faces out of the sun, 40 % on a sun-square face
 	// (moving it into light() instead measured ~2x the emission strength in the GL renderer)
-	float sun_f = clamp(dot(wn, normalize(sun_dir)), 0.0, 1.0);
-	EMISSION = alb * mix(0.5, 1.0, ao) * (sky_fill_color * sky_w * sky_fill + shade_fill_color * side_w * shade_fill * (1.0 - 0.6 * sun_f));
+	vec3 sdir = dot(dn_sun_dir, dn_sun_dir) > 0.5 ? dn_sun_dir : sun_dir;
+	float sun_f = clamp(dot(wn, normalize(sdir)), 0.0, 1.0);
+	EMISSION = alb * mix(0.5, 1.0, ao) * (sky_fill_color * sky_w * sky_fill + shade_fill_color * side_w * shade_fill * (1.0 - 0.6 * sun_f)) * dn_fill;
 
 	if (debug_mode == 1) { alb = vec3(COLOR.r); }
 	if (debug_mode == 2) { alb = base_tint; NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz); }

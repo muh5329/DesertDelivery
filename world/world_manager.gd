@@ -4,7 +4,7 @@ extends Node3D
 ## describes everything else, and the WorldStreamer that turns nearby chunks into nodes.
 ##
 ##   WorldManager
-##   ├── Environment   sky, sun, sea, abyss, boundary walls, terrain (always loaded)
+##   ├── Environment   sky, sun, sea, abyss, boundary walls, terrain, DayNight (always loaded)
 ##   └── WorldStreamer chunks around the focus
 ##
 ## Interface: `database`, `terrain`, `streamer`, `island` (the generator), `outer` (the outer
@@ -20,6 +20,8 @@ var streamer: WorldStreamer
 var generate_ms := 0
 ## The 25 km country round the core (world/outer, ADR 0010).
 var outer: OuterWorld
+## The light of the hour: sun, moon, sky, fog, lamps (world/sky, M-12).
+var day_night: DayNight
 
 
 func setup(p_config: WorldConfig) -> void:
@@ -38,7 +40,14 @@ func setup(p_config: WorldConfig) -> void:
 	environment.add_child(outer)
 	outer.setup(terrain, database, island, config.seed)
 	terrain.expanse = outer
+	day_night = DayNight.new()
+	environment.add_child(day_night)
+	day_night.setup(self)
+	GraphicsSettings.apply(self)     # the saved quality preset (F10), High by default
 	streamer.setup(database, island, config)
+	# the kit's texture arrays were decoded and compressed on the workers during the generation:
+	# upload them now, behind the loading screen, not at the first town (m-14)
+	ArchMaterials.finish_boot()
 	generate_ms = Time.get_ticks_msec() - t0
 
 

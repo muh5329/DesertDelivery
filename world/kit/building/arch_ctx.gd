@@ -12,6 +12,10 @@ var bxf := Transform3D.IDENTITY
 var rng := RandomNumberGenerator.new()
 var collide := true
 var far := 0.0                     # visibility range end of the small details (0 = none)
+var lamps := PackedVector3Array()  # where the lanterns and plaza lamps hang (NightLights, DayNight)
+## module key -> the light's position in the module's frame
+var beams := PackedVector3Array()  # lighthouse lanterns: a lamp for NightLights (the beams are resident, DayNight)
+const LAMP_KEYS := {"lantern": Vector3(0, -0.16, 0.45), "p_lamp_plaza": Vector3(0, 3.7, 0)}
 
 
 func begin(xf: Transform3D, seed_v: int) -> void:
@@ -28,6 +32,7 @@ func place(key: String, local: Transform3D, custom: Color = Color.WHITE, wall: C
 		e = [[], PackedColorArray(), PackedColorArray()]
 		inst[key] = e
 	e[0].append(bxf * local)
+	if LAMP_KEYS.has(key): lamps.append(bxf * local * (LAMP_KEYS[key] as Vector3))
 	e[1].append(custom)
 	e[2].append(wall)
 
@@ -144,6 +149,13 @@ func finish(parent: Node3D, name_prefix: String = "Buildings") -> void:
 		if far > 0.0 and ArchModules.details.get(key, false):
 			mmi.visibility_range_end = far
 		parent.add_child(mmi)
+	if not lamps.is_empty():
+		var marker := Node3D.new(); marker.name = name_prefix + "Lamps"
+		parent.add_child(marker)
+		NightLights.register(marker, lamps)
+	for b in beams:
+		var lm := Node3D.new(); lm.name = name_prefix + "Lantern"; parent.add_child(lm)
+		NightLights.register(lm, PackedVector3Array([b - Vector3(0, 2.0, 0)]))
 	if not shapes.is_empty():
 		var body := StaticBody3D.new()
 		body.name = name_prefix + "Body"

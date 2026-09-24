@@ -50,6 +50,9 @@ uniform float translucency : hint_range(0.0, 1.0) = 0.38;
 uniform vec3 translucent_tint : source_color = vec3(0.78, 0.92, 0.42);
 uniform float under_lift : hint_range(0.0, 1.0) = 0.45;
 
+// DayNight: the olive ambient floor stands in for the sky ambient, so it follows the hour
+global uniform vec3 dn_fill;
+
 varying float grad;
 varying float jit;
 varying vec3 tint;
@@ -79,6 +82,10 @@ void fragment() {
 	float mip = max(0.0, 0.5 * log2(max(dot(ddx, ddx), dot(ddy, ddy))));
 	ALPHA = t.a * (1.0 + mip * 0.2);
 	ALPHA_SCISSOR_THRESHOLD = alpha_cut;
+	// with MSAA on (the Ultra preset) the cut edge becomes alpha-to-coverage: soft leaf edges
+	// instead of a stair-stepped, crawling silhouette (m-16)
+	ALPHA_ANTIALIASING_EDGE = 0.25;
+	ALPHA_TEXTURE_COORDINATE = UV * ts;
 	vec3 c = mix(mix(col_dark, col_lit, grad * grad), t.rgb * card_tint, use_tex);
 	c *= tint * (1.0 + jit * 0.25);
 	// the jitter only ever warms (r up, b down): a cool-shifted leaf would go teal under the fog
@@ -90,7 +97,7 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	// the flat olive ambient stands in for the sky ambient the render mode switched off; the lower
 	// crown also catches the ground's bounce
-	EMISSION = ALBEDO * ambient_floor * (1.0 + under_lift * (1.0 - grad));
+	EMISSION = ALBEDO * ambient_floor * (1.0 + under_lift * (1.0 - grad)) * dn_fill;
 }
 
 void light() {

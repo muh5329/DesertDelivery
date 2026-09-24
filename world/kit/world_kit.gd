@@ -1258,7 +1258,7 @@ static func _leaf_material(tex_name: String, tint: Color = Color.WHITE) -> Shade
 	if _leaf_shader == null: _leaf_shader = load(TREE_DIR + "leaf.gdshader")
 	var m := ShaderMaterial.new()
 	m.shader = _leaf_shader
-	m.set_shader_parameter("leaf_tex", load(FOLIAGE_DIR + tex_name + ".png"))
+	m.set_shader_parameter("leaf_tex", TexMips.ensure(load(FOLIAGE_DIR + tex_name + ".png")))
 	m.set_shader_parameter("use_tex", 1.0)
 	m.set_shader_parameter("card_tint", tint)
 	m.set_shader_parameter("alpha_cut", 0.38)  # r3 item 6: 0.45 dissolved minified cards into confetti; r4 item 5: 0.3 + the mip bias made blobs
@@ -1364,7 +1364,7 @@ static func _tree_parts(model: String, kind: String, scale: float) -> Array[Prop
 			if src != null and src.resource_name.begins_with("Leaves"):
 				var leaf := ShaderMaterial.new()
 				leaf.shader = _leaf_shader
-				leaf.set_shader_parameter("leaf_tex", (src as BaseMaterial3D).albedo_texture)
+				leaf.set_shader_parameter("leaf_tex", TexMips.ensure((src as BaseMaterial3D).albedo_texture))
 				leaf.set_shader_parameter("col_dark", look[0])
 				leaf.set_shader_parameter("col_lit", look[1])
 				leaf.set_shader_parameter("y_bottom", aabb.position.y + aabb.size.y * float(look[2]))
@@ -1372,19 +1372,24 @@ static func _tree_parts(model: String, kind: String, scale: float) -> Array[Prop
 				leaf.set_shader_parameter("ambient_floor", Color(.40,.49,.37))
 				mat = leaf
 			else:
-				# the bark is fully opaque: drop the importer's alpha scissor (discard costs early-Z)
-				var bark := (src as BaseMaterial3D).duplicate() as BaseMaterial3D
-				bark.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
-				bark.cull_mode = BaseMaterial3D.CULL_BACK
-				bark.vertex_color_use_as_albedo = true
-				bark.albedo_color = Color(0.70, 0.62, 0.55)   # towards the reference's #4a3b31 trunks
-				bark.roughness = 1.0
-				bark.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-				mat = bark
+				# m-7: the bark shader (assets/trees/bark.gdshader): opaque, both faces lit, the dark
+				# map as a pattern over a warm bark colour, mipmapped (the trunks were black shards)
+				mat = _bark_material((src as BaseMaterial3D).albedo_texture if src is BaseMaterial3D else null)
 			parts.append(PropPart.new(one, mat, xf * (mi as Node3D).transform))
 	root.free()
 	_tree_parts_cache[key] = parts
 	return parts
+
+
+static var _bark_mats: Dictionary = {}
+static func _bark_material(tex: Texture2D) -> ShaderMaterial:
+	var key := tex.resource_path if tex else ""
+	if _bark_mats.has(key): return _bark_mats[key]
+	var m := ShaderMaterial.new()
+	m.shader = load(TREE_DIR + "bark.gdshader")
+	if tex: m.set_shader_parameter("bark_tex", TexMips.ensure(tex))
+	_bark_mats[key] = m
+	return m
 
 
 func _cypress_parts() -> Array[PropPart]:
@@ -1549,8 +1554,9 @@ func _lamp_post(parent: Node3D, pos: Vector3) -> void:
 	var iron := Mats.solid(Color(0.15, 0.15, 0.16), 0.6, 0.3)
 	n.add_child(Mats.cylinder(0.06, 3.4, iron, Vector3(0, 1.7, 0)))
 	n.add_child(Mats.cylinder(0.18, 0.15, iron, Vector3(0, 0.07, 0)))
-	n.add_child(Mats.box(Vector3(0.36, 0.42, 0.36), Mats.solid(Color(1.0, 0.9, 0.6), 0.3, 0, Color(1.0, 0.8, 0.4)), Vector3(0, 3.55, 0)))
+	n.add_child(Mats.box(Vector3(0.36, 0.42, 0.36), NightLights.bulb_material(), Vector3(0, 3.55, 0)))
 	n.add_child(Mats.cone(0.3, 0.25, iron, Vector3(0, 3.88, 0)))
+	NightLights.register(n, PackedVector3Array([Vector3(0, 3.4, 0)]))
 	_add_cylinder_body(n, 0.12, 3.4, Vector3.ZERO)
 
 
@@ -1808,7 +1814,8 @@ func _lighthouse(parent: Node3D, pos: Vector3) -> void:
 	l.add_child(Mats.cylinder(1.72, 2.4, red, Vector3(0, 6.0, 0), Vector3.ZERO, 16, 1.8))
 	l.add_child(Mats.cylinder(1.72, 2.4, red, Vector3(0, 12.0, 0), Vector3.ZERO, 16, 1.6))
 	l.add_child(Mats.cylinder(2.0, 0.5, Mats.solid(Color(0.25, 0.25, 0.28), 0.6), Vector3(0, 18.2, 0), Vector3.ZERO, 16))
-	l.add_child(Mats.cylinder(1.3, 2.4, Mats.solid(Color(1.0, 0.92, 0.6), 0.2, 0.0, Color(1.0, 0.85, 0.4)), Vector3(0, 19.6, 0), Vector3.ZERO, 12))
+	l.add_child(Mats.cylinder(1.3, 2.4, NightLights.bulb_material(), Vector3(0, 19.6, 0), Vector3.ZERO, 12))
+	NightLights.register(l, PackedVector3Array([Vector3(0, 17.4, 0)]))
 	l.add_child(Mats.cone(1.6, 1.4, red, Vector3(0, 21.5, 0), 12))
 	_add_cylinder_body(l, 1.9, 21.0, Vector3.ZERO)
 
@@ -1960,8 +1967,7 @@ func _campfire(parent: Node3D, pos: Vector3) -> void:
 		n.add_child(Mats.sphere(0.22, Mats.solid(Color(0.5, 0.48, 0.44), 0.95), Vector3(cos(a) * 0.75, 0.1, sin(a) * 0.75), Vector3(1.2, 0.7, 1.0), 6))
 	n.add_child(Mats.cylinder(0.08, 1.0, Mats.solid(Color(0.16, 0.12, 0.10), 0.9), Vector3(0, 0.15, 0), Vector3(0, 30, 80)))
 	n.add_child(Mats.cylinder(0.08, 1.0, Mats.solid(Color(0.16, 0.12, 0.10), 0.9), Vector3(0, 0.15, 0), Vector3(0, 100, 80)))
-	n.add_child(Mats.sphere(0.2, Mats.solid(Color(1.0, 0.5, 0.15), 0.6, 0.0, Color(1.0, 0.45, 0.1)), Vector3(0, 0.15, 0), Vector3(1, 0.5, 1), 6))
-	var l := OmniLight3D.new(); l.light_color = Color(1.0, 0.6, 0.3); l.light_energy = 1.2; l.omni_range = 6.0; l.position = Vector3(0, 0.8, 0); n.add_child(l)
+	CampfireGlow.attach(n, Vector3.ZERO, 0.7)
 
 
 ## Woolly sheep (the moor's livestock).

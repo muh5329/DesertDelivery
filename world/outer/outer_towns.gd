@@ -285,14 +285,17 @@ func _lod_mesh(plots: Array, origin: Vector3) -> Mesh:
 	var body := StaticBody3D.new()
 	for p: Dictionary in plots: _placeholder(st, p, origin, body)
 	body.free()
-	return st.commit()
+	var mesh := st.commit()
+	if mesh.get_surface_count() > 0: mesh.surface_set_material(0, _vertex_colour_material())
+	return mesh
 
 
 func _build_lod_cell(c: Vector2i, plots: Array) -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "Lod_%d_%d" % [c.x, c.y]
+	# (m-6: the mesh keeps its own material - the kit's LOD shader, the near buildings' albedo and
+	# lighting - instead of a flat vertex-colour override that drew a bright LOD line over the town)
 	mi.mesh = _lod_mesh(plots, Vector3.ZERO)
-	mi.material_override = _vertex_colour_material()
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_end = 2600.0
 	lod_root.add_child(mi)
@@ -304,7 +307,6 @@ func _build_town_lod(t: Dictionary) -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "TownLod_%s" % t.id
 	mi.mesh = _lod_mesh(t.plots, Vector3.ZERO)
-	mi.material_override = _vertex_colour_material()
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_begin = 2400.0
 	mi.visibility_range_end = 16000.0
@@ -352,6 +354,9 @@ func _build_lamps(parent: Node3D, pts: Array) -> void:
 	var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.name = "StreetLamps"
 	mmi.visibility_range_end = 260.0
 	parent.add_child(mmi)
+	var heads := PackedVector3Array()
+	for i in range(pts.size()): heads.append((pts[i] as Vector3) - origin + Vector3(0, 3.75, 0))
+	NightLights.register(mmi, heads)
 
 
 func _lamp_mesh() -> ArrayMesh:
@@ -364,9 +369,7 @@ func _lamp_mesh() -> ArrayMesh:
 	OuterRoads._box(st2, Vector3(0, 3.95, 0), Vector3(0.34, 0.42, 0.34))
 	st2.commit(m)
 	var iron := StandardMaterial3D.new(); iron.albedo_color = Color(0.15, 0.15, 0.16); iron.metallic = 0.3; iron.roughness = 0.6
-	var glow := StandardMaterial3D.new(); glow.albedo_color = Color(1.0, 0.92, 0.7); glow.emission_enabled = true
-	glow.emission = Color(1.0, 0.8, 0.45); glow.emission_energy_multiplier = 0.5
-	m.surface_set_material(0, iron); m.surface_set_material(1, glow)
+	m.surface_set_material(0, iron); m.surface_set_material(1, NightLights.bulb_material())
 	_lamp_mm_mesh = m
 	return m
 

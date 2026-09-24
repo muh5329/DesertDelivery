@@ -363,8 +363,10 @@ static func lighthouse(c: ArchCtx, p: Dictionary) -> void:
 	m.cylinder(Vector3(0, H * 0.65, 0), r * 0.9, r * 0.82, H * 0.35, 14, true)
 	m.layer = S.wx(L.STONE, 0.3); m.tint = Color(0.8, 0.8, 0.78)
 	m.cylinder(Vector3(0, H, 0), r * 1.2, r * 1.2, 0.25, 14, true, true)
-	m.layer = S.wx(L.GLASS, 0.0); m.tint = Color.WHITE
+	# the lantern room is lamp glass (lit at night, arch.gdshader) with the turning beams over it
+	m.layer = S.wx(L.GLASS, 0.0); m.tint = Color(1.0, 0.92, 0.66)
 	m.cylinder(Vector3(0, H + 0.25, 0), r * 0.6, r * 0.6, 1.8, 10, false)
+	c.beams.append(c.bxf * Vector3(0, H + 1.15, 0))
 	m.layer = S.wx(L.IRON, 0.2); m.tint = Color(0.2, 0.22, 0.24)
 	m.dome(Vector3(0, H + 2.05, 0), r * 0.66, 0.8, 10, 3)
 	var cyl := CylinderShape3D.new(); cyl.radius = r; cyl.height = H - yb
@@ -588,13 +590,13 @@ static func lod(m: ArchMesh, p: Dictionary) -> void:
 				m.tint = Color(0.2, 0.36, 0.6)
 				m.dome(Vector3(0, H + w * 0.5 * k, -d * 0.15), minf(w * 0.34, 3.4), 1.15, 6, 2)
 		"windmill":
-			m.tint = Color(0.95, 0.94, 0.92)
+			m.tint = BuildingKit.LOD_ROOF[1]      # whitewash, linear (m-6)
 			var r := clampf(minf(w, d) * 0.36, 2.2, 3.6) - 0.2
 			m.cylinder(Vector3(0, yb, 0), r, r * 0.82, 8.5 - yb, 6, false)
-			m.tint = Color(0.35, 0.33, 0.32)
+			m.tint = Color(0.12, 0.11, 0.1)
 			m.cylinder(Vector3(0, 8.5, 0), r * 0.82 + 0.3, 0.05, 2.6, 6, false)
 		"lighthouse":
-			m.tint = Color(0.95, 0.94, 0.92)
+			m.tint = BuildingKit.lod_albedo(ArchMaterials.PLASTER, Color(0.97, 0.96, 0.94)) * BuildingKit.LOD_WALL_WEAR
 			m.cylinder(Vector3(0, yb, 0), 2.0, 1.7, 18.0 - yb, 6, true)
 		"wall":
 			m.tint = fort

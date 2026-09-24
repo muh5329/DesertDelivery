@@ -38,12 +38,29 @@ const int L_GLASS = 11;
 const int L_IRON = 12;
 const int L_TERRACE = 16;
 
+// DayNight (M-12): the sky fill follows the hour; by night a share of the window panes is lit from
+// inside (per window: the module instance's position, or a 2 x 3 m cell for baked glass) and the lamp
+// glass (lanterns, plaza lamps: the warm-tinted glass) glows while the street lamps are on
+global uniform vec3 dn_fill;
+global uniform float dn_night;
+global uniform float dn_lamps;
+global uniform float dn_windows;
+
 varying flat float v_layer;
+varying flat float v_lit;
+varying vec3 v_wpos;
 varying flat float v_weather;
 varying float v_h;
 varying float v_eave;
 varying vec3 v_tint;
 varying vec3 v_wnormal;
+
+float arch_hash(vec3 p) {
+	uvec3 q = uvec3(ivec3(floor(p)) + ivec3(1048576));
+	uint h = q.x * 374761393u + q.y * 668265263u + q.z * 2246822519u;
+	h = (h ^ (h >> 13u)) * 1274126177u;
+	return float((h ^ (h >> 16u)) & 0xffffu) / 65535.0;
+}
 
 void vertex() {
 	float l = UV2.x;
@@ -79,12 +96,18 @@ void vertex() {
 		VERTEX.y += VERTEX.x * roll + VERTEX.z * pitch + sin(TIME * 0.95 + ph * 0.5) * 0.07 * bob;
 	}
 	v_wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	v_wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	// one draw per window module: its instance origin (x 4 so neighbours differ) keys the window
+	v_lit = instanced ? arch_hash(MODEL_MATRIX[3].xyz * 4.0) : -1.0;
 }
 
 void fragment() {
 	int L = int(v_layer + 0.5);
 	float tile = TILE[clamp(L, 0, 16)];
 	vec2 uv = UV / tile;
+	// the UV's screen derivatives, taken in uniform control flow for the samples in branches below
+	// (implicit derivatives are undefined there: wrong mips on a real GPU, m-16)
+	vec2 uvdx = dFdx(UV); vec2 uvdy = dFdy(UV);
 	vec4 a = texture(alb_tex, vec3(uv, float(L)));
 	vec4 n = texture(nrm_tex, vec3(uv, float(L)));
 	vec3 alb = a.rgb * mix(vec3(1.0), v_tint, a.a);
@@ -101,13 +124,13 @@ void fragment() {
 		float worn = (1.0 - smoothstep(0.1, 0.9 + 1.1 * nz.b, v_h)) * smoothstep(0.55, 0.7, nz2.r * 0.8 + 0.45 * w + 0.1 * nz.a);
 		if (worn > 0.01) {
 			vec3 suv = vec3(UV / 3.0, 2.0);
-			alb = mix(alb, texture(alb_tex, suv).rgb * vec3(0.95, 0.93, 0.9), worn);
-			n = mix(n, texture(nrm_tex, suv), worn);
+			alb = mix(alb, textureGrad(alb_tex, suv, uvdx / 3.0, uvdy / 3.0).rgb * vec3(0.95, 0.93, 0.9), worn);
+			n = mix(n, textureGrad(nrm_tex, suv, uvdx / 3.0, uvdy / 3.0), worn);
 		}
 	}
 	if (wall) {
 		// rain streaks: long vertical noise, stronger on weathered buildings and near the eaves
-		float streak = texture(noise_tex, vec2(UV.x * 0.31, UV.y * 0.018)).g;
+		float streak = textureGrad(noise_tex, vec2(UV.x * 0.31, UV.y * 0.018), uvdx * vec2(0.31, 0.018), uvdy * vec2(0.31, 0.018)).g;
 		float s = smoothstep(0.52, 0.86, streak) * (0.35 + 0.65 * w);
 		alb *= 1.0 - 0.22 * s * (0.5 + 0.5 * (1.0 - smoothstep(0.0, 9.0, v_eave)));
 		// rising damp and splash grime at the foot
@@ -160,5 +183,23 @@ void fragment() {
 	NORMAL = normalize(T * nxy.x - B * nxy.y + N * nzz);
 	// soft sky fill on up-facing surfaces
 	float up = clamp(v_wnormal.y * 0.5 + 0.5, 0.0, 1.0);
-	EMISSION = alb * sky_fill_color * sky_fill * up * n.b;
+	EMISSION = alb * sky_fill_color * sky_fill * up * n.b * dn_fill;
+	if (L == L_GLASS && dn_lamps + dn_windows > 0.001) {
+		vec3 t = v_tint;
+		if (t.r > 0.97 && t.g > 0.8 && t.b < 0.75) {
+			// lamp glass: a warm bulb behind it
+			EMISSION += vec3(1.0, 0.7, 0.36) * 7.0 * dn_lamps;
+		} else if (min(t.r, min(t.g, t.b)) > 0.95) {
+			float h = v_lit >= 0.0 ? v_lit : arch_hash(floor(v_wpos / vec3(2.2, 3.1, 2.2)) + vec3(0.0, 0.0, 91.0));
+			float on = step(h, dn_windows);
+			// rooms: warm lamplight in most, a paler kitchen or two, the odd cold blue
+			float k = fract(h * 7.13);
+			vec3 room = mix(vec3(1.0, 0.56, 0.24), vec3(1.0, 0.76, 0.46), k);
+			room = mix(room, vec3(0.5, 0.66, 1.0), step(0.94, fract(h * 13.7)) * 0.8);
+			// the pane is not uniformly bright: brighter low (the lamp), a curtain-soft falloff up
+			float glow_v = 0.75 + 0.5 * smoothstep(0.2, 0.8, a.r);
+			EMISSION += room * on * dn_night * 1.7 * (0.6 + 0.8 * fract(h * 3.7)) * glow_v;
+			ALBEDO = mix(ALBEDO, ALBEDO * 0.4, on * dn_night);
+		}
+	}
 }
