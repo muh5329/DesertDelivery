@@ -25,7 +25,7 @@ var _controls: Label
 var _controls_timer := 14.0
 var _prompt_bg: Panel
 var _title: Label
-var _crosshair: Control
+var combat: CombatHud
 var _speed_group: Array = []
 var _gun_label: Label
 var _mode_label: Label
@@ -202,23 +202,10 @@ func _build() -> void:
 	_service_hint.size=Vector2(760,28); _service_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	_service_hint.add_theme_color_override("font_outline_color",INK); _service_hint.add_theme_constant_override("outline_size",4)
 
-	# --- crosshair (only with the pistol, on foot)
-	_crosshair = Control.new()
-	_crosshair.set_anchors_preset(Control.PRESET_CENTER)
-	_crosshair.visible = false
-	root.add_child(_crosshair)
-	_crosshair.draw.connect(func():
-		var c := Color(0.98, 0.96, 0.9)
-		var o := Color(0.1, 0.08, 0.06, 0.85)
-		_crosshair.draw_arc(Vector2.ZERO, 9, 0, TAU, 24, o, 4.5, true)
-		_crosshair.draw_arc(Vector2.ZERO, 9, 0, TAU, 24, c, 2.0, true)
-		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
-			_crosshair.draw_line(d * 12, d * 20, o, 4.5)
-			_crosshair.draw_line(d * 12, d * 20, c, 2.0))
 	_gun_label = _label("", 18, Color(0.98, 0.96, 0.9))
 	_gun_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_gun_label.position = Vector2(-460, -140)
-	_gun_label.size = Vector2(430, 60)
+	_gun_label.position = Vector2(-460, -222)
+	_gun_label.size = Vector2(430, 30)
 	_gun_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_gun_label.add_theme_color_override("font_outline_color", INK)
 	_gun_label.add_theme_constant_override("outline_size", 6)
@@ -338,6 +325,15 @@ func _active_vehicle() -> Vehicle:
 	return rider.vehicle if rider and rider.vehicle else bike
 
 
+## The fighting half of the HUD (crosshair, the Garand's clip, health, damage).
+func setup_combat(gun: GunSystem, vitals: PlayerVitals) -> void:
+	combat = CombatHud.new()
+	combat.name = "CombatHud"
+	get_child(0).add_child(combat)
+	get_child(0).move_child(combat, 0)
+	combat.setup(gun, vitals, camera, rider, _font)
+
+
 func set_gun(v: bool) -> void:
 	_has_gun = v
 
@@ -354,18 +350,14 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	_stamina_bar.visible = on_foot
 	_stamina_label.visible = on_foot
 	_prompt_bg.position.y = -260 if on_foot else -174
-	_controls.text = "WASD move · Shift sprint · Space jump\nCtrl / Q dodge · Mouse / JLIK look\nWheel zoom · F4 mayor · B counter\nE mount · N journal\nF5 save · F9 load" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB courier counter · N journal\nTruck: Q winch · G packing\nF5 save · F9 load"
+	_controls.text = "WASD move · Shift sprint · Space jump\nRMB aim · LMB / F fire · V reload\nCtrl / Q dodge · Mouse / JLIK look\nE mount · B counter · N journal\nF5 save · F9 load" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB courier counter · N journal\nTruck: Q winch · G packing\nF5 save · F9 load"
 	_stamina_bar.max_value = pl.stamina_max
 	_stamina_bar.value = pl.stamina
 	_stamina_label.text = "Catch your breath — release Shift" if pl.sprint_exhausted else "Stamina  %d%%  ·  Ctrl / Q dodge" % roundi(pl.stamina / pl.stamina_max * 100.0)
 	for n in _speed_group:
 		n.visible = not on_foot
-	_crosshair.visible = on_foot and _has_gun and not pl.swimming and ((rider.is_aiming() if rider else false) or gn.is_recently_fired())
-	_crosshair.queue_redraw()
-	if _has_gun:
-		_gun_label.text = "Pistol  %d/%d   Cans %d/%d%s" % [gn.ammo, gn.max_ammo, gn.targets_hit, gn.targets_total, "   (hold RMB to aim)" if on_foot else ""]
-	else:
-		_gun_label.text = ""
+	# the Garand's clip and the crosshair live in CombatHud; the tin cans are a practice score
+	_gun_label.text = "Tin cans %d/%d" % [gn.targets_hit, gn.targets_total] if on_foot and gn.targets_hit > 0 else ""
 	if on_foot:
 		_mode_label.text = "Swimming" if pl.swimming else "On foot  —  E near the bike or truck to drive"
 	elif rider and vehicle == rider.truck:
