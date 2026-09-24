@@ -93,6 +93,10 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadButton and event.pressed and event.button_index==JOY_BUTTON_B and is_open():
 		close_counter(); get_viewport().set_input_as_handled(); return
 	if not event is InputEventKey or not event.pressed or event.echo: return
+	if event.keycode==KEY_U and not is_open() and not game.catalogue.is_open() and game.colony and game.colony.economy:
+		var why: String=game.colony.economy.urgent.accept()
+		if why!="": Events.message.emit(why,3.0)
+		get_viewport().set_input_as_handled(); return
 	if event.keycode==KEY_B:
 		if game.catalogue.is_open(): return # B remains usable as text inside the journal.
 		if is_open(): close_counter()

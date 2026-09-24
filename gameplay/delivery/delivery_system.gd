@@ -24,6 +24,10 @@ var _transitioning := false
 ## Bounded delivery receipts make payouts inspectable and persist with the wallet.
 var receipts: Array[Dictionary] = []
 var active_job_override: JobDefinition
+## The override is an optional job taken on top of the route (an urgent colony supply run): the
+## route resumes at job_index when it is delivered, instead of moving on.
+var extra_job := false
+var _vehicle_hint_shown := false
 var handoffs_paused := false
 var _foot_package: Node3D
 var bike: Bike
@@ -181,6 +185,7 @@ func _clear_zones() -> void:
 func _start_job(i: int, announce: bool = true, publish: bool = true) -> void:
 	_clear_zones()
 	active_job_override = null
+	extra_job = false
 	_revision += 1
 	_zone_timer = 0.0; _in_zone = false; _foot_hint_shown = false
 	job_index = clampi(i, 0, jobs.size())
@@ -206,6 +211,33 @@ func _start_job(i: int, announce: bool = true, publish: bool = true) -> void:
 		var revision := _revision
 		get_tree().create_timer(2.6).timeout.connect(func():
 			if revision == _revision: _say("Next job: %s → %s" % [j.item, db.location_name(j.to_location)], 4.0))
+
+
+## Take an optional job on top of the route (UrgentSupply): the route job is set aside, not lost.
+func start_extra_job(job: JobDefinition, publish := true) -> bool:
+	if _transitioning or carrying or job == null: return false
+	_begin_extra(job, publish)
+	return true
+
+
+func _begin_extra(job: JobDefinition, publish: bool) -> void:
+	_clear_zones()
+	_revision += 1
+	active_job_override = job
+	extra_job = true
+	_all_done = false
+	stage = Stage.TO_PICKUP
+	_zone_timer = 0.0; _in_zone = false; _vehicle_hint_shown = false; _cooldown = 0.0
+	vehicle.set_package_visible(false)
+	pickup_zone = _make_zone(db.location_pos(job.from_location), 6.0)
+	if publish: Events.job_changed.emit(job, &"pickup")
+
+
+## Does the courier meet the job's vehicle requirement (the cargo truck for urgent supplies)?
+func vehicle_ok(courier: Node3D) -> bool:
+	var j := current_job()
+	if j == null or j.vehicle != "truck": return true
+	return courier == vehicle and vehicle is Truck
 
 
 func _process(delta: float) -> void:
@@ -235,6 +267,11 @@ func _process(delta: float) -> void:
 	var available := rider == null or rider.mode == Rider.Mode.RIDING or rider.mode == Rider.Mode.DRIVING or rider.mode == Rider.Mode.ON_FOOT
 	if courier == vehicle: available = available and vehicle.grounded
 	elif courier is CharacterBody3D: available = available and courier.is_on_floor()
+	if inside and not vehicle_ok(courier):
+		available = false
+		if not _vehicle_hint_shown:
+			_vehicle_hint_shown = true
+			_say("This load needs the cargo truck: bring it here.", 3.5)
 	if inside and speed < 2.5 and available:
 		_zone_timer += delta
 		if _zone_timer >= 0.5:
@@ -278,7 +315,8 @@ func _complete_stage() -> void:
 		vehicle.set_package_visible(false)
 		parcel_condition = 1.0
 		_cooldown = 2.5
-		_start_job(job_index + 1)
+		if extra_job: _start_job(job_index, job_index < jobs.size())
+		else: _start_job(job_index + 1)
 		wallet_changed.emit(coins)
 		delivery_completed.emit(deliveries)
 		Events.delivery_completed.emit(j.id, deliveries)
@@ -310,7 +348,12 @@ func _sync_package_visuals() -> void:
 func save_state() -> Dictionary:
 	var job := current_job()
 	var data := {"version":2, "receipts":receipts.duplicate(true), "job_id": String(job.id) if job else "", "job_index": job_index, "stage": stage, "deliveries": deliveries, "elapsed": elapsed, "coins": coins, "parcel_condition": parcel_condition}
-	if active_job_override:
+	if active_job_override and extra_job:
+		var x := active_job_override
+		data["job_id"] = String(jobs[job_index].id) if job_index < jobs.size() else ""
+		data["urgent"]={"id":String(x.id),"from":String(x.from_location),"to":String(x.to_location),"item":x.item,"reward":x.reward,
+			"mass_kg":x.cargo_mass_kg,"kind":x.cargo_kind,"vehicle":x.vehicle}
+	elif active_job_override:
 		data["offer"]={"kind":active_job_override.cargo_kind,"mass_kg":active_job_override.cargo_mass_kg,"reward":active_job_override.reward}
 	return data
 
@@ -334,6 +377,15 @@ func load_state(d: Dictionary) -> void:
 	_start_job(index, false, false)
 	if stage != Stage.DONE and d.get("offer",{}) is Dictionary and not d.get("offer",{}).is_empty():
 		_apply_offer(d.offer)
+	var urgent: Variant = d.get("urgent", {})
+	if urgent is Dictionary and not urgent.is_empty() and db.locations.has(StringName(String(urgent.get("from","")))) and db.locations.has(StringName(String(urgent.get("to","")))):
+		var x := JobDefinition.new()
+		x.id = StringName(String(urgent.get("id","job.urgent")))
+		x.from_location = StringName(String(urgent.from)); x.to_location = StringName(String(urgent.to))
+		x.item = String(urgent.get("item","supplies")); x.reward = maxi(0,int(urgent.get("reward",0)))
+		x.cargo_mass_kg = clampf(float(urgent.get("mass_kg",0.0)),0.0,80.0); x.cargo_kind = String(urgent.get("kind","heavy"))
+		x.vehicle = String(urgent.get("vehicle","truck"))
+		_begin_extra(x, false)
 	# Restore the stage directly: loading must never collect again, award coins, or emit
 	# package/delivery events (other systems use those events for real transactions).
 	if int(d.get("stage", Stage.TO_PICKUP)) == Stage.TO_DROPOFF and stage == Stage.TO_PICKUP:

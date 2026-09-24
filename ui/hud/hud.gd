@@ -13,6 +13,8 @@ var _on_foot := false
 var _speed_label: Label
 var _needle: Control
 var _objective: Label
+## An open urgent supply job from a colony (UrgentSupply), under the objective.
+var _urgent: Label
 var _distance: Label
 var _message: Label
 var _msg_timer := 0.0
@@ -132,6 +134,15 @@ func _build() -> void:
 	_objective.add_theme_color_override("font_outline_color", INK)
 	_objective.add_theme_constant_override("outline_size", 3)
 	root.add_child(_objective)
+	_urgent = _label("", 15)
+	_urgent.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_urgent.offset_left=134; _urgent.offset_right=-475
+	_urgent.offset_top=92; _urgent.offset_bottom=116
+	_urgent.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_urgent.add_theme_color_override("font_color", Color(1.0, 0.78, 0.42))
+	_urgent.add_theme_color_override("font_outline_color", INK)
+	_urgent.add_theme_constant_override("outline_size", 3)
+	root.add_child(_urgent)
 
 	# --- message toast (centre)
 	_message = _label("", 26)
@@ -390,10 +401,11 @@ func _on_job_changed(job: JobDefinition, st: StringName) -> void:
 	if job == null:
 		_objective.text = "All packages delivered — nice riding!"
 		return
+	var truck := "  ·  cargo truck" if job.vehicle == "truck" else ""
 	if st == &"pickup":
-		_objective.text = "Collect: %s  →  at %s" % [job.item, gm.db.location_name(job.from_location)]
+		_objective.text = "Collect: %s  →  at %s%s" % [job.item, gm.db.location_name(job.from_location), truck]
 	else:
-		_objective.text = "Deliver: %s  →  to %s" % [job.item, gm.db.location_name(job.to_location)]
+		_objective.text = "Deliver: %s  →  to %s%s" % [job.item, gm.db.location_name(job.to_location), truck]
 
 
 func _process(delta: float) -> void:
@@ -409,6 +421,8 @@ func _process(delta: float) -> void:
 		_cargo_label.text+="   ·   Intact %d%%" % roundi(gm.parcel_condition*100)
 	if rider and vehicle==rider.truck: _cargo_label.text="Cargo truck  ·  Stop to arrange your load"
 	var game:=Game.current
+	if _urgent and game and game.colony and game.colony.economy:
+		_urgent.text = game.colony.economy.urgent.hud_text()
 	if game and game.get("journey"):
 		_service_hint.text=game.journey.interaction_hint()
 		if game.journey.is_open() or game.catalogue.is_open(): _service_hint.text=""

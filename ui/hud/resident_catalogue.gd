@@ -33,6 +33,7 @@ var _travel: Label
 var _portrait: TextureRect
 var _grid: Control
 var _notes: TextEdit
+var _jobs: Label
 var _notes_by_id: Dictionary={}
 var _editing_notes:=false
 var _sort: OptionButton
@@ -120,6 +121,8 @@ func setup(p_life: IslandLife,p_game: Game) -> void:
 	_notes.text_changed.connect(func():
 		if not _editing_notes and not selected_id.is_empty(): _notes_by_id[selected_id]=_notes.text)
 	_label("N  Journal     ·     Esc  Return to island     ·     Select a day for full task times     ·     F5  Save notes & game",Rect2(149,795,1248,24),15,Color("e8dfc6"))
+	# the courier's jobs: the one in hand, and an urgent colony supply job waiting to be taken
+	_jobs=_label("",Rect2(768,762,615,26),14,Color("7a3b1c")); _jobs.clip_text=true
 	clock_button=Button.new(); clock_button.theme=_theme
 	clock_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	clock_button.offset_left=-440; clock_button.offset_right=-24; clock_button.offset_top=20; clock_button.offset_bottom=62
@@ -179,6 +182,12 @@ func _update_clock() -> void:
 	clock_button.text=life.clock_text()+"  ·  N  Journal"
 	_journal_clock.text=life.clock_text()
 	count_label.text="%d island residents  ·  %d in this view" % [life.residents.size(),shown_ids.size()]
+	if _jobs and game and game.gm:
+		var job: JobDefinition=game.gm.current_job()
+		var text:="Job: %s  →  %s" % [job.item,game.gm.target_name()] if job and game.gm.stage!=DeliverySystem.Stage.DONE else "No job in hand"
+		if game.colony and game.colony.economy and game.colony.economy.urgent.hud_text()!="":
+			text+="     ·     "+game.colony.economy.urgent.hud_text()
+		_jobs.text=text
 
 func _populate() -> void:
 	shown_ids.clear(); list.clear()

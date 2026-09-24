@@ -40,6 +40,8 @@ var _discover_t := 0.0
 var _obstacles: Dictionary = {}        # colony id -> {cell: Array of [Vector2, r]}
 var _town_plan: Dictionary = {}        # colony id -> plan.json town record
 var _coins_local := 500                # the wallet when there is no courier (unit tests)
+## Urgent supply runs posted by short colonies (optional courier jobs).
+var urgent := UrgentSupply.new()
 
 
 ## Data only (no world): the core colony round `hall`.
@@ -76,6 +78,7 @@ func setup_world(p_game: Game) -> void:
 		shipping.start_async(outer.ground, func(x: float, z: float) -> float: return game.world.terrain.height_at(x, z))
 	views = ColonyViews.new(); views.name = "ColonyViews"; add_child(views)
 	views.setup(self)
+	urgent.setup(self)
 	if Events.has_signal("camp_cleared"): Events.camp_cleared.connect(func(_id): shipping.pirates_changed(); changed.emit())
 
 
@@ -446,6 +449,7 @@ func _process(delta: float) -> void:
 	if _discover_t >= DISCOVER_EVERY:
 		_discover_t = 0.0
 		_check_discovery()
+	urgent.update(delta)
 	if system != null and system.paused: return
 	# every town and the fleet owe time; at most one town is ticked a frame (round robin), each
 	# at TICK_HZ, so a frame never pays for the whole country
