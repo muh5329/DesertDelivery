@@ -219,14 +219,20 @@ func _run() -> void:
 		person.driving=true; actor.update_view(person,.016,true)
 		person.driving=false; person.moving=false; actor.update_view(person,.016,true)
 		_check(absf(actor.person.root.position.y-RiderModel.HIP_H)<.001,"dismounted resident pelvis resets immediately to grounded pose")
-		var foot_height:=INF
-		for leg in [actor.person.leg_l,actor.person.leg_r]:
-			for mesh in leg.find_children("*","MeshInstance3D",true,false):
-				var bounds: AABB=mesh.get_aabb()
-				for corner in 8:
-					var point: Vector3=mesh.global_transform*bounds.get_endpoint(corner)
-					foot_height=minf(foot_height,point.y-actor.global_position.y)
+		var foot_height: float=actor.person.sole_height()-actor.global_position.y
 		_check(absf(foot_height)<.10,"visible boot soles touch the resident support plane (%.3fm)"%foot_height)
+	# Every islander is their own person: looks are derived from the id and never repeat.
+	var signatures:={}
+	for r in life.residents: signatures[str(CharacterLook.signature(CharacterLook.for_resident(r)))]=true
+	_check(signatures.size()==life.residents.size(),"no two residents share hair, hair colour, top and top colour (%d looks)"%signatures.size())
+	var probe_look:=var_to_str(CharacterLook.for_resident(life.residents[9]))
+	CharacterLook._resident_cache.clear()
+	_check(probe_look==var_to_str(CharacterLook.for_resident(life.residents[9])),"resident looks are deterministic")
+	var dressed:=true
+	for id in life.actors:
+		var view: ResidentActor=life.actors[id]
+		dressed=dressed and view.person.is_person() and view.person.look.get("key","")==CharacterLook.for_resident(life.by_id[id]).key
+	_check(dressed and life.actors.size()>0,"resident views wear their own look (%d views)"%life.actors.size())
 	# Exercise actual broad-phase bodies, isolated above the terrain so a floor
 	# collision cannot accidentally make these assertions pass.
 	var truck_transform: Transform3D=main.truck.global_transform

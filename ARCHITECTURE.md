@@ -38,6 +38,9 @@ res://
 │   ├── entity_manager.gd    registry by stable id + simulation tiers
 │   ├── player/              player.gd (body), rider_model.gd (visual + rifle IK poses), rider.gd (the player's controller)
 │   ├── enemies/             enemy.gd (bandit / pirate body + AI), enemy_outfit.gd, enemy_weapons.gd
+│   ├── people/              townsfolk bodies: person_builder.gd (near/far meshes, cache, worker-thread builds),
+│   │                        character_mesh.gd (skinned grid/loft emitter, 13-bone rig), person_body.gd (body,
+│   │                        clothing), person_head.gd (face, eyes, hair, beards, hats), person.gdshader, skin.gdshader
 │   ├── vehicles/            vehicle.gd (base), vehicle_definition.gd, bike/ (bike.gd, bike_visual.gd, bike_audio.gd)
 │   └── camera/              chase_camera.gd
 ├── gameplay/
@@ -218,6 +221,12 @@ physics frame across all enemies. Tiers: FULL = physics + 10 Hz AI, REDUCED = ki
 - Car: `entities/vehicles/car/car.gd extends Vehicle` (+ `car_definition.tres`), spawn it with
   `entities.register(car, &"vehicle.car.taxi_01", &"vehicle")`, give it a `Controls.Source`
   (a driver AI that follows `Terrain.road_samples` like the Autopilot does).
+- A townsperson's look: `CharacterLook.from_seed(seed, &"puerto", "dockworker")` (world/life) is a
+  plain Dictionary; `CharacterLook.spawn(...)` or `RiderModel.new()` + `look = ...` (or
+  `CharacterLook.apply(model, look)` on a live one) gives a model on the courier's pivot rig, so
+  every animation, seating pose and hand prop works unchanged. The body is one skinned surface
+  per detail level (one draw call), built by `PersonBuilder` and cached by look; set
+  `async_build = true` for streamed people so the build happens on a worker thread.
 - NPC: a body under `entities/npc/`, registered with a stable id, implementing
   `set_simulation_tier()` so far NPCs become schedule-only records; spawn/despawn on
   `Events.chunk_loaded/unloaded` of their home chunk, with their state in the save file.

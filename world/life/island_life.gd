@@ -23,6 +23,7 @@ var ambient: IslandWildlife
 var _accumulator := 0.0
 var _last_minute := -1
 const NEIGHBOR_CELL := 24.0
+var _prefetch_frame := 0
 var _neighbors: Dictionary = {}
 
 func _rebuild_neighbors() -> void:
@@ -356,6 +357,14 @@ func _advance(r: Resident, delta: float) -> void:
 func _sync_views(delta: float) -> void:
 	if entities.focus==null: return
 	var focus:=entities.focus.global_position
+	# Build the looks of residents about to come into view before they do (worker threads).
+	PersonBuilder.poll()
+	_prefetch_frame+=1
+	if _prefetch_frame%20==0:
+		var reach:=_views.spawn_radius+60.0
+		for r in residents:
+			if r.activity!="sleep" and not actors.has(r.id) and focus.distance_to(r.position)<reach:
+				PersonBuilder.request(CharacterLook.for_resident(r))
 	_views.sync(residents,focus)
 	for r in residents:
 		var actor: ResidentActor=_views.view(r.id)

@@ -38,7 +38,27 @@ const SHIN := 0.40
 
 const MODEL = preload("res://assets/models/courier_character.glb")
 
+## A townsperson (CharacterLook) instead of the courier: set before the model enters the
+## tree (or later through set_look). The pivots, animation and skin bridge are the same;
+## the body is one procedurally built skinned mesh per detail level (PersonBuilder).
+var look: Dictionary = {}
+var body_scale := 1.0
+## Elders lean forward a little; heavy builds hold their arms further out.
+var stoop := 0.0
+var arm_spread := 0.0
+var _person_near: MeshInstance3D
+var _person_far: MeshInstance3D
+## Build the townsperson's meshes on a worker thread (streamed residents) instead of now.
+var async_build := false
+## Resting elbow bend (idle and walk), radians.
+var elbow_rest := .35
+const PERSON_HEAD_SCALE := 1.1
+
 func _ready() -> void:
+	set_process(false)
+	if not look.is_empty():
+		_build_person()
+		return
 	var model: Node3D = MODEL.instantiate()
 	_model = model
 	add_child(model)
@@ -46,7 +66,10 @@ func _ready() -> void:
 	for mesh_instance in model.find_children("*", "MeshInstance3D", true, false):
 		for surface in mesh_instance.mesh.get_surface_count():
 			var source = mesh_instance.mesh.surface_get_material(surface)
-			if source is StandardMaterial3D:
+			if source is StandardMaterial3D and (source.resource_name.begins_with("Skin") or source.resource_name == "Lips"):
+				# The courier keeps his painted face; his skin gets the townsfolk's skin light.
+				mesh_instance.set_surface_override_material(surface, _skin_material(source))
+			elif source is StandardMaterial3D:
 				var mat: StandardMaterial3D = source.duplicate()
 				mat.roughness = maxf(mat.roughness, .55)
 				mat.metallic = minf(mat.metallic, .2)
@@ -86,11 +109,139 @@ func _ready() -> void:
 
 
 
+static var _skin_materials: Dictionary = {}
+
+static func _skin_material(source: StandardMaterial3D) -> ShaderMaterial:
+	if _skin_materials.has(source.resource_name): return _skin_materials[source.resource_name]
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://entities/people/skin.gdshader")
+	mat.resource_name = source.resource_name
+	mat.set_shader_parameter("albedo_color", source.albedo_color)
+	if source.albedo_texture: mat.set_shader_parameter("albedo_texture", source.albedo_texture)
+	mat.set_shader_parameter("roughness", clampf(source.roughness, .45, .65))
+	_skin_materials[source.resource_name] = mat
+	return mat
+
+
+func _pivot(pivot_name: String, parent: Node3D, offset: Vector3) -> Node3D:
+	var node := Node3D.new(); node.name = pivot_name; node.position = offset
+	parent.add_child(node)
+	return node
+
+
+## The courier's pivot hierarchy (same names, same rest offsets) driving a generated body.
+func _build_person() -> void:
+	var model := Node3D.new(); model.name = "Townsperson"
+	add_child(model)
+	_model = model
+	root = _pivot("Root", model, Vector3(0, .82, 0))
+	torso = _pivot("Torso", root, Vector3(0, .08, 0))
+	head = _pivot("Head", torso, Vector3(0, .79, 0))
+	_base_head_scale = Vector3.ONE
+	for side in [-1.0, 1.0]:
+		var arm := _pivot("ArmL" if side < 0 else "ArmR", torso, Vector3(side * .185, .54, 0))
+		var elbow := _pivot("Elbow", arm, Vector3(0, -.395, 0))
+		var hand := _pivot("Hand", elbow, Vector3(0, -.235, 0))
+		var leg := _pivot("LegL" if side < 0 else "LegR", root, Vector3(side * .09, 0, 0))
+		_pivot("Knee", leg, Vector3(0, -.42, 0))
+		if side < 0: arm_l = arm; leg_l = leg
+		else: arm_r = arm; leg_r = leg; hand_r = hand
+	var skeleton := CharacterMesh.make_skeleton()
+	model.add_child(skeleton)
+	_person_near = MeshInstance3D.new(); _person_near.name = "PersonNear"
+	_person_far = MeshInstance3D.new(); _person_far.name = "PersonFar"; _person_far.visible = false
+	for node in [_person_near, _person_far]:
+		skeleton.add_child(node)
+		node.skin = PersonBuilder.shared_skin()
+		node.skeleton = NodePath("..")
+	_apply_look()
+	_skin_bridge = PivotSkinBridge.new()
+	add_child(_skin_bridge)
+	var bindings: Dictionary = {"Skin_Root": root, "Skin_Torso": torso, "Skin_Head": head}
+	for side in ["L", "R"]:
+		var arm: Node3D = arm_l if side == "L" else arm_r
+		var leg: Node3D = leg_l if side == "L" else leg_r
+		bindings["Skin_Arm" + side] = arm
+		bindings["Skin_Elbow" + side] = arm.get_node("Elbow")
+		bindings["Skin_Hand" + side] = arm.get_node("Elbow/Hand")
+		bindings["Skin_Leg" + side] = leg
+		bindings["Skin_Knee" + side] = leg.get_node("Knee")
+	var bound := _skin_bridge.bind(skeleton, bindings)
+	assert(bound, "Townsperson skin must bind to every gameplay pivot")
+	# Scaling the head pivot after binding scales the skinned head (hair, hats) about the
+	# eyes: townsfolk get the slightly larger, readable heads of the courier's world.
+	head.scale = Vector3.ONE * PERSON_HEAD_SCALE
+	_base_head_scale = head.scale
+	elbow_rest = .16
+
+
+func _process(_delta: float) -> void:
+	if not is_person():
+		set_process(false)
+		return
+	PersonBuilder.poll()
+	var meshes := PersonBuilder.cached(look)
+	if meshes.is_empty():
+		PersonBuilder.request(look)     # (no-op while pending; rebuilds if evicted meanwhile)
+		return
+	_person_near.mesh = meshes.near
+	_person_far.mesh = meshes.far
+	set_process(false)
+
+
+## World height of the lowest point of the visible soles (grounding checks).
+func sole_height() -> float:
+	var best := INF
+	if is_person():
+		# townsfolk soles are skinned to the knees; their bottom is 0.401 m below the knee
+		for leg in [leg_l, leg_r]:
+			var knee: Node3D = leg.get_node("Knee")
+			for z in [-.15, .05]: best = minf(best, knee.to_global(Vector3(0, -.401, z)).y)
+		return best
+	for leg in [leg_l, leg_r]:
+		for mesh in leg.find_children("*", "MeshInstance3D", true, false):
+			var bounds: AABB = mesh.get_aabb()
+			for corner in 8: best = minf(best, (mesh.global_transform * bounds.get_endpoint(corner)).y)
+	return best
+
+
+func is_person() -> bool:
+	return _person_near != null
+
+
+## Dress this model as `p_look` (CharacterLook). Swapping looks swaps meshes only.
+func set_look(p_look: Dictionary) -> void:
+	look = p_look
+	if is_person(): _apply_look()
+
+
+func _apply_look() -> void:
+	if async_build and not PersonBuilder.is_cached(look):
+		# streamed townsfolk never stall a frame: build in the background, appear when done
+		PersonBuilder.request(look)
+		_person_near.mesh = null; _person_far.mesh = null
+		set_process(true)
+	else:
+		var meshes := PersonBuilder.meshes(look)
+		_person_near.mesh = meshes.near
+		_person_far.mesh = meshes.far
+	body_scale = float(look.get("height", 1.0))
+	stoop = float(look.get("stoop", 0.0))
+	arm_spread = float(look.get("arm_spread", 0.0))
+	scale = Vector3.ONE * body_scale
+
+
 ## Resident-only visibility LOD keeps every pivot, accessory and skeleton alive.
 ## Immutable sibling meshes avoid resizing active skinned buffers on Metal.
 ## Call after palette/identity initialization. The player never enables this path.
 func enable_resident_lod() -> void:
 	if "--full-npcs" in OS.get_cmdline_user_args(): return
+	if is_person():
+		# Townsfolk: the far mesh is the same person with a light topology; the actor
+		# flushes the skin explicitly after its occupation poses.
+		_lod_pairs = [{"node": _person_near, "reduced_node": _person_far}]
+		if _skin_bridge: _skin_bridge.set_process(false)
+		return
 	if not _lod_pairs.is_empty(): return
 	if _lod_parts.is_empty():
 		var reduced: Node3D = NPC_LOD.instantiate()
@@ -161,6 +312,7 @@ func pose_riding(motorcycle_fit: bool = false, sync_skin: bool = true) -> void:
 
 
 func set_palette(shirt_color: Color, trouser_color: Color, hair_color: Color, skin_color: Color) -> void:
+	if is_person(): return
 	for node in find_children("*", "MeshInstance3D", true, false):
 		for index in range(node.mesh.get_surface_count()):
 			var original: Material = node.mesh.surface_get_material(index)
@@ -180,7 +332,7 @@ func set_palette(shirt_color: Color, trouser_color: Color, hair_color: Color, sk
 ## Residents share a rig, but wear deterministic occupation silhouettes. Accessories
 ## attach to existing pivots, so walking, working, driving and hand props keep animating.
 func set_character_identity(identity: String, occupation: String, palette: Array) -> void:
-	if head == null or torso == null: return
+	if head == null or torso == null or is_person(): return
 	for pivot in [head, torso]:
 		var old: Node3D = pivot.get_node_or_null("ResidentWardrobe")
 		if old: pivot.remove_child(old); old.queue_free()
@@ -295,7 +447,7 @@ func animate(mode: String, move_speed: float, delta: float, aim: bool = false, m
 	var idle_t := Time.get_ticks_msec() * 0.001
 	root.rotation.x = lerpf(root.rotation.x, 0.0, clampf(delta * 6.0, 0, 1))
 	root.position.y = lerpf(root.position.y, HIP_H + absf(s) * bob, clampf(delta * 10.0, 0, 1))
-	head.rotation.x = lerpf(head.rotation.x, 0.0, clampf(delta * 6.0, 0, 1))
+	head.rotation.x = lerpf(head.rotation.x, stoop * .75, clampf(delta * 6.0, 0, 1))
 	# legs: forward swing positive; the trailing leg's knee flexes back (positive) as it swings through
 	leg_l.rotation.x = s * swing
 	leg_r.rotation.x = -s * swing
@@ -327,10 +479,11 @@ func animate(mode: String, move_speed: float, delta: float, aim: bool = false, m
 
 
 func _base_upper_body(mode: String, s: float, swing: float, idle_t: float, delta: float) -> void:
-	arm_l.rotation = Vector3(-s * swing * 0.8, 0.0, deg_to_rad(6.0))
-	arm_r.rotation = Vector3(s * swing * 0.8, 0.0, deg_to_rad(-6.0))
-	arm_l.get_node("Elbow").rotation.x = 0.35 + maxf(0.0, -s) * swing * 0.6
-	arm_r.get_node("Elbow").rotation.x = 0.35 + maxf(0.0, s) * swing * 0.6
+	# (a positive z-rotation swings the left arm in towards the body; spread is outward)
+	arm_l.rotation = Vector3(-s * swing * 0.8, 0.0, deg_to_rad(6.0) - arm_spread)
+	arm_r.rotation = Vector3(s * swing * 0.8, 0.0, deg_to_rad(-6.0) + arm_spread)
+	arm_l.get_node("Elbow").rotation.x = elbow_rest + maxf(0.0, -s) * swing * 0.6
+	arm_r.get_node("Elbow").rotation.x = elbow_rest + maxf(0.0, s) * swing * 0.6
 	if long_gun != null:
 		arm_l.get_node("Elbow/Hand").rotation = Vector3.ZERO
 		arm_r.get_node("Elbow/Hand").rotation = Vector3.ZERO
@@ -339,7 +492,7 @@ func _base_upper_body(mode: String, s: float, swing: float, idle_t: float, delta
 		leg_l.rotation.z = 0.0
 		leg_r.rotation.z = 0.0
 	torso.rotation.y = lerpf(torso.rotation.y, 0.0, clampf(delta * 6.0, 0, 1))
-	torso.rotation.x = deg_to_rad(4.0 if mode != "idle" else 0.0) + (sin(idle_t * 1.6) * 0.02 if mode == "idle" else 0.0)
+	torso.rotation.x = deg_to_rad(4.0 if mode != "idle" else 0.0) + (sin(idle_t * 1.6) * 0.02 if mode == "idle" else 0.0) - stoop
 	torso.rotation.x -= flinch * 0.35
 
 

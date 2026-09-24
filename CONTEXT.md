@@ -32,6 +32,17 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Vitals** — the courier's `Health` (regenerating), **knocked out** at zero: fade, **respawn** on
   the nearest road to the **last safe spot**, a small coin penalty, a moment of invulnerability.
 
+- **Resident** — one of the 64 named islanders (`data/life/residents.json`); a **ResidentActor** is
+  the body drawn near the player.
+- **Townsperson / look** — what a person looks like: a `CharacterLook` Dictionary decided from a
+  seed, a **town style** (`island`, `puerto`, `valdoro`, `sarmada`, `isola`, `campo`) and an
+  occupation — sex, age, height, build, skin, face, hair, facial hair, garments, fabrics,
+  patterns, shoes, hats, aprons and accessories. A resident's look comes from their id, district
+  and name, so nothing is saved. The **signature** (hair, hair colour, top, top colour) never
+  repeats among residents.
+- **Near / far mesh** — a townsperson's detailed body and its light version beyond ~20 m, same
+  silhouette and colours.
+
 ## Control
 
 - **ControlIntent** (`Controls.Intent`) — everything the rider asks for in one physics tick:
