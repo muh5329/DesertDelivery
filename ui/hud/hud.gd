@@ -285,6 +285,19 @@ func _draw_compass() -> void:
 	var r := dir.rotated(-2.6) * 22
 	var col := Color(0.86, 0.25, 0.18)
 	c.draw_colored_polygon(PackedVector2Array([tip, l, Vector2.ZERO, r]), col)
+	# low fuel: a pump marker on the rim toward the nearest station
+	var game := Game.current
+	if game and game.journey and game.journey.services and game.journey.fuel_ratio < JourneySystem.LOW_FUEL[0]:
+		var n: Dictionary = game.journey.services.nearest_fuel(_actor_pos())
+		if not n.is_empty():
+			var cam_f := -camera.global_transform.basis.z
+			var a: float = float(n.bearing) - atan2(cam_f.x, -cam_f.z)
+			var at := Vector2(sin(a), -cos(a)) * 44.0
+			var pulse := 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.008)
+			c.draw_circle(at, 11.0, Color(0.1, 0.08, 0.06))
+			c.draw_circle(at, 9.0, Color(0.95, 0.55, 0.12, pulse))
+			c.draw_rect(Rect2(at + Vector2(-3.5, -5), Vector2(6, 10)), INK)
+			c.draw_line(at + Vector2(2.5, -3), at + Vector2(5, 1), INK, 1.5)
 	# package glyph in the centre
 	c.draw_rect(Rect2(-11, -8, 22, 16), Color(0.55, 0.36, 0.22))
 	c.draw_line(Vector2(0, -8), Vector2(0, 8), Color(0.85, 0.72, 0.4), 2.0)
@@ -313,9 +326,17 @@ func _draw_needle() -> void:
 
 func _draw_fuel() -> void:
 	var value:=clampf(float(bike.get_meta("fuel_ratio",1.0)),0,1)
+	var low:=value<JourneySystem.LOW_FUEL[0]
+	if value<JourneySystem.LOW_FUEL[1]:
+		# reserve: the whole gauge blinks
+		var on:=int(Time.get_ticks_msec()/350)%2==0
+		_fuel_gauge.draw_circle(Vector2.ZERO,24,Color(0.75,0.18,0.1,0.55 if on else 0.15))
 	_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*2.25,40,Color("b3a483"),4,true)
+	# the quarter-tank tick
+	var q:=PI*.75+PI*1.5*JourneySystem.LOW_FUEL[0]
+	_fuel_gauge.draw_line(Vector2(cos(q),sin(q))*14,Vector2(cos(q),sin(q))*23,INK,1.5)
 	if value>.001:
-		_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*.75+PI*1.5*value,40,Color("a3442f") if value<.2 else GREEN,4,true)
+		_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*.75+PI*1.5*value,40,Color("a3442f") if low else GREEN,4,true)
 	_fuel_gauge.draw_string(_font,Vector2(-5,5),"F",HORIZONTAL_ALIGNMENT_LEFT,-1,15,INK)
 
 
@@ -410,13 +431,20 @@ func _on_job_changed(job: JobDefinition, st: StringName) -> void:
 
 func _process(delta: float) -> void:
 	if not bike: return
+	# a modal panel (journal, counter, station) owns the screen: the HUD steps back
+	var g0 := Game.current
+	var covered: bool = g0 != null and g0.panels != null and g0.panels.any_open()
+	get_child(0).visible = not covered
+	if g0 and g0.mayor and g0.mayor.entry and not g0.mayor.active: g0.mayor.entry.visible = not covered
 	var vehicle := _active_vehicle()
 	_needle.queue_redraw()
 	_compass.queue_redraw()
 	_speed_label.text = "%d km/h" % int(vehicle.speed_kmh())
 	_deliveries.text="%d delivered   ·   %d coins" % [gm.deliveries,gm.coins]
 	_fuel_gauge.queue_redraw(); _engine_gauge.queue_redraw()
-	_cargo_label.text="%.0f kg cargo   ·   Engine +%d   ·   Fuel %d%%" % [float(bike.get_meta("cargo_mass_kg",0.0)),int(bike.get_meta("engine_level",0)),int(float(bike.get_meta("fuel_ratio",1.0))*100)]
+	var game_ref:=Game.current
+	var range_km:=game_ref.journey.fuel_range_m()/1000.0 if game_ref and game_ref.get("journey") else 0.0
+	_cargo_label.text="%.0f kg cargo   ·   Engine +%d   ·   Fuel %d%% (~%.0f km)" % [float(bike.get_meta("cargo_mass_kg",0.0)),int(bike.get_meta("engine_level",0)),int(float(bike.get_meta("fuel_ratio",1.0))*100),range_km]
 	if gm.carrying and gm.current_job() and gm.current_job().cargo_kind=="fragile":
 		_cargo_label.text+="   ·   Intact %d%%" % roundi(gm.parcel_condition*100)
 	if rider and vehicle==rider.truck: _cargo_label.text="Cargo truck  ·  Stop to arrange your load"

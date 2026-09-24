@@ -62,7 +62,7 @@ func _run() -> void:
 	_check(heavy.distance<empty.distance*.8 and heavy.distance>empty.distance*.5,"80kg cargo measurably slows acceleration (%.1fm vs %.1fm)"%[heavy.distance,empty.distance])
 	_check(upgraded.distance>heavy.distance*1.2,"engine upgrades restore loaded acceleration (%.1fm vs %.1fm)"%[upgraded.distance,heavy.distance])
 	var limp:=await _accelerate(80,0,0,6)
-	_check(limp.speed>1.5 and limp.speed<2.4 and limp.distance>5,"empty tank still travels at push pace (%.2fm/s, %.1fm)"%[limp.speed,limp.distance])
+	_check(limp.speed>Bike.LIMP_SPEED*.6 and limp.speed<Bike.LIMP_SPEED+.4 and limp.distance>12,"empty tank limps on at %.0f km/h at most (%.2fm/s, %.1fm)"%[Bike.LIMP_SPEED*3.6,limp.speed,limp.distance])
 	_reset(); await _step(20,Controls.Intent.new())
 	probe.speed=20; var start:=probe.global_position
 	var brake_input:=Controls.Intent.new(); brake_input.brake=1
