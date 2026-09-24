@@ -30,6 +30,7 @@ func setup(p_config: WorldConfig) -> void:
 	environment = Node3D.new(); environment.name = "Environment"; add_child(environment)
 	streamer = WorldStreamer.new(); streamer.name = "WorldStreamer"; add_child(streamer)
 	var t0 := Time.get_ticks_msec()
+	TexMips.cpu_compression()   # workers compress textures: keep Image.compress() off the render thread
 	BuildingKit.warm()          # the architecture kit's textures decode on a worker while the world generates
 	island = Island.new()
 	island.name = "Island"

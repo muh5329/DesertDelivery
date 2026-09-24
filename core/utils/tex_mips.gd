@@ -13,6 +13,14 @@ extends RefCounted
 static var _cache: Dictionary = {}
 
 
+## Runtime VRAM compression must run on the CPU compressors (etcpak / cvtt): with a GPU present,
+## Image.compress() defaults to the RenderingDevice compressor (Betsy), which needs the render
+## thread - called from a worker while the main thread waits for that worker, it deadlocks (and on
+## a software rasteriser it ran to 6 GB). Call once before any worker compresses.
+static func cpu_compression() -> void:
+	ProjectSettings.set_setting("rendering/textures/vram_compression/compress_with_gpu", false)
+
+
 static func ensure(tex: Texture2D, compress := false, normal := false) -> Texture2D:
 	if tex == null or DisplayServer.get_name() == "headless": return tex
 	var key := tex.resource_path if tex.resource_path != "" else str(tex.get_instance_id())

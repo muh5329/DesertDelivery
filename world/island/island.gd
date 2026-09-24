@@ -1831,6 +1831,8 @@ func _town_courtyard_garden(center: Vector2, forward: Vector2, right: Vector2) -
 	var olive := _olive_parts()
 	var flowers := _flower_parts(Color(.76,.32,.59))
 	var shrubs := _bush_parts()
+	var shrub_x: Array[Transform3D] = []; var shrub_c: Array[Color] = []
+	var flower_x: Array[Transform3D] = []; var flower_c: Array[Color] = []
 	# Raised clipped beds, flowering borders, shaded benches and central clear walkway.
 	for sign_v: float in [-1.0,1.0]:
 		for along: float in [-7.0,7.0]:
@@ -1841,11 +1843,15 @@ func _town_courtyard_garden(center: Vector2, forward: Vector2, right: Vector2) -
 			plan.add_child(Mats.cylinder(3.1,.38,stone,Vector3(0,.19,0),Vector3.ZERO,24))
 			plan.add_child(Mats.cylinder(2.92,.03,Mats.solid(Color(.22,.31,.10),.98),Vector3(0,.40,0),Vector3.ZERO,24))
 			_place_prop(olive,Vector3(point.x,y+.41,point.y),1.65,along*11.0,Color(.90,1.04,.91))
+			# the border plants as MultiMeshes, not 36 prop nodes a bed (m-5: this recipe was the
+			# streamer's worst, 82-90 ms and 360 nodes; the tints were never applied to the leaf
+			# shader's materials, so white instance colours keep the look)
 			for i in range(9):
 				var angle:=i*TAU/9.0
 				var plant:=Vector3(point.x+cos(angle)*2.43,y+.43,point.y+sin(angle)*2.43)
-				_place_prop(shrubs,plant,.7,rad_to_deg(angle),Color(.76,1.15,.72),false)
-				_place_prop(flowers,plant+Vector3(0,.30,0),.76,rad_to_deg(angle),Color(1,1,1),false)
+				var b:=Basis(Vector3.UP,angle)
+				shrub_x.append(Transform3D(b.scaled(Vector3.ONE*.7),plant)); shrub_c.append(Color(1,1,1))
+				flower_x.append(Transform3D(b.scaled(Vector3.ONE*.76),plant+Vector3(0,.30,0))); flower_c.append(Color(1,1,1))
 		var bench_point:=center+right*sign_v*5.2
 		var bench:=Node3D.new(); bench.position=Vector3(bench_point.x,_ground(bench_point.x,bench_point.y),bench_point.y)
 		bench.rotation.y=atan2(forward.x,forward.y); sink.add_child(bench)
@@ -1853,3 +1859,5 @@ func _town_courtyard_garden(center: Vector2, forward: Vector2, right: Vector2) -
 		for z in [-.85,.85]: bench.add_child(Mats.box(Vector3(.45,.50,.16),Mats.solid(STONE_DARK,.9),Vector3(0,.25,z)))
 		var lamp:=center+right*sign_v*3.2+forward*11.0
 		_lamp_post(sink,Vector3(lamp.x,_ground(lamp.x,lamp.y),lamp.y))
+	_spawn_multimesh(shrubs,shrub_x,shrub_c,0.0,false)
+	_spawn_multimesh(flowers,flower_x,flower_c,0.0,false)
