@@ -322,9 +322,13 @@ func _number(value: Variant,low: float,high: float) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value)>=low and float(value)<=high
 func _vector(value: Variant) -> bool:
 	return value is Array and value.size()==3 and _number(value[0],-12500,12500) and _number(value[1],-100,2000) and _number(value[2],-12500,12500)
+## The whole save, strictly (tools and tests); loading itself is per part (`load_state`).
 func accepts(data: Dictionary) -> bool:
+	if not accepts_core(data): return false
+	return int(data.version)!=SAVE_VERSION or economy.valid(data.get("economy"))
+## The core colony's part of a save (residents, areas, sites, roads, warehouse).
+func accepts_core(data: Dictionary) -> bool:
 	if not _whole(data.get("version"),1,SAVE_VERSION) or not _whole(data.get("next_id"),1,1000000) or not data.get("paused") is bool: return false
-	if int(data.version)==SAVE_VERSION and not economy.valid(data.get("economy")): return false
 	if not _valid_inventory(data.get("warehouse")): return false
 	for key in ["areas","roads","sites","resources"]:
 		if not data.get(key) is Array or data[key].size()>(32 if key=="sites" else 128 if key=="resources" else 64): return false
@@ -380,9 +384,24 @@ func accepts(data: Dictionary) -> bool:
 	return true
 func load_missing_state() -> void:
 	if not _initial_state.is_empty(): load_state(_initial_state)
+## Load the core colony and the economy each on its own: a damaged part is reported (and the
+## economy mended town by town), never silently dropped with the rest. Returns false only when
+## nothing at all could be used. `load_report()` says what happened.
 func load_state(data: Dictionary) -> bool:
+	load_warnings.clear()
 	if data.is_empty(): return true
-	if not accepts(data): return false
+	var core_ok:=accepts_core(data)
+	if core_ok: _load_core(data)
+	else: load_warnings.append("the core colony's residents, sites and roads could not be read; they were kept as they were")
+	var v2:=data.has("economy") or (data.get("version") is float or data.get("version") is int) and int(data.version)>=SAVE_VERSION
+	if v2: load_warnings.append_array(economy.load_partial(data.get("economy")))
+	elif core_ok and _initial_state.has("economy"): economy.load_state(_initial_state.economy) # v1 -> v2: a fresh economy round the saved warehouse
+	changed.emit()
+	return core_ok or v2
+var load_warnings: Array[String]=[]
+func load_report() -> Array[String]:
+	return load_warnings
+func _load_core(data: Dictionary) -> void:
 	_plan_queue.clear()
 	for id: String in _residents: _release(id)
 	for site: ColonySite in sites.values(): site.free()
@@ -400,7 +419,3 @@ func load_state(data: Dictionary) -> bool:
 		var r: Resident=_residents[id]; var p: Array=data.workers[id].position; var f: Array=data.workers[id].forward
 		r.position=Vector3(p[0],p[1],p[2]); r.forward=Vector3(f[0],f[1],f[2]); _claim(id)
 	roads.roads=data.roads.duplicate(true); roads.rebuild(); redraw_areas(); statuses.clear()
-	if int(data.version)==SAVE_VERSION: economy.load_state(data.economy)
-	elif _initial_state.has("economy"): economy.load_state(_initial_state.economy) # v1 -> v2: a fresh economy round the saved warehouse
-	else: economy.town("core")
-	changed.emit(); return true

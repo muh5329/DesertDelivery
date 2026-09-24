@@ -56,6 +56,9 @@ var resident_markers: MultiMeshInstance3D
 var ghost: MeshInstance3D
 var ghost_yaw_turns := 0
 var ghost_ok := false
+var _ghost_why := ""
+var _ghost_checked := 0
+var _ghost_pending: Variant = null
 var trade: MayorTradePage
 var _live: Dictionary = {}          # name -> Control refreshed with the readouts
 var _signature := ""
@@ -368,11 +371,12 @@ func _page_colony() -> void:
 		var raw := PackedStringArray()
 		for r in EconomyCatalog.COLONIES[colony_id].raw: raw.append(EconomyCatalog.item_name(r).to_lower())
 		label(content, "The land gives: " + ", ".join(raw) + ".", 13, T.MUTED)
-		var b := button(content, "Found colony · %d coins" % e.charter_cost(colony_id), func():
-			var err := e.found(colony_id)
-			show_note(err if err != "" else "%s founded." % t.display_name)
-			_fill_colony_picker(); select_colony(colony_id, true))
-		b.disabled = not t.discovered
+		var cid := colony_id
+		var b := button(content, "Surveying a site for the hall..." if e.chartering(cid) else "Found colony · %d coins" % e.charter_cost(colony_id), func():
+			var err := e.begin_found(cid)
+			show_note(err if err != "" else "Surveying a site for the colony hall at %s..." % t.display_name)
+			build_page())
+		b.disabled = not t.discovered or e.chartering(cid)
 		return
 	_live.pop = label(content, "", 14)
 	_live.happy = T.bar(content, "Happiness", t.happiness / 100.0, T.ACCENT)
@@ -381,7 +385,10 @@ func _page_colony() -> void:
 	_live.goods = T.bar(content, "Goods", t.needs.goods)
 	_live.housing = T.bar(content, "Housing", t.needs.housing)
 	_live.growth = T.bar(content, "Next settler", t.growth, Color("c9a24a"))
-	label(content, "Food: bread, fish, preserved fish, dates, olives, berries (variety helps). Goods: cloth, tools, oil, wine.", 11, T.MUTED)
+	_live.food_note = label(content, "", 14, T.MUTED)
+	var local := PackedStringArray()
+	for f in EconomyCatalog.local_foods(colony_id): local.append(EconomyCatalog.item_name(f).to_lower())
+	label(content, "Grows here: %s. Other foods come by road (Trade: carters) or sea. Goods: cloth, tools, oil, wine." % (", ".join(local) if not local.is_empty() else "none"), 11, T.MUTED)
 	T.rule(content)
 	T.heading(content, "Stockpile")
 	_live.capacity = label(content, "", 12, T.MUTED)
@@ -394,7 +401,7 @@ func _page_colony() -> void:
 		var bb := button(content, "%s · %s" % [EconomyCatalog.building(b.type).name, t.status(b)], func(): inspect(bid, true))
 		bb.clip_text = true; bb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		bb.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		bb.add_theme_font_size_override("font_size", 13)
+		bb.add_theme_font_size_override("font_size", T.MIN_FONT)
 	T.rule(content)
 	T.heading(content, "Notices")
 	_live.log = label(content, "", 12, T.MUTED)
@@ -419,7 +426,7 @@ func _page_build() -> void:
 			var b := button(content, "%s · %s" % [def.name, EconomyCatalog.describe_cost(def.cost, int(def.coins))], func(): set_tool("place:" + type))
 			b.clip_text = true; b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			b.add_theme_font_size_override("font_size", 13)
+			b.add_theme_font_size_override("font_size", T.MIN_FONT)
 			b.disabled = not ok
 			var tip := PackedStringArray()
 			if flow != "": tip.append(flow)
@@ -455,7 +462,7 @@ func _page_jobs() -> void:
 	roster_scroll.add_child(list)
 	for worker: Resident in game.life.residents:
 		var row := button(list,worker.name,func(): selected_id=worker.id; build_page())
-		row.add_theme_font_size_override("font_size",13)
+		row.add_theme_font_size_override("font_size",T.MIN_FONT)
 		row.custom_minimum_size.y = 28
 		rows[worker.id] = row
 	label(content,"ASSIGN PROFESSION",14)
@@ -598,6 +605,13 @@ func focus_route(lid: String) -> void:
 	update_camera()
 
 
+## Fly the map to a point (a pirate cove from the Trade page).
+func focus_point(p: Vector3, span := 900.0) -> void:
+	center = Vector3(p.x, 0, p.z)
+	zoom = clampf(span, 300.0, 1800.0)
+	update_camera()
+
+
 # ------------------------------------------------------------------ camera and input
 func update_camera() -> void:
 	center.x = clampf(center.x,-12450,12450)
@@ -728,7 +742,15 @@ func ghost_yaw(at: Vector3) -> float:
 func _update_ghost(at: Vector3) -> void:
 	var type := tool.trim_prefix("place:")
 	var y := ghost_yaw(at)
-	var why: String = economy().check_site(colony_id, type, at, y)
+	# the verdict at most every 0.1 s and cached per metre: moving the pointer stays cheap
+	var now := Time.get_ticks_msec()
+	var why: String = _ghost_why
+	if now - _ghost_checked >= 100 or String(ghost.get_meta("type", "")) != type:
+		_ghost_checked = now
+		why = economy().check_site_cached(colony_id, type, at, y)
+		_ghost_why = why
+	else:
+		_ghost_pending = at
 	var ok := why == ""
 	if ok != ghost_ok or ghost.mesh == null or String(ghost.get_meta("type", "")) != type:
 		ghost.mesh = ColonyViews.ghost_mesh(type, ok); ghost.set_meta("type", type); ghost_ok = ok
@@ -810,6 +832,10 @@ func refresh_readouts() -> void:
 		_live.food.value = t.needs.food * 100.0; _live.variety.value = t.needs.variety * 100.0
 		_live.goods.value = t.needs.goods * 100.0; _live.housing.value = t.needs.housing * 100.0
 		_live.growth.value = t.growth * 100.0
+		if _live.has("food_note") and is_instance_valid(_live.food_note):
+			var left := t.food_minutes()
+			_live.food_note.text = ("Food: the colony feeds itself (%.1f made, %.1f eaten a minute)" % [t.food_output_per_minute(), t.colonists.size() * ColonyTown.FOOD_RATE * 60.0]) if left < 0.0 else ("Food lasts about %d min at this rate: build food, or haul it in" % roundi(left))
+			_live.food_note.add_theme_color_override("font_color", T.GOOD if left < 0.0 or left > 15.0 else T.BAD)
 		_live.capacity.text = "%d / %d capacity (by weight)" % [int(t.stock_mass()), int(t.capacity())]
 		var lines := PackedStringArray()
 		var keys := t.stock.keys(); keys.sort()
@@ -873,6 +899,10 @@ func _process(delta: float) -> void:
 	var selected := resident(selected_id)
 	marker.visible = selected != null and current_page == "Jobs"
 	if selected != null: marker.position = selected.position+Vector3.UP*0.15
+	if _ghost_pending != null and Time.get_ticks_msec() - _ghost_checked >= 100 and tool.begins_with("place:"):
+		var at: Vector3 = _ghost_pending
+		_ghost_pending = null
+		_update_ghost(at)
 	clock += delta
 	_structure_t += delta
 	if clock>=0.25:

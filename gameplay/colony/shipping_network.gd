@@ -672,6 +672,41 @@ func lane_risk(l: Dictionary) -> float:
 	return risk
 
 
+const COVE_NAMES := ["Cala del Moro", "Punta Negra", "Cala dei Corsari", "Rada del Diablo", "Cala Brava",
+	"Ensenada Oscura", "Baia dei Pirati", "Cala Sombra", "Punta Calavera", "Cala del Tuerto"]
+
+
+## A pirate cove's name, for the Trade page and the map (stable per camp id).
+static func cove_name(camp_id: String) -> String:
+	if camp_id == "camp.core.cove": return "Cala Oscura (the core's south-west shore)"
+	return COVE_NAMES[absi(hash(camp_id)) % COVE_NAMES.size()]
+
+
+## Raid risk of a route that is not a lane yet (the new-lane editor): {risk, threats}.
+func route_risk(from_id: String, to_id: String) -> Dictionary:
+	var r := route(from_id, to_id)
+	var risk := 0.0
+	var threats: Array = []
+	if not r.is_empty() and pirates.is_valid():
+		for camp in pirates.call():
+			var d := route_distance(r, Vector2(camp.pos.x, camp.pos.z))
+			if d < RAID_RADIUS:
+				risk = maxf(risk, RAID_MAX * clampf(1.0 - (d - 300.0) / (RAID_RADIUS - 300.0), 0.0, 1.0))
+				threats.append(camp)
+	return {"risk": risk, "threats": threats}
+
+
+## The coves that threaten a lane, with where they are: [{id, name, pos}] (for the Trade panel).
+func lane_threat_camps(l: Dictionary) -> Array:
+	var out: Array = []
+	var r := route(l.from, l.to)
+	if r.is_empty() or not pirates.is_valid(): return out
+	for camp in pirates.call():
+		if route_distance(r, Vector2(camp.pos.x, camp.pos.z)) < RAID_RADIUS:
+			out.append({"id": camp.id, "name": cove_name(String(camp.id)), "pos": camp.pos})
+	return out
+
+
 ## The coves that threaten a lane (for the Trade panel).
 func lane_threats(l: Dictionary) -> Array:
 	var out: Array = []
@@ -724,6 +759,44 @@ static func valid(d: Variant, port_ids: Array) -> bool:
 		for sid in l.ships:
 			if not sids.has(sid): return false
 	return true
+
+
+## Keep the valid lanes and ships of a damaged save, drop the rest (a ship whose lane was
+## dropped idles in port). Returns {data (valid for `valid`), dropped: [what]}.
+static func repair(d: Variant, port_ids: Array) -> Dictionary:
+	var dropped: Array[String] = []
+	var out := {"next_id": 1, "lanes": [], "ships": []}
+	if not d is Dictionary: return {"data": out, "dropped": ["the fleet record"]}
+	if ColonyTown._num(d.get("next_id"), 1, 1e7): out.next_id = int(d.next_id)
+	var lids := {}
+	for l in (d.get("lanes") if d.get("lanes") is Array else []):
+		if out.lanes.size() >= MAX_LANES: break
+		if not l is Dictionary or not l.get("id") is String or lids.has(l.id) or not l.get("from") in port_ids or not l.get("to") in port_ids or l.from == l.to \
+				or not _rule(l.get("out")) or not _rule(l.get("back")) or not l.get("ships") is Array or not l.get("log") is Array or not ColonyTown._num(l.get("trips"), 0, 1e9):
+			dropped.append("lane %s" % (str(l.get("id")) if l is Dictionary else "?")); continue
+		lids[l.id] = true
+		out.lanes.append(l.duplicate(true))
+	var sids := {}
+	for sh in (d.get("ships") if d.get("ships") is Array else []):
+		if out.ships.size() >= MAX_SHIPS: break
+		var one := {"next_id": 1, "lanes": out.lanes, "ships": [sh]}
+		var s: Dictionary = sh.duplicate(true) if sh is Dictionary else {}
+		if s.get("lane") is String and s.lane != "" and not lids.has(s.lane): s.lane = ""
+		one.ships = [s]
+		var alone: Array = []
+		for l in out.lanes:
+			var copy: Dictionary = l.duplicate(true); copy.ships = []; alone.append(copy)
+		one.lanes = alone
+		if s.is_empty() or sids.has(s.get("id")) or not valid(one, port_ids):
+			dropped.append("ship %s" % str(s.get("id", "?"))); continue
+		sids[s.id] = true
+		out.ships.append(s)
+	for l in out.lanes:
+		l.ships = (l.ships as Array).filter(func(sid): return sids.has(sid))
+		for sid in sids:
+			for sh in out.ships:
+				if sh.id == sid and sh.lane == l.id and not sid in l.ships: l.ships.append(sid)
+	return {"data": out, "dropped": dropped}
 
 
 static func _rule(v: Variant) -> bool:

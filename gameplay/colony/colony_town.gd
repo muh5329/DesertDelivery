@@ -12,7 +12,7 @@ extends RefCounted
 
 const WALK_SPEED := 2.2
 const NEED_PERIOD := 20.0
-const FOOD_RATE := 1.0 / 60.0         # units per colonist per second (1 a minute)
+const FOOD_RATE := 1.0 / 150.0        # units per colonist per second (one every 2.5 minutes)
 const GOODS_RATE := 1.0 / 400.0       # units of EACH good per colonist per second
 const TAX_RATE := 0.25 / NEED_PERIOD  # coins per colonist per second at full happiness
 const MAX_BUILDINGS := 64
@@ -45,6 +45,7 @@ var _period := 0.0
 var _crew := {}                      # building id -> colonists working there (assign() keeps it)
 var _employed := 0
 var _cap := -1.0                     # stockpile capacity (recomputed when buildings change)
+var _warned_food := false
 
 
 func _init(p_id: String = "") -> void:
@@ -161,7 +162,12 @@ func trip_seconds(b: Dictionary) -> float:
 
 
 func workers_needed(b: Dictionary) -> int:
-	return int(EconomyCatalog.building(b.type).get("workers", 0))
+	return int(def_of(b).get("workers", 0))
+
+
+## A building's definition as it works here (the hall's kitchen garden in a town colony).
+func def_of(b: Dictionary) -> Dictionary:
+	return EconomyCatalog.def_for(id, String(b.type))
 
 
 func workers_at(bid: String) -> int:
@@ -212,7 +218,7 @@ func efficiency(b: Dictionary) -> float:
 func status(b: Dictionary) -> String:
 	if not b.built: return "Foundation" if float(b.progress) < 0.3 else "Under construction (%d%%)" % int(float(b.progress) * 100)
 	if b.paused: return "Paused"
-	var def := EconomyCatalog.building(b.type)
+	var def := def_of(b)
 	if workers_needed(b) > 0 and workers_at(b.id) == 0: return "No workers"
 	if not def.has("outputs"): return "Working" if workers_needed(b) > 0 else "Ready"
 	if float(b.cycle) > 0.0: return "Producing (%d%%)" % int(float(b.cycle) * 100)
@@ -245,11 +251,15 @@ func assign() -> void:
 	for b in buildings:
 		if b.built and not b.paused and workers_needed(b) > 0: live[b.id] = workers_needed(b)
 	var filled := {}
+	# the hall's kitchen garden takes the hands nobody else needs: its gardeners are freed first
+	# and it is filled last, so a new workshop always gets its workers
 	for c in colonists:
-		if c.job != "" and live.has(c.job) and int(filled.get(c.job, 0)) < int(live[c.job]):
+		if c.job != "" and live.has(c.job) and String(building(c.job).get("type", "")) != "colony_hall" and int(filled.get(c.job, 0)) < int(live[c.job]):
 			filled[c.job] = int(filled.get(c.job, 0)) + 1
 		else: c.job = ""
-	for b in buildings:
+	# the hall's kitchen garden takes the hands nobody else needs (it comes last)
+	var order: Array = buildings.filter(func(b): return b.type != "colony_hall") + buildings.filter(func(b): return b.type == "colony_hall")
+	for b in order:
 		if not live.has(b.id): continue
 		for c in colonists:
 			if int(filled.get(b.id, 0)) >= int(live[b.id]): break
@@ -283,7 +293,7 @@ func tick(dt: float) -> Array:
 		if not b.built:
 			_construct(b, dt, notes)
 			continue
-		var def := EconomyCatalog.building(b.type)
+		var def := def_of(b)
 		if def.has("outputs"):
 			_produce(b, def, dt)
 			_porter(b, def, dt)
@@ -412,7 +422,45 @@ func _evaluate(notes: Array) -> void:
 	needs.goods = goods / EconomyCatalog.GOODS.size()
 	needs.housing = clampf(float(housing()) / pop, 0.0, 1.0)
 	if needs.food < 0.5 and happiness > 30.0: notes.append("%s is short of food." % display_name)
+	else:
+		var left := food_minutes()
+		if left < 6.0 and left >= 0.0 and not _warned_food:
+			_warned_food = true
+			notes.append("%s has food for about %d min: build %s, or send food by road or sea." % [display_name, maxi(1, roundi(left)), _food_hint()])
+		elif left < 0.0 or left > 10.0: _warned_food = false
 	_hungry = 0.0; _short = {}
+
+
+## Minutes the stock of food lasts at today's eating and production; -1 when production keeps up.
+func food_minutes() -> float:
+	var pop := colonists.size()
+	if pop == 0: return -1.0
+	var eat := pop * FOOD_RATE * 60.0
+	var make := food_output_per_minute()
+	if make >= eat: return -1.0
+	var have := 0
+	for f in EconomyCatalog.FOODS: have += count(f)
+	return have / (eat - make)
+
+
+## Food the colony's working producers make a minute at today's staffing and happiness.
+func food_output_per_minute() -> float:
+	var total := 0.0
+	for b in buildings:
+		var def := def_of(b)
+		if not def.has("outputs") or not def.get("inputs", {}).is_empty() and not _has(b.inbuf, def.inputs): continue
+		for item in def.outputs:
+			if item in EconomyCatalog.FOODS:
+				total += float(def.outputs[item]) * 60.0 / float(def.cycle) * efficiency(b)
+	return total
+
+
+func _food_hint() -> String:
+	var names := PackedStringArray()
+	for type in EconomyCatalog.BUILDINGS:
+		var def: Dictionary = EconomyCatalog.BUILDINGS[type]
+		if def.has("raw") and String(def.raw) in EconomyCatalog.local_foods(id): names.append(String(def.name).to_lower())
+	return "a " + " or a ".join(names.slice(0, 2)) if not names.is_empty() else "food buildings"
 
 
 func target_happiness() -> float:
@@ -546,14 +594,7 @@ static func valid(d: Variant, colony_id: String) -> bool:
 	if not d.get("colonists") is Array or d.colonists.size() > MAX_COLONISTS: return false
 	var ids := {}
 	for b in d.buildings:
-		if not b is Dictionary or not b.get("id") is String or ids.has(b.id) or not EconomyCatalog.BUILDINGS.has(b.get("type")): return false
-		for key in ["x", "z"]:
-			if not _num(b.get(key), -12500.0, 12500.0): return false
-		if not _num(b.get("y"), -100.0, 3000.0) or not _num(b.get("yaw"), -10.0, 10.0) or not b.get("built") is bool or not b.get("paused") is bool: return false
-		if not _num(b.get("progress"), 0.0, 1.0) or not _num(b.get("cycle"), 0.0, 1.5) or not _num(b.get("produced"), 0, 1e9): return false
-		if not _inventory(b.get("inbuf")) or not _inventory(b.get("outbuf")) or not b.get("carry") is Dictionary: return false
-		if not b.carry.is_empty():
-			if not int(b.carry.get("phase", -1)) in [0, 1] or not _num(b.carry.get("t"), 0.0, 1e6) or not _num(b.carry.get("dur"), 0.0, 1e6) or not _inventory(b.carry.get("load")): return false
+		if not _valid_building(b) or ids.has(b.id): return false
 		ids[b.id] = true
 	var cids := {}
 	for c in d.colonists:
@@ -561,6 +602,103 @@ static func valid(d: Variant, colony_id: String) -> bool:
 		if not c.get("job") is String or not c.get("home") is String or (c.job != "" and not ids.has(c.job)) or (c.home != "" and not ids.has(c.home)): return false
 		cids[c.id] = true
 	return true
+
+
+## One saved building record on its own (the per-record half of `valid`).
+static func _valid_building(b: Variant) -> bool:
+	if not b is Dictionary or not b.get("id") is String or not EconomyCatalog.BUILDINGS.has(b.get("type")): return false
+	for key in ["x", "z"]:
+		if not _num(b.get(key), -12500.0, 12500.0): return false
+	if not _num(b.get("y"), -100.0, 3000.0) or not _num(b.get("yaw"), -10.0, 10.0) or not b.get("built") is bool or not b.get("paused") is bool: return false
+	if not _num(b.get("progress"), 0.0, 1.0) or not _num(b.get("cycle"), 0.0, 1.5) or not _num(b.get("produced"), 0, 1e9): return false
+	if not _inventory(b.get("inbuf")) or not _inventory(b.get("outbuf")) or not b.get("carry") is Dictionary: return false
+	if not b.carry.is_empty():
+		if not int(b.carry.get("phase", -1)) in [0, 1] or not _num(b.carry.get("t"), 0.0, 1e6) or not _num(b.carry.get("dur"), 0.0, 1e6) or not _inventory(b.carry.get("load")): return false
+	return true
+
+
+## Mend a saved town record instead of throwing the whole save away: keep every valid field,
+## clamp numbers into range, drop only a broken building or colonist, fall back to the start
+## value for anything else. Returns {data (a record `valid` accepts, or {} when nothing of it
+## is usable), fixes: Array[String] (what was changed, for the load report)}.
+static func repair(d: Variant, colony_id: String) -> Dictionary:
+	var fixes: Array[String] = []
+	if not d is Dictionary: return {"data": {}, "fixes": ["the record is missing"]}
+	if d.get("id") != colony_id: return {"data": {}, "fixes": ["the record belongs to %s" % str(d.get("id"))]}
+	var out: Dictionary = ColonyTown.new(colony_id).to_dict()
+	for key in ["founded", "discovered"]:
+		if d.get(key) is bool: out[key] = d[key]
+		else: fixes.append(key)
+	out.stock = _mend_inventory(d.get("stock"), fixes, "stock")
+	for spec in [["happiness", 0.0, 100.0], ["growth", -1.0, 1e9], ["decline", -1.0, 1e9], ["coins_due", -1.0, 1e9],
+			["clock", -1.0, 1e9], ["food_owed", -1.0, 1e9], ["period", -1.0, 1e9], ["hungry", 0.0, 1e6], ["next_id", 1.0, 1e7]]:
+		var v: Variant = d.get(spec[0])
+		if (v is int or v is float) and is_finite(float(v)):
+			var c := clampf(float(v), spec[1], spec[2])
+			if c != float(v): fixes.append("%s %s -> %s" % [spec[0], str(v), str(c)])
+			out[spec[0]] = int(c) if spec[0] == "next_id" else c
+		else: fixes.append(String(spec[0]))
+	var hall: Variant = d.get("hall")
+	if hall is Array and hall.size() == 3 and _num(hall[0], -13000.0, 13000.0) and _num(hall[1], -13000.0, 13000.0) and _num(hall[2], -13000.0, 13000.0):
+		out.hall = hall.duplicate()
+	else: fixes.append("hall")
+	var needs: Variant = d.get("needs")
+	for k in ["food", "variety", "goods", "housing"]:
+		var v: Variant = needs.get(k) if needs is Dictionary else null
+		if (v is int or v is float) and is_finite(float(v)): out.needs[k] = clampf(float(v), 0.0, 1.0)
+		else: fixes.append("needs.%s" % k)
+	for key in ["goods_owed", "eaten", "short"]:
+		var v: Variant = d.get(key)
+		var clean := {}
+		if v is Dictionary:
+			for item in v:
+				if EconomyCatalog.ITEMS.has(item) and _num(v[item], -1e9, 1e9): clean[item] = float(v[item])
+				else: fixes.append("%s.%s" % [key, str(item)])
+		else: fixes.append(key)
+		out[key] = clean
+	var log: Variant = d.get("log")
+	out.log = (log as Array).slice(maxi(0, (log as Array).size() - 40)) if log is Array else []
+	var ids := {}
+	var kept: Array = []
+	if d.get("buildings") is Array:
+		for b in d.buildings:
+			if kept.size() >= MAX_BUILDINGS: fixes.append("buildings over the limit"); break
+			if not _valid_building(b) or ids.has(b.id):
+				fixes.append("building %s dropped" % (str(b.get("id")) if b is Dictionary else "?"))
+				continue
+			ids[b.id] = true
+			kept.append(b)
+	else: fixes.append("buildings")
+	out.buildings = kept
+	var people: Array = []
+	var cids := {}
+	if d.get("colonists") is Array:
+		for c in d.colonists:
+			if people.size() >= MAX_COLONISTS: break
+			if not c is Dictionary or not c.get("id") is String or cids.has(c.id) or not c.get("name") is String or not _num(c.get("seed"), -9.3e18, 9.3e18):
+				fixes.append("a colonist dropped"); continue
+			var r: Dictionary = c.duplicate(true)
+			for key in ["job", "home"]:
+				if not r.get(key) is String or (r[key] != "" and not ids.has(r[key])): r[key] = ""
+			cids[r.id] = true
+			people.append(r)
+	else: fixes.append("colonists")
+	out.colonists = people
+	if not valid(out, colony_id): return {"data": {}, "fixes": fixes + ["unrecoverable"]}
+	return {"data": out, "fixes": fixes}
+
+
+static func _mend_inventory(v: Variant, fixes: Array[String], what: String) -> Dictionary:
+	var out := {}
+	if not v is Dictionary:
+		fixes.append(what)
+		return out
+	for item in v:
+		var n: Variant = v[item]
+		if EconomyCatalog.ITEMS.has(item) and (n is int or n is float) and is_finite(float(n)):
+			out[String(item)] = clampi(int(floorf(float(n))), 0, 1000000)
+		else: fixes.append("%s.%s" % [what, str(item)])
+	return out
 
 
 static func _num(v: Variant, lo: float, hi: float) -> bool:

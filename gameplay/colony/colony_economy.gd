@@ -42,6 +42,13 @@ var _town_plan: Dictionary = {}        # colony id -> plan.json town record
 var _coins_local := 500                # the wallet when there is no courier (unit tests)
 ## Urgent supply runs posted by short colonies (optional courier jobs).
 var urgent := UrgentSupply.new()
+## Carters' wagons between colonies by road (inland Valdoro and Campo Real trade this way).
+var roads := RoadHaulage.new()
+## What the last load had to repair or drop (the Mayor view and the load message show it).
+var load_warnings: Array[String] = []
+var _start: Dictionary = {}            # colony id -> its start record (a town missing from a save)
+var _site_cache: Dictionary = {}       # "cid|type|x|z|yaw" -> check_site verdict (Build ghost)
+var _hall_jobs: Dictionary = {}        # colony id -> charter in progress {r, k, best...}
 
 
 ## Data only (no world): the core colony round `hall`.
@@ -59,6 +66,12 @@ func setup_core(p_system: ColonySystem, hall: Vector3) -> void:
 	for i in range(4): core.add_colonist(SETTLER_SEED * (i + 1))
 	core.assign()
 	shipping.towns = func(cid: String) -> ColonyTown: return town(cid)
+	roads.towns = func(cid: String) -> ColonyTown: return town(cid)
+	_remember_start()
+
+
+func _remember_start() -> void:
+	for cid in towns: _start[cid] = town(cid).to_dict()
 
 
 ## The world: town records, ports, the sea grid (built on a worker thread), the views.
@@ -76,6 +89,7 @@ func setup_world(p_game: Game) -> void:
 		shipping.ground = func(x: float, z: float) -> float: return game.world.terrain.height_at(x, z)
 		shipping.pirates = _pirate_camps
 		shipping.start_async(outer.ground, func(x: float, z: float) -> float: return game.world.terrain.height_at(x, z))
+	_remember_start()
 	views = ColonyViews.new(); views.name = "ColonyViews"; add_child(views)
 	views.setup(self)
 	urgent.setup(self)
@@ -163,13 +177,40 @@ func discover(cid: String) -> void:
 
 
 ## Found the colony: pay the charter, raise the hall on a clear site, bring the settlers.
+## Synchronous (tools, tests); the Mayor view uses `begin_found`, which surveys over frames.
 func found(cid: String, force := false) -> String:
+	var why := _charter_blocked(cid, force)
+	if why != "": return why
+	var site: Variant = find_hall_site(cid)
+	if site == null: return "No clear ground for a colony hall near %s." % town(cid).display_name
+	return _raise_hall(cid, site)
+
+
+## Start a charter whose hall site is surveyed a few milliseconds a frame (no frame stalls).
+## "" when the survey started (`chartering(cid)` is true until it ends), else why not.
+func begin_found(cid: String) -> String:
+	if _hall_jobs.has(cid): return ""
+	var why := _charter_blocked(cid, false)
+	if why != "": return why
+	_hall_jobs[cid] = {"i": 0, "centre": _hall_centre(cid)}
+	return ""
+
+
+func chartering(cid: String) -> bool:
+	return _hall_jobs.has(cid)
+
+
+func _charter_blocked(cid: String, force: bool) -> String:
 	var t := town(cid)
 	if t == null: return "No such town."
 	if t.founded: return "%s is already a colony." % t.display_name
 	if not t.discovered and not force: return "Visit %s first." % t.display_name
-	var site: Variant = find_hall_site(cid)
-	if site == null: return "No clear ground for a colony hall near %s." % t.display_name
+	if coins() < charter_cost(cid): return "A charter costs %d coins (you have %d)." % [charter_cost(cid), coins()]
+	return ""
+
+
+func _raise_hall(cid: String, site: Dictionary) -> String:
+	var t := town(cid)
 	if coins() < charter_cost(cid): return "A charter costs %d coins (you have %d)." % [charter_cost(cid), coins()]
 	spend(charter_cost(cid))
 	t.discovered = true; t.founded = true
@@ -177,33 +218,90 @@ func found(cid: String, force := false) -> String:
 	var hall := t.add_building("colony_hall", site.pos, site.yaw, true)
 	hall["ground"] = ground_min(site.pos, "colony_hall", site.yaw)
 	for item in EconomyCatalog.CHARTER_STOCK: t.stock[item] = int(EconomyCatalog.CHARTER_STOCK[item])
+	var staple := String(EconomyCatalog.COLONIES.get(cid, {}).get("staple", ""))
+	if staple != "": t.stock[staple] = int(t.stock.get(staple, 0)) + EconomyCatalog.STAPLE_STOCK
 	for i in range(EconomyCatalog.CHARTER_SETTLERS): t.add_colonist(hash([cid, i, SETTLER_SEED]))
 	t.assign()
+	_site_cache.clear()
 	_notify(cid, "%s is chartered: a colony hall, %d settlers and a starter stock." % [t.display_name, EconomyCatalog.CHARTER_SETTLERS], true)
 	changed.emit()
 	return ""
 
 
-## The nearest clear site to the port (or the plaza) for the colony hall.
-func find_hall_site(cid: String) -> Variant:
+## Where the hall search starts: the town's plaza (the hall belongs in the town, with the build
+## area on land round it — not out on a mole by the berth).
+func _hall_centre(cid: String) -> Vector3:
 	var t := town(cid)
-	var centre := t.hall
-	if shipping.ports.has(cid):
-		var berth: Vector3 = shipping.ports[cid].berth
-		centre = berth
-	elif _town_plan.has(cid) and cid != "core":
+	if _town_plan.has(cid) and cid != "core":
 		var pz: Array = _town_plan[cid].plaza
-		centre = Vector3(pz[0], pz[1], pz[2])
-	for r in range(40, 1000, 20):
-		var n := maxi(12, int(TAU * r / 30.0))
-		for k in range(n):
-			var a := TAU * k / n
-			var p := Vector3(centre.x + cos(a) * r, 0, centre.z + sin(a) * r)
-			var yaw := atan2(centre.x - p.x, centre.z - p.z)   # the front faces the port / plaza
-			if check_site(cid, "colony_hall", p, yaw, true) == "":
-				p.y = _pad(p, "colony_hall", yaw)
-				return {"pos": p, "yaw": yaw}
+		return Vector3(pz[0], pz[1], pz[2])
+	return t.hall
+
+
+## The i-th candidate of the survey: rings every 15 m from 30 m out, 25 m apart round each ring.
+## Returns null past the last ring.
+static func _hall_candidate(centre: Vector3, i: int) -> Variant:
+	var r := 30.0
+	while r <= 1000.0:
+		var n := maxi(12, int(TAU * r / 25.0))
+		if i < n:
+			var a := TAU * i / n
+			return Vector3(centre.x + cos(a) * r, 0, centre.z + sin(a) * r)
+		i -= n
+		r += 15.0
 	return null
+
+
+func _try_hall(cid: String, centre: Vector3, p: Vector3) -> Variant:
+	var yaw := snappedf(atan2(centre.x - p.x, centre.z - p.z), PI * 0.5)   # the front faces the plaza
+	if check_site(cid, "colony_hall", p, yaw, true) != "": return null
+	if _land_share(p, 150.0) < 0.6: return null     # the build area round the hall is mostly land
+	p.y = _pad(p, "colony_hall", yaw)
+	return {"pos": p, "yaw": yaw}
+
+
+func _land_share(at: Vector3, radius: float) -> float:
+	var dry := 0
+	for k in range(16):
+		var a := TAU * k / 16.0
+		if _height(at.x + cos(a) * radius, at.z + sin(a) * radius) > 0.6: dry += 1
+	return dry / 16.0
+
+
+## The nearest clear site to the plaza for the colony hall (synchronous).
+func find_hall_site(cid: String) -> Variant:
+	var centre := _hall_centre(cid)
+	var i := 0
+	while true:
+		var p: Variant = _hall_candidate(centre, i)
+		if p == null: return null
+		var site: Variant = _try_hall(cid, centre, p)
+		if site != null: return site
+		i += 1
+	return null
+
+
+## Charters in progress: survey candidates for HALL_BUDGET_US a frame.
+const HALL_BUDGET_US := 3000
+func _survey_halls() -> void:
+	for cid in _hall_jobs.keys():
+		var job: Dictionary = _hall_jobs[cid]
+		var t0 := Time.get_ticks_usec()
+		while Time.get_ticks_usec() - t0 < HALL_BUDGET_US:
+			var p: Variant = _hall_candidate(job.centre, int(job.i))
+			job.i = int(job.i) + 1
+			if p == null:
+				_hall_jobs.erase(cid)
+				_notify(cid, "No clear ground for a colony hall near %s." % town(cid).display_name, true)
+				changed.emit()
+				break
+			var site: Variant = _try_hall(cid, job.centre, p)
+			if site != null:
+				_hall_jobs.erase(cid)
+				var err := _raise_hall(cid, site)
+				if err != "": _notify(cid, err, true)
+				break
+		return      # one charter a frame
 
 
 # ------------------------------------------------------------------ placement
@@ -272,16 +370,17 @@ func check_site(cid: String, type: String, at: Vector3, yaw: float, founding := 
 	if hi - lo > 1.8: return "Too steep: needs flat ground (%.1f m of slope)." % (hi - lo)
 	var f := footprint(type)
 	var reach := f.length()
+	# the cheap tests first: plots, streets and landmarks from the town's grid
+	var hit := _obstacle_hit(cid, Vector2(at.x, at.z), reach)
+	if hit != "": return hit
 	if game != null:
 		var n := game.world.terrain.normal_at(at.x, at.z)
 		if n.y < 0.9: return "Too steep."
+		for p in pts:
+			if game.world.terrain.road_dist_at(p.x, p.y) < 5.5: return "On a road."
 		var road := game.world.terrain.nearest_road(Vector3(at.x, 0, at.z))
 		var rp: Vector3 = road.point
 		if Vector2(rp.x - at.x, rp.z - at.z).length() < reach + 6.0: return "Too close to a road."
-		for p in pts:
-			if game.world.terrain.road_dist_at(p.x, p.y) < 5.5: return "On a road."
-	var hit := _obstacle_hit(cid, Vector2(at.x, at.z), reach)
-	if hit != "": return hit
 	for other_id in towns:
 		for b in (towns[other_id] as ColonyTown).buildings:
 			if b.get("virtual", false): continue
@@ -295,6 +394,17 @@ func check_site(cid: String, type: String, at: Vector3, yaw: float, founding := 
 	if def.get("unique", false) and not founding and t.has_built(type): return "Only one per colony."
 	if game != null and is_inside_tree() and not _physics_clear(at, yaw, f, (lo + hi) * 0.5): return "Something is in the way."
 	return ""
+
+
+## check_site for the Build ghost: the verdict for a 1 m / 15 degree cell is kept until the
+## colonies change, so sweeping the pointer over a site costs the physics query once.
+func check_site_cached(cid: String, type: String, at: Vector3, yaw: float) -> String:
+	var key := "%s|%s|%d|%d|%d" % [cid, type, roundi(at.x), roundi(at.z), roundi(rad_to_deg(yaw) / 15.0)]
+	if _site_cache.has(key): return _site_cache[key]
+	if _site_cache.size() > 4096: _site_cache.clear()
+	var why := check_site(cid, type, at, yaw)
+	_site_cache[key] = why
+	return why
 
 
 func _near_water(at: Vector3, radius: float) -> bool:
@@ -369,6 +479,7 @@ func _build_obstacles(cid: String) -> void:
 
 func invalidate_obstacles() -> void:
 	_obstacles.clear()
+	_site_cache.clear()
 
 
 ## Place a building: checks the site, pays the coins and the materials, starts construction.
@@ -384,6 +495,7 @@ func place(cid: String, type: String, at: Vector3, yaw: float) -> String:
 	var p := Vector3(at.x, _pad(at, type, yaw), at.z)
 	var b := t.add_building(type, p, yaw)
 	b["ground"] = ground_min(p, type, yaw)
+	_site_cache.clear()
 	_notify(cid, "%s: %s started." % [t.display_name, def.name], false)
 	changed.emit()
 	return ""
@@ -392,6 +504,7 @@ func place(cid: String, type: String, at: Vector3, yaw: float) -> String:
 func remove(cid: String, bid: String) -> bool:
 	var t := town(cid)
 	if t == null or not t.remove_building(bid): return false
+	_site_cache.clear()
 	t.assign()
 	changed.emit()
 	return true
@@ -441,6 +554,41 @@ func add_lane(from_id: String, to_id: String, out: Dictionary, back: Dictionary)
 	return l
 
 
+## A mended record of a chartered colony keeps a colony hall (a damaged hall record is replaced
+## by the start one, or a fresh hall where the colony's hall stood).
+func _keep_hall(cid: String, rec: Dictionary) -> Dictionary:
+	if not rec.founded: return rec
+	for b in rec.buildings:
+		if b.type == "colony_hall": return rec
+	var hall: Dictionary = {}
+	for b in _start.get(cid, {}).get("buildings", []):
+		if b.type == "colony_hall": hall = b.duplicate(true)
+	if hall.is_empty():
+		hall = {"id": "%s.b%d" % [cid, int(rec.next_id)], "type": "colony_hall", "x": float(rec.hall[0]), "y": float(rec.hall[1]), "z": float(rec.hall[2]),
+			"yaw": 0.0, "built": true, "progress": 1.0, "cycle": 0.0, "inbuf": {}, "outbuf": {}, "paused": false, "produced": 0, "carry": {}}
+		rec.next_id = int(rec.next_id) + 1
+	rec.buildings.push_front(hall)
+	return rec
+
+
+## Hire a carter between two chartered colonies (any two: the wagons go by road). The wagon
+## and its team cost COINS and COST's planks at `from`. Returns "" or why not.
+func add_road_route(from_id: String, to_id: String, out: Dictionary, back: Dictionary) -> String:
+	var a := town(from_id); var b := town(to_id)
+	if a == null or b == null or not a.founded or not b.founded: return "Both ends must be chartered colonies."
+	if from_id == to_id: return "Pick two different colonies."
+	if out.is_empty() and back.is_empty(): return "Give the wagon at least one cargo rule."
+	if roads.routes.size() >= RoadHaulage.MAX_ROUTES: return "Every carter is already hired."
+	if not a.can_afford(RoadHaulage.COST): return "A wagon needs %s at %s." % [EconomyCatalog.describe_cost(RoadHaulage.COST, 0), a.display_name]
+	if coins() < RoadHaulage.COINS: return "A carter costs %d coins (you have %d)." % [RoadHaulage.COINS, coins()]
+	var r := roads.add_route(from_id, to_id, out, back)
+	if r.is_empty(): return "No road between those colonies."
+	spend(RoadHaulage.COINS); a.pay(RoadHaulage.COST)
+	_notify(from_id, "A carter now runs %s (%.1f km by road)." % [roads.title(r), float(r.m) / 1000.0], false)
+	changed.emit()
+	return ""
+
+
 # ------------------------------------------------------------------ the tick
 func _process(delta: float) -> void:
 	if game == null: return          # unit tests tick by hand
@@ -450,6 +598,7 @@ func _process(delta: float) -> void:
 		_discover_t = 0.0
 		_check_discovery()
 	urgent.update(delta)
+	if not _hall_jobs.is_empty(): _survey_halls()
 	if system != null and system.paused: return
 	# every town and the fleet owe time; at most one town is ticked a frame (round robin), each
 	# at TICK_HZ, so a frame never pays for the whole country
@@ -507,6 +656,9 @@ func _tick_town(cid: String, dt: float) -> void:
 
 
 func _tick_ships(dt: float) -> void:
+	roads.tick(dt)
+	for text in roads.messages: _notify("", text, false)
+	roads.messages.clear()
 	if not ports_ready and game != null: return
 	shipping.tick(dt)
 	for text in shipping.messages: _notify("", text, true)
@@ -539,7 +691,7 @@ func save_state() -> Dictionary:
 		var d := town(cid).to_dict()
 		if cid == "core": d.stock = {}        # the core stock is the colony warehouse (v1 field)
 		out[cid] = d
-	return {"towns": out, "shipping": shipping.save_state(), "time_scale": time_scale}
+	return {"towns": out, "shipping": shipping.save_state(), "roads": roads.save_state(), "time_scale": time_scale}
 
 
 func valid(d: Variant) -> bool:
@@ -551,12 +703,55 @@ func valid(d: Variant) -> bool:
 
 
 func load_state(d: Dictionary) -> void:
+	load_partial(d)
+
+
+## Load what is usable of a saved economy, town by town and lane by lane: a valid record loads
+## as it is, a damaged one is mended (numbers clamped, a broken building or colonist dropped),
+## one beyond repair — or missing from the save — goes back to its start state. Returns what
+## had to change (empty for a clean save); also kept in `load_warnings`.
+func load_partial(d: Variant) -> Array[String]:
+	var warn: Array[String] = []
+	if not d is Dictionary:
+		warn.append("the colony economy was missing from the save; the colonies were kept as they were")
+		load_warnings = warn
+		return warn
+	var saved: Dictionary = d.get("towns") if d.get("towns") is Dictionary else {}
+	for cid in saved:
+		if not towns.has(cid): warn.append("an unknown colony '%s' in the save was ignored" % str(cid))
 	for cid in towns:
 		var t := town(cid)
-		t.apply_dict(d.towns[cid])
-		if cid == "core": t.stock = system.warehouse
-	shipping.load_state(d.shipping)
-	time_scale = float(d.time_scale)
+		var rec: Variant = saved.get(cid)
+		var name := t.display_name.get_slice(" (", 0)
+		if rec == null:
+			warn.append("%s was not in the save: it starts afresh" % name)
+			rec = _start.get(cid, ColonyTown.new(cid).to_dict())
+		elif not ColonyTown.valid(rec, cid):
+			var fixed := ColonyTown.repair(rec, cid)
+			if (fixed.data as Dictionary).is_empty():
+				warn.append("%s's record could not be read: it starts afresh" % name)
+				rec = _start.get(cid, ColonyTown.new(cid).to_dict())
+			else:
+				warn.append("%s's record was repaired (%s)" % [name, ", ".join(PackedStringArray(fixed.fixes.slice(0, 4)))])
+				rec = _keep_hall(cid, fixed.data)
+		t.apply_dict(rec)
+		if cid == "core" and system != null: t.stock = system.warehouse
+	var ports := ["core", "puerto_alto", "sarmada", "isola_serena"]
+	var sh: Variant = d.get("shipping")
+	if ShippingNetwork.valid(sh, ports):
+		shipping.load_state(sh)
+	else:
+		var fixed := ShippingNetwork.repair(sh, ports)
+		shipping.load_state(fixed.data)
+		if not (fixed.dropped as Array).is_empty():
+			warn.append("the fleet lost %s (damaged in the save)" % ", ".join(PackedStringArray(fixed.dropped.slice(0, 4))))
+	var dropped := roads.load_state(d.get("roads", {"next_id": 1, "routes": []}), towns.keys())
+	if dropped > 0: warn.append("%d carter route%s could not be read" % [dropped, "" if dropped == 1 else "s"])
+	var ts: Variant = d.get("time_scale", 1.0)
+	time_scale = clampf(float(ts), 0.0, 8.0) if (ts is float or ts is int) and is_finite(float(ts)) else 1.0
 	_obstacles.clear()
+	_site_cache.clear()
 	if views != null: views.reset()
 	changed.emit()
+	load_warnings = warn
+	return warn
