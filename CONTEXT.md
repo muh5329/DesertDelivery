@@ -127,6 +127,28 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   Serena) through water >= 8 m deep and >= 60 m from the coast; bridges over them clear 12 m.
 - **Camp** (in the plan) — a bandit camp or pirate cove point the `EncounterDirector` reads.
 
+## Colonies (ADR 0011)
+
+- **Colony** — a town run by the Mayor: `ColonyTown` (stockpile, buildings, colonists, needs,
+  happiness). The core **villa colony** exists from the start; a town is **discovered** when the
+  courier rides in and **chartered** (founded) for coins: a **colony hall** (warehouse), settlers,
+  a starter stock. The **build area** is a ring round the hall.
+- **Colonist** — a colony's person (a record; near the viewer a townsperson in the town's style).
+  Not one of the 64 **residents**, who keep their own jobs on the core (Jobs / Areas / Paths).
+- **Building** — a colony building record: type (EconomyCatalog.BUILDINGS), site, construction
+  **progress** (foundation, scaffold, built), production **cycle**, **inbuf** / **outbuf**, and its
+  **porter** (`carry`) walking goods to the nearest storage and inputs back.
+- **Chain** — raw goods (regional: timber, stone, ore, grain, olives, grapes, fish, salt, cotton,
+  dates) processed into planks, blocks, tools, flour, bread, oil, wine, cloth, preserved fish.
+- **Needs** — food (with variety), goods, housing; **happiness** follows them; **growth** and
+  **decline** follow happiness. Colonies pay **taxes** into the courier's wallet.
+- **Port / berth / mooring** — the plan's ports; a ship lies alongside at the mooring point off
+  the berth. **Sea route** — the water path between two ports (`ShippingNetwork.route`).
+- **Lane** — two port colonies, an outbound and a return **cargo rule**, the ships assigned.
+  **Ship** — coaster or schooner, built at a **shipyard**; far ships are a distance along a route.
+- **Raid risk** — the chance per leg that pirates from an uncleared **pirate cove** near the route
+  take part of the cargo.
+
 ## Architecture (see ARCHITECTURE.md)
 
 - **Game** — the root node: boots the managers and wires them; `Game.current` for tests/tools.

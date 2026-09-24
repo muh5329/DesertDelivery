@@ -48,9 +48,15 @@ res://
 │   ├── controls/            controls.gd — the ControlIntent seam (Keyboard / Scripted sources)
 │   ├── delivery/            delivery_system.gd, job_definition.gd
 │   ├── weapons/             gun.gd (GunSystem: the M1 Garand), garand_model.gd, mesh_kit.gd, weapon_materials.gd, weapon_audio.gd
-│   └── combat/              encounter_director.gd (camps, ambushes), camp_kit.gd, player_vitals.gd, health.gd, combat_fx.gd
+│   ├── combat/              encounter_director.gd (camps, ambushes), camp_kit.gd, player_vitals.gd, health.gd, combat_fx.gd
+│   └── colony/              colony_system.gd (ColonySystem: core residents' jobs, areas, sites, roads, the save),
+│                            the colony sim (ADR 0011): economy_catalog.gd (goods, buildings, ships, colonies),
+│                            colony_town.gd (ColonyTown: one colony's rules), colony_economy.gd (ColonyEconomy:
+│                            towns, charters, placement, the 4 Hz tick, saves), shipping_network.gd (water grid,
+│                            routes, lanes, ships, pirates), colony_views.gd (buildings, porters, ships, map overlay),
+│                            colony_props.gd + mesh_bits.gd (yards, scaffolds), ship_model.gd (coaster, schooner)
 ├── ai/                      autopilot.gd (a Controls.Source that drives a Vehicle along the roads)
-├── ui/                      hud/hud.gd, debug/debug_overlay.gd
+├── ui/                      hud/hud.gd, debug/debug_overlay.gd, mayor_view.gd (F4) + mayor/ (theme, trade page)
 ├── data/                    the database: island maps, outer/ (the outer world), config/world.tres, vehicles/*.tres, jobs/*.tres
 └── tests/                   in-game test nodes and render tools (run with --test=NAME)
 ```
@@ -203,6 +209,16 @@ ROAD=3 godot --headless --path . -- --test=road_dump            # road profiles 
 PX=.. PY=.. PZ=.. godot --headless --path . -- --test=near_probe --nostream
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast,villa --out=DIR   # reference spots (reference/spots.json)
 ```
+
+## Colonies and shipping
+
+`Colony` (ColonySystem, a child of Game) owns `Economy` (ColonyEconomy): a `ColonyTown` record per
+colony (the core villa, the five towns), a `ShippingNetwork` (the 50 m water grid built on a
+worker thread at boot, routes, lanes and ships as records) and `ColonyViews` (what is near the
+viewer). The economy ticks at 4 Hz by rates, loaded or not; porters' trips and ships' positions
+are records the views read. Registered with `Saves` as `colony` (version 2). The Mayor view (F4)
+is the UI; pirates come from the EncounterDirector's camps (`camp_cleared` recomputes raid risk).
+See ADR 0011.
 
 ## Combat
 
