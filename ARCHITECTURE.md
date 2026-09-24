@@ -32,14 +32,16 @@ res://
 ├── addons/terrain_3d/       the Terrain3D GDExtension (rendering + collision of the ground)
 ├── entities/
 │   ├── entity_manager.gd    registry by stable id + simulation tiers
-│   ├── player/              player.gd (body), rider_model.gd (visual), rider.gd (the player's controller)
+│   ├── player/              player.gd (body), rider_model.gd (visual + rifle IK poses), rider.gd (the player's controller)
+│   ├── enemies/             enemy.gd (bandit / pirate body + AI), enemy_outfit.gd, enemy_weapons.gd
 │   ├── vehicles/            vehicle.gd (base), vehicle_definition.gd, bike/ (bike.gd, bike_visual.gd, bike_audio.gd)
 │   └── camera/              chase_camera.gd
 ├── gameplay/
 │   ├── gameplay_manager.gd  owns the systems below
 │   ├── controls/            controls.gd — the ControlIntent seam (Keyboard / Scripted sources)
 │   ├── delivery/            delivery_system.gd, job_definition.gd
-│   └── weapons/             gun.gd
+│   ├── weapons/             gun.gd (GunSystem: the M1 Garand), garand_model.gd, mesh_kit.gd, weapon_materials.gd, weapon_audio.gd
+│   └── combat/              encounter_director.gd (camps, ambushes), camp_kit.gd, player_vitals.gd, health.gd, combat_fx.gd
 ├── ai/                      autopilot.gd (a Controls.Source that drives a Vehicle along the roads)
 ├── ui/                      hud/hud.gd, debug/debug_overlay.gd
 ├── data/                    the database: island maps, outer/ (the outer world), config/world.tres, vehicles/*.tres, jobs/*.tres
@@ -59,7 +61,9 @@ Game (core/app/game.gd)            boots, wires, holds the CLI/session state
 ├── ChaseCamera
 ├── GameplayManager
 │   ├── DeliverySystem
-│   ├── GunSystem
+│   ├── GunSystem                  the Garand (+ CombatFx, WeaponAudio)
+│   ├── PlayerVitals               the courier's Health (a node on the Player), knock-out + respawn
+│   ├── EncounterDirector          camps (props + Enemies spawned by distance), road ambushes
 │   └── Autopilot                  only with --autotest / --shots
 ├── BikeAudio
 ├── UI / HUD
@@ -109,12 +113,15 @@ gives the same chunk (the kit rng is reseeded from the coordinate).
    (Health, Interaction...) rather than deeper class trees.
 5. **Few autoloads** — two. Managers hang under `Game`.
 6. **Events** — `core/events/event_bus.gd`: `message`, `job_changed`, `package_collected`,
-   `delivery_completed`, `gun_picked_up`, `can_hit`, `rider_mode_changed`, `vehicle_crashed`,
+   `delivery_completed`, `gun_picked_up`, `can_hit`, `shot_fired`, `clip_pinged`, `target_damaged`,
+   `enemy_killed`, `player_damaged`, `player_died`, `player_respawned`, `camp_alerted`, `camp_cleared`,
+   `ambush_started`, `rider_mode_changed`, `vehicle_crashed`,
    `chunk_loaded/unloaded`, `entity_registered`, `simulation_tier_changed`, `game_saved/loaded`.
    The HUD subscribes; nothing knows the HUD exists.
 7. **Simulation vs loaded scenes** — the `WorldDatabase` (recipes, locations, hubs) exists before
    any chunk does. `GunSystem` asks a `Hub` for wall tops without the farm being loaded.
-8. **Stable ids** — `vehicle.bike`, `player`, `pickup.pistol`, `can.hilltop_farm.2`, locations
+8. **Stable ids** — `vehicle.bike`, `player`, `pickup.ammo.dunes_lookout`, `can.hilltop_farm.2`,
+   `enemy.camp_bandit_3.2` (camp `camp.bandit.3`, slot 2), locations
    `villa_rosa_office`, `harbour_cafe`, jobs `job.seed_crate`. The save file records these, never
    node paths.
 9. **Locations as self-contained content** — each hub has a `_define_*` (data) and `_build_*`
@@ -147,7 +154,8 @@ the core) cover the whole network. Towns and hamlets are WorldDatabase locations
 ## Persistence
 
 `Saves.register(key, provider)`; a provider implements `save_state() -> Dictionary` and
-`load_state(d)`. Registered: `delivery`, `gun`, `bike`, `rider`. Files: `user://saves/<slot>.json`,
+`load_state(d)`. Registered: `delivery`, `gun` (clip, reserve, cache, cans), `combat` (cleared camps,
+dead enemies by camp slot, looted crates, kill stats), `bike`, `rider`, ... Files: `user://saves/<slot>.json`,
 diffs from the default world keyed by id (e.g. popped cans as `can.dunes_lookout.1`).
 
 ## Tests and tools
@@ -168,6 +176,18 @@ ROAD=3 godot --headless --path . -- --test=road_dump            # road profiles 
 PX=.. PY=.. PZ=.. godot --headless --path . -- --test=near_probe --nostream
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast,villa --out=DIR   # reference spots (reference/spots.json)
 ```
+
+## Combat
+
+`GunSystem` owns the Garand: hitscan down `ChaseCamera.view_ray()` inside a spread cone, a second
+ray from the muzzle so nearby cover blocks, `take_hit()` on whatever `hurtbox` Area3D (layer 32) it
+meets. Enemies are `CharacterBody3D`s on layer 64 (the player's mask includes it) with hurtboxes
+on the rig's torso / hips / head pivots, so crouching behind cover really hides them. The
+`EncounterDirector` is the ctx seam an `Enemy` talks to (courier, cover points, allies, hits on the
+courier); enemies never touch the Rider or the HUD. Sight and cover rays share a budget of 10 per
+physics frame across all enemies. Tiers: FULL = physics + 10 Hz AI, REDUCED = kinematic
+(ground-snapped, no `move_and_slide`) + 3 Hz AI, below that frozen; camps despawn at 320 m anyway.
+`encounters.add_camp(id, kind, pos, facing, size)` is the whole API a world needs to place a camp.
 
 ## Adding an NPC or a car (the point of all this)
 

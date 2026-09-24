@@ -47,7 +47,7 @@ var kill_markers := 0
 
 func setup(p_gun: GunSystem, p_vitals: PlayerVitals, p_camera: Camera3D, p_rider: Rider, p_font: Font) -> void:
 	gun = p_gun; vitals = p_vitals; camera = p_camera; rider = p_rider; font = p_font
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build()
 	Events.target_damaged.connect(func(_id, _amt, head, killed): _marker(killed, head))
@@ -247,6 +247,8 @@ func _draw_pips() -> void:
 
 func _process(delta: float) -> void:
 	if gun == null: return
+	var parent := get_parent() as Control
+	if parent and size != parent.size: size = parent.size
 	var on_foot := rider != null and rider.is_on_foot()
 	_spread_px = lerpf(_spread_px, _spread_to_px(gun.current_spread()), 1.0 - exp(-18.0 * delta))
 	_marker_t = maxf(0.0, _marker_t - delta * 2.5)

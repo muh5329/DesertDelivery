@@ -26,7 +26,10 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 | Handbrake (drift) | Space | X |
 | Reset active vehicle to the nearest road | R | Y |
 | Look back | C | — |
-| Fire / release truck winch | Q | RB |
+| Aim the Garand (hold, on foot) | Right mouse | LB |
+| Fire the Garand (on foot) | Left mouse / F | RB |
+| Reload (a part-empty clip pings out first) | V | D-pad left |
+| Fire / release truck winch (driving the truck) | Q | RB |
 | Toggle truck cargo packing (while stopped) | G | — |
 | Island journal | N | — |
 | Close journal / quit | Esc | B closes journal |
@@ -38,7 +41,9 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 - **Cargo truck** — a compact red truck is parked a short walk behind the starting bike. It is slower but has a 4×6 rear packing rack for larger loads. Stop and press G, move the translucent tetromino with WASD, rotate with Z, place with Space, undo with X, and press G again to secure the load. Unsupported or overlapping pieces cannot be placed; a fuller rack adds weight and trims the truck's top speed.
 - **Winch** — while driving the truck, Q fires the front cable at a tree, rock, building, or other solid obstacle up to 38 m ahead. It reels in automatically and can pull the truck up steep walls when the anchor is high; press Q again to release it.
 - **Swim** — wade into the sea and the boy swims (slower, can't shoot); the bike auto-resets if it ends up in the water.
-- **Pistol** — an old pistol sits on a crate at the Dunes Lookout. On foot, hold RMB / LB to aim over the shoulder and F / LMB / RB to fire. Tin cans line the farm's stone wall and the lookout bench (9 total).
+- **M1 Garand** — the courier's rifle from the first minute: slung across his back on foot (and on the bike), shouldered when you hold RMB / LB (a tight over-the-shoulder view with a narrower field of view and a much smaller shot cone), fired from the hip otherwise (bigger spread). Semi-automatic, 8-round en-bloc clips: the 8th shot throws the empty clip out with the famous *ping*, then a fresh clip goes in and the bolt slams home (V reloads early; the part clip pings out and its rounds are pocketed). Reserve clips show in the Garand panel; enemies drop clips, camps keep an ammo crate, and the crate at the Dunes Lookout where the old pistol used to lie is now a cache of clips. Tin cans still line the farm's stone wall and the lookout bench (9 total) for practice.
+- **Bandits and pirates** — bandits (dusters, bandanas, wide hats, lever rifles and revolvers) hold camps in the badlands and out along the highways; pirates (headscarves, striped shirts, sashes, carbines) hold coves on the shore. A bandit camp sits in the badlands east of the Dunes Lookout and a pirate cove in the dunes of the south-west shore, a short ride from the start; ten more bandit camps and four coves are out in the country. They notice you in their sight cone or hear your shots, shout to each other, take cover, peek and shoot (worse at range and against a moving or covered target), reload, flank, and run when their nerve breaks. Carrying a package on an outer highway, you may find a bandit roadblock ahead. Clearing a camp pays a 20-coin bounty; cleared camps stay cleared (saved).
+- **Health** — 100, regenerating after 5 s without a hit; red arcs show where shots come from and the screen edges redden when you are hurt (a heartbeat below 30 %). Riding or driving you take 60 % (and moving fast makes you hard to hit). Knocked out, you wake on the nearest road to your last safe spot, a few coins lighter (10 %, at most 25), with a moment of invulnerability.
 - **Plane** — T / D-pad-up folds the wings out. Throttle (W) past 54 km/h, then pull back (S / ↓) to lift off. In the air the engine cruises on its own: S/↓ raises the nose, W/↑ lowers it, A/D bank, Shift boosts. To land, nose down gently and pull up just before touchdown; T folds the wings again.
 - Flight can climb to **5,000 m above sea level**, well above the outer island mountains.
 - Esc twice within 3 s quits (the first press also frees the mouse; click to re-capture).
@@ -109,7 +114,10 @@ godot --headless --path . -s tests/bike_dynamics_tests.gd      # suspension, cre
 godot --headless --path . -s tests/streaming_budget_tests.gd   # incremental construction and collider ownership
 godot --headless --path . -- --test=architecture_tests          # streaming, world database, tiers, events, save/load
 godot --headless --path . -- --test=edge_tests                  # brake/reverse, sea reset, camera
-godot --headless --path . -- --test=feature_tests               # dismount, swim, pistol, plane
+godot --headless --path . -- --test=feature_tests               # dismount, swim, the Garand and the cans, plane
+godot --headless --path . -- --test=combat_tests                # clip/ping/reload, spread, damage, headshots, enemies, death, camps, save
+xvfb-run -a godot --path . --rendering-driver vulkan -s tests/garand_view.gd -- --out=/tmp/garand    # rifle close-ups + poses (studio)
+xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=combat_view --out=/tmp/combat  # aiming, camp fight, cove, lineup, ambush
 godot --headless --path . -- --test=truck_tests                 # mount, Tetris rack, winch pull / wall climb
 godot --headless --path . -- --test=delivery_tests              # all handoffs, wallet, loaded stage, on-foot / truck
 godot --headless --path . -- --test=life_tests                  # routines, navigation, grounding and collisions
@@ -146,8 +154,8 @@ See `ARCHITECTURE.md` for the full picture; `CONTEXT.md` for the domain vocabula
 - `reference/` – reference screenshots, brief, camera spots, `compare.py`, per-round critiques and changelogs
 - `assets/foliage/` – grass / flower / leaf-clump cards (baked by `world/mapgen/foliage.py`) for the tree canopies and Terrain3D's instancer grass
 - `addons/terrain_3d/` – the Terrain3D plugin
-- `entities/` – `EntityManager` (ids + simulation tiers), player (`Player`, `Rider`, `RiderModel`), vehicles (`Vehicle` base, `Bike`, `Truck`, `TruckCargo`), camera
-- `gameplay/` – `GameplayManager`, `Controls` seam, `DeliverySystem` + `JobDefinition`, `GunSystem`
+- `entities/` – `EntityManager` (ids + simulation tiers), player (`Player`, `Rider`, `RiderModel`), vehicles (`Vehicle` base, `Bike`, `Truck`, `TruckCargo`), camera, enemies (`Enemy`, `EnemyOutfit`, `EnemyWeapons`)
+- `gameplay/` – `GameplayManager`, `Controls` seam, `DeliverySystem` + `JobDefinition`, weapons (`GunSystem`, `GarandModel`, `MeshKit`, `WeaponAudio`), combat (`EncounterDirector`, `CampKit`, `PlayerVitals`, `Health`, `CombatFx`)
 - `ai/` – `Autopilot`
 - `ui/` – `HUD`, `DebugOverlay`
 - `data/` – island maps, `outer/` (outer world heights, maps and plan), `config/world.tres`, vehicle definitions (`bike.tres`, `truck.tres`), `jobs/*.tres`

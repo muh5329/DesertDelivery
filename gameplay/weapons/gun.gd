@@ -448,9 +448,11 @@ func _update_reload(delta: float) -> void:
 	var m := player.model
 	# the left hand leaves the handguard, brings a clip over the receiver, thumbs it down,
 	# then knocks the operating rod handle to let the bolt slam home, and returns
-	var over := Transform3D(Basis.from_euler(Vector3(-1.2, 0.2, 0.0)), Vector3(0.0, 0.14, -0.33))
-	var press := Transform3D(Basis.from_euler(Vector3(-1.4, 0.2, 0.0)), Vector3(0.0, 0.09, -0.35))
-	var handle := Transform3D(Basis.from_euler(Vector3(-1.0, -0.6, 0.3)), Vector3(0.07, 0.06, -0.47))
+	# palm contacts in the rifle's frame (the palm faces each marker's -Z)
+	var down := Basis(Vector3(1, 0, 0), Vector3(0, 0, -1), Vector3(0, 1, 0))
+	var over := Transform3D(down, Vector3(0.0, 0.11, -0.37))
+	var press := Transform3D(down, Vector3(0.0, 0.045, -0.37))
+	var handle := Transform3D(Basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(1, 0, 0)), Vector3(0.055, 0.015, -0.47))
 	if t < 0.35:
 		m.left_grip_weight = smoothstep(0.0, 0.35, t)
 		m.left_grip_override = over

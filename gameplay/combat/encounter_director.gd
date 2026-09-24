@@ -132,7 +132,7 @@ func _load_plan_camps() -> void:
 func _core_camps() -> void:
 	var db := world.database
 	var lookout := db.location_pos(&"dunes_lookout")
-	var site: Variant = _settle_site(lookout + Vector3(150, 0, -8), 45.0)
+	var site: Variant = _settle_site(lookout + Vector3(150, 0, -8), 70.0)
 	if site != null:
 		var f: Vector3 = lookout - site
 		add_camp(&"camp.core.badlands", &"bandit", site, Vector3(f.x, 0, f.z).normalized(), 5)
@@ -156,11 +156,26 @@ func _settle_site(nominal: Vector3, radius: float) -> Variant:
 			var rough := 0.0
 			for o in [Vector2(10, 0), Vector2(-10, 0), Vector2(0, 10), Vector2(0, -10), Vector2(7, 7), Vector2(-7, -7)]:
 				rough += absf(terrain.height_at(x + o.x, z + o.y) - h)
-			var s := rough + Vector2(i, j).length() * step * 0.02
+			# open ground: few built things (rocks, hoodoos, trees) filed near the spot
+			var s := rough + Vector2(i, j).length() * step * 0.02 + _clutter(x, z, 18.0) * 2.5
 			if s < best_s:
 				best_s = s
 				best = Vector3(x, h, z)
 	return best
+
+
+## How many build recipes (rocks, trees, houses...) are filed within `r` of (x, z): the world
+## database knows before anything is loaded.
+func _clutter(x: float, z: float, r: float) -> int:
+	var db := world.database
+	var n := 0
+	var c0 := db.chunk_of(x - r, z - r); var c1 := db.chunk_of(x + r, z + r)
+	for cz in range(c0.y, c1.y + 1):
+		for cx in range(c0.x, c1.x + 1):
+			for rec in db.records_in(Vector2i(cx, cz)):
+				if rec.radius > 30.0: continue
+				if Vector2(x, z).distance_to(rec.pos) < r + rec.radius: n += 1
+	return n
 
 
 ## A low, gentle shore spot near `nominal`: dry land a few metres above the sea with water

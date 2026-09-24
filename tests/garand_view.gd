@@ -59,7 +59,11 @@ func _init() -> void:
 		["pose_hip", pc + Vector3(2.2, 0.0, -1.2), pc + Vector3(0, -0.3, -0.2), 38.0, "hip"],
 		["slung_back", pc + Vector3(1.2, 0.2, 2.6), pc + Vector3(0, -0.3, 0), 38.0, "slung"],
 		["hands_rest", pc + Vector3(0.9, -0.3, -1.2), pc + Vector3(0.2, -0.45, 0), 30.0, "rest"],
+		["pose_reload", pc + Vector3(1.9, 0.25, -1.3), pc + Vector3(0, -0.25, -0.3), 36.0, "reload"],
 	]
+	# a turntable: the rifle turns in 45 degree steps in front of a fixed camera
+	for i in range(8):
+		shots.append(["turntable_%d" % i, rc + Vector3(0.0, 0.32, 1.75), rc + Vector3(0, 0, 0.0), 40.0, "none", i * 45.0])
 	if not only.is_empty():
 		shots = shots.filter(func(s): return s[0] in only)
 
@@ -72,6 +76,12 @@ func _pose(kind: String) -> void:
 				person.animate("idle", 0.0, 0.05, true, 0.0, 0.0)
 			"hip":
 				person.gun_ads = 0.0
+				person.left_grip_weight = 0.0
+				person.animate("idle", 0.0, 0.05, true, 0.0, 0.0)
+			"reload":
+				person.gun_ads = 0.0
+				person.left_grip_override = Transform3D(Basis(Vector3(1, 0, 0), Vector3(0, 0, -1), Vector3(0, 1, 0)), Vector3(0.0, 0.11, -0.37))
+				person.left_grip_weight = 1.0
 				person.animate("idle", 0.0, 0.05, true, 0.0, 0.0)
 			_:
 				person.animate("idle", 0.0, 0.05, false, 0.0, 0.0)
@@ -92,6 +102,9 @@ func _process(_d: float) -> bool:
 	if f % 8 == 0:
 		person.visible = s[4] != "none"
 		rifle.visible = s[4] == "none"
+		# turntable shots spin the rifle about its middle; the others show it side-on
+		var spin: float = s[5] if s.size() > 5 else 0.0
+		rifle.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(spin + 90.0)), Vector3(3.0, 1.2, 0.0)) * Transform3D(Basis(), Vector3(0, 0, 0.55)) if s.size() > 5 else Transform3D(Basis(), Vector3(3.0, 1.2, 0.55))
 		_pose(s[4])
 		cam.fov = s[3]
 		cam.global_position = s[1]
