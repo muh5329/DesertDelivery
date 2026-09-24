@@ -92,7 +92,7 @@ void fragment() {
 	float dist = length(wpos - CAMERA_POSITION_WORLD);
 	float n1 = texture(noise_tex, wpos.xz / 23.0).r;
 	float n2 = texture(noise_tex, wpos.xz / 4.1).r;
-	vec3 col; vec3 nm; float rough;
+	vec3 col; vec3 nm; float rough; float spec = 0.5;
 	if (kind <= 1) {
 		vec2 uv = wpos.xz / 3.2;
 		col = texture(asphalt_tex, uv).rgb;
@@ -233,7 +233,7 @@ void fragment() {
 			} else {
 				// Isola: stone flags with whitewashed joints, whitewashed edges; steps on steep lanes
 				j = fj(bond(p, vec2(0.7, 0.5), aa), detail);
-				stone = vec3(0.62, 0.6, 0.57) * (0.84 + 0.26 * j.y) * (0.9 + 0.2 * lo_f);
+				stone = vec3(0.55, 0.53, 0.5) * (0.84 + 0.26 * j.y) * (0.9 + 0.2 * lo_f);
 				joint_c = vec3(0.93, 0.92, 0.9);
 				float edge_ww = kind == 7 ? 0.0 : smoothstep(W - 0.42, W - 0.36, abs(across));
 				stone = mix(stone, vec3(0.94, 0.93, 0.91), edge_ww);
@@ -249,7 +249,10 @@ void fragment() {
 			float wear = kind == 7 ? 0.0 : (1.0 - smoothstep(0.0, W * 0.55, abs(across))) * (on_pave ? 0.0 : 1.0);
 			col *= 1.0 - 0.07 * wear;
 			col *= 1.0 - 0.12 * smoothstep(W - 0.5, W, abs(across)) * (kind == 7 ? 0.0 : 1.0);
-			rough = mix(0.8, 0.66, wear * 0.6) + 0.1 * j.x;
+			// dry stone: rough and dull (at the rider's grazing angles a smoother surface mirrors the
+			// sky and the paving turns white)
+			rough = mix(0.9, 0.82, wear * 0.6) + 0.05 * j.x;
+			spec = 0.3;
 			nm = mix(vec3(0.0, 0.0, 1.0), nm, 0.35);
 		} else if (style == 1.0 && kind == 5) {
 			// Lisbon calcada: small white limestone cubes (the sett texture's grain only) with black
@@ -296,6 +299,7 @@ void fragment() {
 	}
 	ALBEDO = col;
 	ROUGHNESS = rough;
+	SPECULAR = spec;
 	float dn = 1.0 - smoothstep(40.0, 250.0, dist);
 	NORMAL_MAP = normalize(vec3(nm.xy * dn, 1.0)) * 0.5 + 0.5;
 }

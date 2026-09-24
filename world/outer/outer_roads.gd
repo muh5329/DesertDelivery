@@ -68,6 +68,10 @@ func setup(p_outer: OuterWorld, p_terrain: Terrain) -> void:
 				var br := PackedByteArray(); br.resize(pts.size())
 				roads.append({"id": "%s.%s" % [t.id, st.kind], "cls": st.kind, "kind": KIND.get(st.kind, 4), "width": float(st.width),
 					"pts": pts, "bridge": br, "bridges": [], "nav": -1, "from": "", "to": "", "style": STYLE_ID.get(t.style, 0)})
+	for e in roads:
+		if e.kind == 5 and (e.pts as PackedVector3Array).size() >= 2:
+			var pp: PackedVector3Array = e.pts
+			plazas.append([Vector2(pp[0].x, pp[0].z), Vector2(pp[pp.size() - 1].x, pp[pp.size() - 1].z), float(e.width) * 0.5])
 	_core_seams()
 	_junction_trims()
 	terrain._road_grid.clear()
@@ -428,7 +432,69 @@ func _ribbon(e: Dictionary, k0: int, k1: int, surfaces: Dictionary) -> void:
 			var r0 := base + (k - k0) * nc; var r1 := r0 + nc
 			for c in range(nc - 1):
 				I.append_array(PackedInt32Array([r0 + c, r1 + c, r0 + c + 1, r0 + c + 1, r1 + c, r1 + c + 1]))
+	# a street or a lane across a plaza is not drawn there: the plaza's paving is (two draped
+	# surfaces a few cm apart z-fight where the ground is not flat)
+	if (e.kind == 3 or e.kind == 4) and not plazas.is_empty():
+		var keep := PackedInt32Array()
+		var i0 := I.size() - (k1 - k0) * (nc - 1) * 6
+		for i in range(0, i0): keep.append(I[i])
+		for i in range(maxi(i0, 0), I.size(), 3):
+			var cen := (V[I[i]] + V[I[i + 1]] + V[I[i + 2]]) / 3.0
+			if not in_plaza(cen.x, cen.z, 0.4): keep.append_array(PackedInt32Array([I[i], I[i + 1], I[i + 2]]))
+		I = keep
 	s[0] = V; s[1] = Nn; s[2] = U; s[3] = Tg; s[4] = I; s[6] = Cl
+
+
+## Is (x, z) on any drawn ribbon (a road, a street, a lane, a plaza, a quay), `margin` inside its
+## edge? A fine index of the segments (8 m cells), built per 250 m tile the first time it is asked
+## about (OuterTowns keeps the aprons round the buildings off the streets with it).
+const SEG_CELL := 8.0
+var _seg_cells: Dictionary = {}
+var _seg_tiles: Dictionary = {}
+
+
+func on_ribbon(x: float, z: float, margin := 0.0) -> bool:
+	var t := Vector2i(floori(x / TILE), floori(z / TILE))
+	for dj in range(-1, 2):
+		for di in range(-1, 2):
+			_index_tile(Vector2i(t.x + di, t.y + dj))
+	var q := Vector2(x, z)
+	for sg in _seg_cells.get(Vector2i(floori(x / SEG_CELL), floori(z / SEG_CELL)), []):
+		if Geometry2D.get_closest_point_to_segment(q, sg[0], sg[1]).distance_to(q) < float(sg[2]) - margin: return true
+	return false
+
+
+func _index_tile(t: Vector2i) -> void:
+	if _seg_tiles.has(t): return
+	_seg_tiles[t] = true
+	for run in tiles.get(t, []):
+		var e: Dictionary = roads[run[0]]
+		var pts: PackedVector3Array = e.pts
+		var hw: float = float(e.width) * 0.5
+		for k in range(int(run[1]), mini(int(run[2]), pts.size() - 1)):
+			var a := Vector2(pts[k].x, pts[k].z); var b := Vector2(pts[k + 1].x, pts[k + 1].z)
+			var bb := Rect2(a, Vector2.ZERO).expand(b).grow(hw)
+			for cj in range(floori(bb.position.y / SEG_CELL), floori(bb.end.y / SEG_CELL) + 1):
+				for ci in range(floori(bb.position.x / SEG_CELL), floori(bb.end.x / SEG_CELL) + 1):
+					var c := Vector2i(ci, cj)
+					if not _seg_cells.has(c): _seg_cells[c] = []
+					_seg_cells[c].append([a, b, hw])
+
+
+## Plazas (the `plaza` ribbons: a segment and a half width). Is (x, z) on one, `margin` inside its edge?
+var plazas: Array = []
+
+
+func in_plaza(x: float, z: float, margin := 0.0) -> bool:
+	var q := Vector2(x, z)
+	for pz in plazas:
+		var a: Vector2 = pz[0]; var ab: Vector2 = pz[1] - a
+		var L2 := ab.length_squared()
+		if L2 < 1e-4: continue
+		var t := (q - a).dot(ab) / L2
+		if t <= 0.0 or t >= 1.0: continue
+		if (a + ab * t).distance_to(q) < float(pz[2]) - margin: return true
+	return false
 
 
 ## Guard rails where the ground falls away more than 3 m beside the road (not on bridges).

@@ -158,11 +158,12 @@ func _aprons(parent: Node3D, plots: Array, origin: Vector3) -> void:
 		var f := Vector3(sin(yaw), 0.0, cos(yaw)); var r := Vector3(f.z, 0.0, -f.x)
 		var c := Vector3(float(p.x), 0.0, float(p.z))
 		var hw := float(p.w) * 0.5; var hd := float(p.d) * 0.5
-		# the paving to APRON, the gravel to APRON + APRON_EDGE; a vertex every ~4 m. Neighbours'
-		# aprons overlap: each rides a few mm apart (stable order, no flicker), all under the streets
+		# the paving to APRON, the gravel to APRON + APRON_EDGE; a vertex every ~2 m; cells on a
+		# street, a lane or a plaza are left out (two draped surfaces a few cm apart z-fight).
+		# Neighbours' aprons overlap: each rides a few mm apart (stable order, no flicker)
 		var ext0 := APRON; var ext1 := APRON + APRON_EDGE
 		var lift := 0.022 + float(absi(int(p.get("seed", 0))) % 4) * 0.005
-		var nu := maxi(2, ceili((hw + ext1) * 2.0 / 4.0)); var nv := maxi(2, ceili((hd + ext1) * 2.0 / 4.0))
+		var nu := maxi(2, ceili((hw + ext1) * 2.0 / 2.0)); var nv := maxi(2, ceili((hd + ext1) * 2.0 / 2.0))
 		var base := V.size()
 		for j in range(nv + 1):
 			for i in range(nu + 1):
@@ -178,6 +179,8 @@ func _aprons(parent: Node3D, plots: Array, origin: Vector3) -> void:
 			for i in range(nu):
 				# (the same winding as the road ribbons: front faces up)
 				var a := base + j * (nu + 1) + i; var b := a + nu + 1
+				var cen := (V[a] + V[b + 1]) * 0.5 + origin
+				if outer.roads.on_ribbon(cen.x, cen.z, 0.3): continue     # a street's or a plaza's paving is there
 				I.append_array(PackedInt32Array([a, a + 1, b, a + 1, b + 1, b]))
 	if I.is_empty(): return
 	var arr := []; arr.resize(Mesh.ARRAY_MAX)
