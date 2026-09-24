@@ -371,6 +371,18 @@ func _define_roads() -> void:
 		Vector2(-560, -196), Vector2(-559, -203), Vector2(-556, -209), Vector2(-556, -215), Vector2(-552, -221), Vector2(-549, -227),
 		Vector2(-549, -233), Vector2(-547, -239), Vector2(-546, -246), Vector2(-544, -251), Vector2(-544, -257), Vector2(-542, -262), Vector2(-538, -266)])
 	terrain.pads.append(Vector3(-541.0, -268.0, 12.0))   # the lookout: a wide bench at the arch's foot
+	# ---- the core exits (appended last so every road index above stays stable): four short roads
+	# from the core network to the core edge (+-622 m), where the outer world's highways begin at
+	# their last samples (world/mapgen/core_exits.json, world/mapgen/outer.py). Their over-water
+	# parts become bridges like any other core road.
+	# north: off the monastery road below the refugio junction, round the west wall of the monastery
+	terrain.add_road([Vector2(-321.59, -430.91), Vector2(-338, -448), Vector2(-343, -480), Vector2(-340, -530), Vector2(-332, -580), Vector2(-327, -622)])
+	# east: from the lighthouse road's end, north of the lighthouse, out over the eastern lagoon
+	terrain.add_road([Vector2(510.545, -273.56), Vector2(518, -263), Vector2(535, -258), Vector2(565, -262), Vector2(622, -270)])
+	# south: from the Torre Vieja road's end down the headland
+	terrain.add_road([Vector2(330.0, 520.0), Vector2(342, 534), Vector2(349, 560), Vector2(352, 590), Vector2(354, 622)])
+	# west: off the west-coast road, straight out over the western shelf
+	terrain.add_road([Vector2(-446.83, 200.8), Vector2(-480, 203), Vector2(-530, 205), Vector2(-575, 207), Vector2(-622, 209)])
 
 
 # ---------------------------------------------------------------- coast
