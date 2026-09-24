@@ -25,6 +25,7 @@ signal message(text: String, duration: float)
 
 const CLIP := 8
 const MAX_RESERVE := 12
+const MAX_LOOSE := CLIP * 2 - 1   # a part clip ejected with a full pouch still fits
 const TARGET_LAYER := 8
 const HURTBOX_LAYER := 32
 const SHOT_MASK := 1 | 2 | TARGET_LAYER | 16 | HURTBOX_LAYER
@@ -46,7 +47,7 @@ const BLOOM_ADS := 0.35
 const BLOOM_DECAY := 5.0
 const RECOIL_ADS := 0.032         # camera kick (rad), recovered by the camera
 const RECOIL_HIP := 0.05
-const LOUDNESS := 110.0           # enemies hear the shot inside this radius
+const LOUDNESS := 240.0           # enemies hear the crack inside this radius (fight within 45 %, look beyond)
 
 var db: WorldDatabase
 var world: WorldManager
@@ -199,7 +200,7 @@ func _pack_loose() -> void:
 	while loose_rounds >= CLIP and reserve_clips < MAX_RESERVE:
 		loose_rounds -= CLIP
 		reserve_clips += 1
-	loose_rounds = mini(loose_rounds, CLIP - 1)
+	loose_rounds = mini(loose_rounds, MAX_LOOSE)
 
 
 # ---------------------------------------------------------------------------- tin cans
@@ -320,17 +321,14 @@ func try_fire(on_foot: bool) -> bool:
 	var spread := current_spread()
 	# hitscan: the camera ray through the crosshair (inside the spread cone) finds the aim point;
 	# a second ray from the muzzle to that point so nearby cover still blocks and the tracer
-	# leaves the barrel
-	var ray: Dictionary = camera.view_ray()
-	var from: Vector3 = ray.origin
-	var dir: Vector3 = _cone(ray.direction, spread)
-	var space := player.get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(from, from + dir * RANGE, SHOT_MASK)
-	q.collide_with_areas = true
-	q.exclude = [player.get_rid()]
-	var hit := space.intersect_ray(q)
-	var aim_point: Vector3 = hit.position if hit else from + dir * RANGE
+	# leaves the barrel. The camera sits behind the courier, so the aim ray starts at the
+	# muzzle's depth along the view (nothing between the camera and the courier can become the
+	# aim point), and an aim point behind the muzzle is never used: the bullet leaves the barrel.
 	var muzzle := muzzle_position()
+	var shot := aim_ray(muzzle, spread)
+	var hit: Dictionary = shot.hit
+	var aim_point: Vector3 = shot.aim
+	var space := player.get_world_3d().direct_space_state
 	var q2 := PhysicsRayQueryParameters3D.create(muzzle, aim_point + (aim_point - muzzle).normalized() * 0.5, SHOT_MASK)
 	q2.collide_with_areas = true
 	q2.exclude = [player.get_rid()]
@@ -352,6 +350,7 @@ func try_fire(on_foot: bool) -> bool:
 	fx.tracer(muzzle, end)
 	sounds.play(&"garand_shot", null, -2.0, _rng.randf_range(0.97, 1.03))
 	Events.shot_fired.emit(muzzle, &"player", LOUDNESS)
+	Events.bullet_landed.emit(end, muzzle, &"player")
 	fired.emit()
 	if ammo == 0:
 		_ping_clip()
@@ -364,13 +363,35 @@ func try_fire(on_foot: bool) -> bool:
 ## What the crosshair covers (one ray a frame while the rifle is up), so the rifle converges on it.
 func _view_point() -> Variant:
 	var ray: Dictionary = camera.view_ray()
-	var from: Vector3 = ray.origin
-	var to: Vector3 = from + ray.direction * 200.0
+	var view: Vector3 = (ray.direction as Vector3).normalized()
+	var from: Vector3 = ray.origin + view * maxf(0.0, (muzzle_position() - ray.origin).dot(view))
+	var to: Vector3 = from + view * 200.0
 	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 2 | 16 | HURTBOX_LAYER)
 	q.collide_with_areas = true
 	q.exclude = [player.get_rid()]
 	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
 	return hit.position if hit else to
+
+
+## The shot's aim: a ray down the view (inside the spread cone) that starts level with the muzzle,
+## so a man between the camera and the courier is never the target. Returns {aim, hit, dir}.
+## An aim point that ends up behind the muzzle (the courier's own body in the way, cover at his
+## shoulder) is replaced by a point straight down the cone from the muzzle.
+func aim_ray(muzzle: Vector3, spread: float) -> Dictionary:
+	var ray: Dictionary = camera.view_ray()
+	var view: Vector3 = (ray.direction as Vector3).normalized()
+	var depth := maxf(0.0, (muzzle - ray.origin).dot(view))
+	var from: Vector3 = ray.origin + view * depth
+	var dir: Vector3 = _cone(view, spread)
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * RANGE, SHOT_MASK)
+	q.collide_with_areas = true
+	q.exclude = [player.get_rid()]
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+	var aim: Vector3 = hit.position if hit else from + dir * RANGE
+	if (aim - muzzle).dot(view) <= 0.05:
+		aim = muzzle + dir * RANGE
+		hit = {}
+	return {"aim": aim, "hit": hit, "dir": dir}
 
 
 func _cone(dir: Vector3, spread_deg: float) -> Vector3:
@@ -439,6 +460,9 @@ func try_reload() -> bool:
 	if reserve_clips <= 0:
 		message.emit("No clips left.", 1.5)
 		return false
+	if ammo > 0 and reserve_clips >= MAX_RESERVE and loose_rounds + ammo > MAX_LOOSE:
+		message.emit("Pouch full: fire this clip first.", 1.5)
+		return false
 	if ammo > 0:
 		loose_rounds += ammo
 		ammo = 0
@@ -488,12 +512,26 @@ func _update_reload(delta: float) -> void:
 		player.model.recoil = 0.35
 		reserve_clips -= 1
 		ammo = CLIP
+		_pack_loose()        # loose rounds from a part clip fill the pouch's free slot
 		_sync_models()
 	if t >= RELOAD_TIME:
 		reloading = false
 		m.left_grip_weight = 0.0
 		_hand_clip.visible = false
 		reloaded.emit()
+
+
+## Drop a reload in progress and put the left hand back on the handguard (a load mid-reload).
+func _cancel_reload() -> void:
+	reloading = false
+	_reload_t = 0.0
+	_reload_steps = {}
+	_auto_reload_t = -1.0
+	if _hand_clip: _hand_clip.visible = false
+	if player and player.model:
+		player.model.left_grip_weight = 0.0
+		player.model.left_grip_override = Transform3D.IDENTITY
+	if held and held.clip: held.clip.visible = ammo > 0
 
 
 func _sync_models() -> void:
@@ -578,11 +616,10 @@ func load_state(d: Dictionary) -> void:
 	# was found on (now the ammo cache) stays emptied if the pistol had been picked up
 	ammo = clampi(int(d.get("ammo", CLIP)), 0, CLIP)
 	reserve_clips = clampi(int(d.get("reserve_clips", reserve_clips)), 0, MAX_RESERVE)
-	loose_rounds = clampi(int(d.get("loose_rounds", 0)), 0, CLIP - 1)
+	loose_rounds = clampi(int(d.get("loose_rounds", 0)), 0, MAX_LOOSE)
 	var taken := bool(d.get("cache_taken", legacy and bool(d.get("has_gun", false))))
 	if taken and not cache_taken: _take_cache()
-	reloading = false
-	_reload_t = 0.0
+	_cancel_reload()
 	_sync_models()
 	for cid in d.get("hit", []):
 		for t in _targets.duplicate():

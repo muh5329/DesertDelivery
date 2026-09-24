@@ -146,5 +146,39 @@ func _process(delta: float) -> void:
 			last_safe = p
 
 
+# ---------------------------------------------------------------------------- persistence
+## Health is part of the journey: a quick save at 30 hp loads at 30 hp (and the regen delay
+## restarts, as if he had just been hit), so F5 / F9 is never a free heal.
+func save_state() -> Dictionary:
+	return {"version": 1, "health": health.current, "grace": _grace, "deaths": deaths, "last_safe": last_safe}
+
+
+func load_state(d: Dictionary) -> void:
+	var hp := float(d.get("health", health.max_health))
+	if is_nan(hp): hp = health.max_health
+	health.current = clampf(hp, 1.0, health.max_health)
+	health.since_hit = 0.0 if health.current < health.max_health else 999.0
+	health.invulnerable = 0.0
+	_grace = clampf(float(d.get("grace", 0.0)), 0.0, INVULNERABLE)
+	if _grace > 0.0: health.invulnerable = _grace
+	deaths = maxi(deaths, int(d.get("deaths", deaths)))
+	var safe: Variant = d.get("last_safe", last_safe)
+	if safe is Vector3: last_safe = safe
+	if _down: rider.hold = false
+	_down = false
+	_down_t = 0.0
+	fade = 0.0
+	if _flicker_on:
+		_flicker_on = false
+		player.model.visible = true
+
+
+## A save from before health was saved: he wakes as he always did, fit.
+func load_missing_state() -> void:
+	health.reset()
+	_down = false
+	fade = 0.0
+
+
 func low_health() -> bool:
 	return health.fraction() < 0.3 and not _down

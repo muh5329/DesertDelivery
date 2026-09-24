@@ -31,6 +31,12 @@ func register(node: Node3D, id: StringName, kind: StringName) -> void:
 	node.set_meta("entity_id", id)
 	if node.get_parent() == null:
 		add_child(node)
+	# start at the tier the distance gives (a camp's men spawned 220 m out must not run full
+	# physics until the next tier pass)
+	var tier := _tier_for(node)
+	if tier != SimulationTier.FULL:
+		_entities[id].tier = tier
+		if node.has_method("set_simulation_tier"): node.set_simulation_tier(tier)
 	node.tree_exiting.connect(func(): if _entities.has(id) and _entities[id].node == node: _entities.erase(id))
 	Events.entity_registered.emit(id)
 
@@ -77,19 +83,22 @@ func _process(delta: float) -> void:
 	_tick += delta
 	if _tick < tier_interval or focus == null: return
 	_tick = 0.0
-	var fp := focus.global_position
 	for id in _entities.keys():
 		var e: Dictionary = _entities[id]
 		var node: Node3D = e.node
 		if not is_instance_valid(node): _entities.erase(id); continue
-		var d := node.global_position.distance_to(fp)
-		var tier := SimulationTier.FULL
-		if node.has_meta("always_full"): tier = SimulationTier.FULL
-		elif d > config.abstract_tier_radius: tier = SimulationTier.DORMANT
-		elif d > config.reduced_tier_radius: tier = SimulationTier.ABSTRACT
-		elif d > config.full_tier_radius: tier = SimulationTier.REDUCED
+		var tier := _tier_for(node)
 		if tier != e.tier:
 			e.tier = tier
 			if node.has_method("set_simulation_tier"):
 				node.set_simulation_tier(tier)
 			Events.simulation_tier_changed.emit(id, tier)
+
+
+func _tier_for(node: Node3D) -> int:
+	if focus == null or config == null or node.has_meta("always_full") or not node.is_inside_tree(): return SimulationTier.FULL
+	var d := node.global_position.distance_to(focus.global_position)
+	if d > config.abstract_tier_radius: return SimulationTier.DORMANT
+	if d > config.reduced_tier_radius: return SimulationTier.ABSTRACT
+	if d > config.full_tier_radius: return SimulationTier.REDUCED
+	return SimulationTier.FULL

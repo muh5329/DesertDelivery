@@ -184,6 +184,7 @@ func _wire() -> void:
 	Events.delivery_completed.connect(_on_delivery)
 	Saves.register("delivery", gameplay.delivery)
 	Saves.register("gun", gameplay.gun)
+	Saves.register("vitals", gameplay.vitals)
 	Saves.register("combat", gameplay.encounters)
 	Saves.register("bike", bike)
 	Saves.register("truck", truck)

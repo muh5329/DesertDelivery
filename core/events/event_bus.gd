@@ -19,6 +19,7 @@ signal delivery_completed(job_id: StringName, total: int)
 signal gun_picked_up
 signal can_hit(can_id: StringName, hit: int, total: int)
 signal shot_fired(origin: Vector3, shooter: StringName, loudness: float)   # enemies hear it inside loudness m
+signal bullet_landed(at: Vector3, from: Vector3, shooter: StringName)       # a round cracked past / struck here
 signal clip_pinged                                                          # the Garand's empty en-bloc clip flew out
 signal target_damaged(entity_id: StringName, amount: float, headshot: bool, killed: bool)
 signal enemy_killed(entity_id: StringName, kind: StringName, headshot: bool)

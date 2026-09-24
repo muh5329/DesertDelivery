@@ -33,6 +33,9 @@ const RAYS_PER_FRAME := 10
 const WALK := 1.7
 const RUN := 4.4
 const EYE := 1.55
+const COMBAT_SIGHT_LONG := 250.0  # rifles and carbines in a fight: they scan the ridges
+const SUPPRESS_RANGE := 260.0     # beyond their gun's range they still fire to pin a sniper down
+const SUPPRESS_ACCURACY := 0.35   # ... at this fraction of their usual chance
 
 static var _ray_frame := -1
 static var _rays_used := 0
@@ -60,6 +63,7 @@ var last_seen := -999.0
 var shots := 0
 var hits := 0
 var killed_by_headshot := false
+var last_hit_from := Vector3.ZERO    # where the bullet that hit him last came from (the muzzle)
 
 var _rng := RandomNumberGenerator.new()
 var _stats: Dictionary
@@ -80,6 +84,7 @@ var _reload_t := 0.0
 var _peek_shots := 0
 var _cover: Variant = null
 var _last_flank := 0.0
+var _last_advance := -99.0
 var _last_cover_check := 0.0
 var _patrol_i := 0
 var _wait_t := 0.0
@@ -95,6 +100,7 @@ var _investigate := Vector3.ZERO
 var _alone_hit := false
 var _flank_rolled := false
 var _anim_accum := 0.0
+var _dead_floor := 0.0
 
 
 func setup(p_ctx: Object, id: StringName, p_camp: StringName, p_kind: StringName, p_weapon: StringName, p_role: StringName, pos: Vector3, p_facing: Vector3, seed_value: int) -> void:
@@ -194,6 +200,7 @@ func is_alerted() -> bool:
 func take_hit(amount: float, headshot: bool, at: Vector3, from: Vector3, _source: StringName) -> bool:
 	if state == State.DEAD: return false
 	killed_by_headshot = headshot
+	last_hit_from = from
 	_fall_dir = 1.0 if (global_position - from).dot(-global_transform.basis.z) > 0.0 else -1.0
 	health.damage(amount, from, _source)
 	if state == State.DEAD: return true
@@ -221,16 +228,40 @@ func hear(origin: Vector3, loudness: float, shooter: StringName) -> void:
 		_suspect(origin)
 
 
+## A round cracked past or struck close by: into a fight facing roughly where it came from.
+func under_fire(from: Vector3) -> void:
+	if state == State.DEAD or state == State.FLEE: return
+	var off := Vector3(_rng.randf_range(-1.0, 1.0), 0.0, _rng.randf_range(-1.0, 1.0)) * clampf(global_position.distance_to(from) * 0.08, 2.0, 18.0)
+	if state != State.COMBAT:
+		_enter_combat(from + off, true)
+	elif not sees_target:
+		target_pos = from + off
+		last_seen = _t
+	if sub == Sub.PEEK or sub == Sub.OPEN:
+		_cover = null
+		_pick_cover()
+
+
 ## An ally in the same camp has seen the courier.
 func alert_to(pos: Vector3) -> void:
 	if state == State.DEAD or state == State.FLEE: return
 	if state != State.COMBAT: _enter_combat(pos, false)
 
 
-func ally_down(pos: Vector3) -> void:
+## An ally fell. `shot_from` is where the bullet came from when a courier's shot killed him: the
+## crack and the fall give the direction, so the camp turns on the shooter (roughly), not on the
+## body — a sniper at 200 m is answered, not ignored.
+func ally_down(pos: Vector3, shot_from: Variant = null) -> void:
 	if state == State.DEAD: return
 	if global_position.distance_to(pos) < 35.0: morale -= 0.22
-	if state != State.COMBAT and state != State.FLEE: _enter_combat(pos, false)
+	var threat: Vector3 = pos
+	if shot_from is Vector3:
+		var off := Vector3(_rng.randf_range(-1.0, 1.0), 0.0, _rng.randf_range(-1.0, 1.0)) * clampf(global_position.distance_to(shot_from) * 0.08, 2.0, 18.0)
+		threat = (shot_from as Vector3) + off
+	if state == State.COMBAT:
+		if shot_from is Vector3 and not sees_target: target_pos = threat
+		return
+	if state != State.FLEE: _enter_combat(threat, false)
 
 
 func set_simulation_tier(tier: int) -> void:
@@ -272,12 +303,18 @@ func _move(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, want.z, 14.0 * delta)
 		if is_on_floor(): velocity.y = -0.5
 		else: velocity.y -= 22.0 * delta
-		move_and_slide()
+		# a man standing still on solid ground has nothing to solve this tick
+		if want == Vector3.ZERO and is_on_floor() and Vector2(velocity.x, velocity.z).length_squared() < 0.0004:
+			velocity.x = 0.0; velocity.z = 0.0
+		else:
+			move_and_slide()
 	else:
-		# no physics far away: slide along the ground heights only
+		# no physics far away: slide along what is built there (a tower top, a roof, a deck) or
+		# the ground; a man standing still keeps his height, so a lookout stays on his tower
 		velocity = want
-		global_position += want * delta
-		global_position.y = _ground(global_position)
+		if want.length_squared() > 0.0001:
+			global_position += want * delta
+			global_position.y = _surface(global_position)
 	# never fall through a world whose collision has not streamed in yet
 	var g := _ground(global_position)
 	if global_position.y < g - 0.8:
@@ -307,6 +344,19 @@ func _move(delta: float) -> void:
 func _ground(p: Vector3) -> float:
 	var t: Terrain = ctx.terrain if ctx else null
 	return t.height_at(p.x, p.z) if t else p.y
+
+
+## The walkable surface under `p`: a camp's tower platform, a crate, a roof, a bridge deck (one
+## short ray down from just above his feet on the world layer), else the ground.
+func _surface(p: Vector3) -> float:
+	var g := _ground(p)
+	if not is_inside_tree(): return g
+	var top := maxf(p.y, g) + 0.6
+	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, top, p.z), Vector3(p.x, g - 0.3, p.z), 1)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit and hit.position.y > g: return hit.position.y
+	return g
 
 
 func _animate(delta: float) -> void:
@@ -347,9 +397,9 @@ func _think(dt: float) -> void:
 	sees_target = false
 	# perception: sight cone in peace, all round in a fight
 	var sight_range := 55.0
-	if state == State.COMBAT or state == State.SEARCH: sight_range = 150.0
+	if state == State.COMBAT or state == State.SEARCH: sight_range = COMBAT_SIGHT_LONG if EnemyWeapons.is_long(weapon) else 150.0
 	elif state == State.SUSPICIOUS: sight_range = 80.0
-	if role == &"lookout": sight_range *= 1.4
+	if role == &"lookout": sight_range *= 1.4 if state != State.COMBAT and state != State.SEARCH else 1.1
 	if d < sight_range and not ctx.courier_hidden():
 		var to := (cpos - global_position)
 		to.y = 0.0
@@ -478,6 +528,7 @@ func _think_combat(dt: float, d: float, courier: Node3D) -> void:
 		Sub.HIDE:
 			_has_goal = false
 			if mag <= 0 and _reload_t <= 0.0: _reload()
+			if _maybe_advance(): return
 			# is this cover still any good? (he may have walked round it)
 			if _t - _last_cover_check > 1.6 and _cover != null:
 				_last_cover_check = _t
@@ -507,6 +558,7 @@ func _think_combat(dt: float, d: float, courier: Node3D) -> void:
 			# nothing to hide behind: kneel and fight, keep looking for cover
 			_has_goal = false
 			if mag <= 0 and _reload_t <= 0.0: _reload()
+			if _maybe_advance(): return
 			_try_shoot(courier, d)
 			if _sub_t <= 0.0:
 				_sub_t = 3.0
@@ -515,7 +567,7 @@ func _think_combat(dt: float, d: float, courier: Node3D) -> void:
 
 func _try_shoot(courier: Node3D, d: float) -> void:
 	if not sees_target or _fire_cd > 0.0 or mag <= 0 or _reload_t > 0.0: return
-	if d > float(_stats.range) * 1.6: return
+	if d > float(_stats.range) * 1.6 and (not EnemyWeapons.is_long(weapon) or d > SUPPRESS_RANGE): return
 	if absf(wrapf(rotation.y - atan2(-(target_pos.x - global_position.x), -(target_pos.z - global_position.z)), -PI, PI)) > 0.35: return
 	_fire(courier, d)
 	_fire_cd = float(_stats.rate) * _rng.randf_range(0.9, 1.5)
@@ -530,6 +582,7 @@ func _fire(courier: Node3D, d: float) -> void:
 	var muzzle := mx.origin
 	var chest := courier.global_position + Vector3(0, _chest(courier), 0)
 	var p := hit_chance(d, ctx.courier_speed(), ctx.courier_in_cover(chest, muzzle), _peek_shots)
+	if d > float(_stats.range) * 1.6: p *= SUPPRESS_ACCURACY     # suppressive fire at a distant shooter
 	var end: Vector3
 	var fx: CombatFx = ctx.fx
 	if _rng.randf() < p:
@@ -583,6 +636,28 @@ func _flank(courier: Node3D) -> bool:
 	var a := deg_to_rad(_rng.randf_range(55.0, 80.0)) * (1.0 if _rng.randf() < 0.5 else -1.0)
 	var dir := from.normalized().rotated(Vector3.UP, a)
 	var p := cpos + dir * dist
+	p.y = _ground(p)
+	_release_cover()
+	_cover = p
+	sub = Sub.FLANK
+	_sub_t = 0.0
+	return true
+
+
+## A shooter beyond our guns' reach: bound toward him (up to 60 m at a time, off the direct
+## line), then take cover and fire again; the lookout stays up and keeps his head down.
+func _maybe_advance() -> bool:
+	if role == &"lookout" or _t - _last_advance < 5.0: return false
+	var to := target_pos - global_position
+	to.y = 0.0
+	var dist := to.length()
+	var want := maxf(float(_stats.range) * 0.85, 30.0)
+	if dist < float(_stats.range) * 1.3: return false
+	_last_advance = _t
+	var step := minf(dist - want, 60.0)
+	if step < 8.0: return false
+	var dir := to.normalized().rotated(Vector3.UP, _rng.randf_range(-0.7, 0.7))
+	var p := global_position + dir * step
 	p.y = _ground(p)
 	_release_cover()
 	_cover = p
@@ -720,6 +795,7 @@ func _die() -> void:
 	_has_goal = false
 	velocity = Vector3.ZERO
 	_dead_t = 0.0
+	_dead_floor = _surface(global_position)
 	_mark.visible = false
 	set_physics_process(true)
 	died.emit(self, killed_by_headshot)
@@ -741,5 +817,5 @@ func _update_fall(delta: float) -> void:
 		model.animate("idle", 0.0, delta, _held != null, 1.0, 0.6)
 		model.arm_l.rotation.z = lerpf(model.arm_l.rotation.z, 0.9, e)
 		model.arm_r.rotation.z = lerpf(model.arm_r.rotation.z, -0.9, e)
-	global_position.y = move_toward(global_position.y, _ground(global_position), delta * 3.0)
+	global_position.y = move_toward(global_position.y, _dead_floor, delta * 3.0)
 	if _dead_t > 1.0: set_physics_process(false)

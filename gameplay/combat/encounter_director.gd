@@ -54,6 +54,7 @@ var ambush_enabled := true
 var ambush_note := ""                # why the last ambush attempt did not happen (tools, tests)
 
 var _claims: Dictionary = {}        # Enemy -> Vector3
+var _spawn_queue: Array[StringName] = []   # streamed camps still bringing their men in
 var _check_t := 0.0
 var _ambush_t := AMBUSH_EVERY
 var _last_ambush := -9999.0
@@ -75,6 +76,7 @@ func setup(p_world: WorldManager, p_entities: EntityManager, p_rider: Rider, p_g
 	_rng.seed = 5150
 	vitals.director = self
 	Events.shot_fired.connect(_on_shot)
+	Events.bullet_landed.connect(_on_bullet)
 	Events.player_respawned.connect(func(_p): _lose_track())
 	_load_plan_camps()
 	_core_camps()
@@ -224,6 +226,7 @@ func _find_shore(nominal: Vector3, radius: float) -> Variant:
 # ============================================================================== streaming
 func _process(delta: float) -> void:
 	_clock += delta
+	_spawn_pending()
 	_check_t -= delta
 	if _check_t <= 0.0:
 		_check_t = CHECK_EVERY
@@ -243,15 +246,25 @@ func _stream() -> void:
 		var r: Dictionary = camps[id]
 		var d := Vector2(p.x - r.pos.x, p.z - r.pos.z).length()
 		if r.node == null and d < SPAWN_RADIUS:
-			spawn_camp(id)
+			spawn_camp(id, true)
 		elif r.node != null and d > DESPAWN_RADIUS:
 			despawn_camp(id)
 			if r.transient: camps.erase(id)
 
 
-func spawn_camp(id: StringName) -> void:
+## Build a camp now: props, ammo crate and every man in this frame (tools and tests). The
+## streaming path (`_stream`) builds the props and then one man per frame (`_spawn_queue`).
+func spawn_camp(id: StringName, staggered := false) -> void:
 	var r: Dictionary = camps.get(id, {})
-	if r.is_empty() or r.node != null: return
+	if r.is_empty(): return
+	if r.node != null:
+		# already streaming in: a forced spawn brings the rest of the men now
+		if not staggered:
+			while not (r.get("pending", []) as Array).is_empty():
+				var next: Array = (r.pending as Array).pop_front()
+				_spawn_enemy(r, int(next[0]), next[1])
+			_spawn_queue.erase(id)
+		return
 	var built := CampKit.build(r.kind, r.layout, r.pos, r.facing, r.size, terrain, r.seed)
 	var node := Node3D.new()
 	node.name = String(id).replace(".", "_")
@@ -260,6 +273,7 @@ func spawn_camp(id: StringName) -> void:
 	r.node = node
 	r.cover = built.cover
 	r.enemies = []
+	r.pending = []
 	r.alerted = false
 	if not looted.has(id):
 		_ammo_crate(r, built.ammo)
@@ -268,8 +282,30 @@ func spawn_camp(id: StringName) -> void:
 		var slots: Array = built.slots
 		for i in range(slots.size()):
 			if i in gone: continue
-			_spawn_enemy(r, i, slots[i])
+			if staggered: r.pending.append([i, slots[i]])
+			else: _spawn_enemy(r, i, slots[i])
+	if not (r.pending as Array).is_empty() and not _spawn_queue.has(id): _spawn_queue.append(id)
 	camp_spawned.emit(id)
+
+
+## Streamed camps bring their men in one a frame, so riding past a camp never costs more
+## than one man's build (a few ms) in any frame.
+func _spawn_pending() -> void:
+	while not _spawn_queue.is_empty():
+		var id: StringName = _spawn_queue[0]
+		var r: Dictionary = camps.get(id, {})
+		if r.is_empty() or r.node == null or (r.get("pending", []) as Array).is_empty():
+			_spawn_queue.pop_front()
+			continue
+		var next: Array = (r.pending as Array).pop_front()
+		_spawn_enemy(r, int(next[0]), next[1])
+		if (r.pending as Array).is_empty(): _spawn_queue.pop_front()
+		return
+
+
+## Men of this camp not spawned yet (a streamed camp comes in over a few frames).
+func pending_men(id: StringName) -> int:
+	return (camps[id].get("pending", []) as Array).size() if camps.has(id) else 0
 
 
 func despawn_camp(id: StringName) -> void:
@@ -282,7 +318,9 @@ func despawn_camp(id: StringName) -> void:
 	r.node.queue_free()
 	r.node = null
 	r.enemies = []
+	r.pending = []
 	r.cover = []
+	_spawn_queue.erase(id)
 	camp_despawned.emit(id)
 
 
@@ -300,8 +338,12 @@ func _spawn_enemy(r: Dictionary, index: int, slot: Dictionary) -> void:
 	var eid := StringName("enemy.%s.%d" % [_short(r.id), index])
 	e.setup(self, eid, r.id, r.kind, weapon, slot.role, slot.pos, slot.facing, rng.seed)
 	e.set_meta("slot", index)
+	# The body must enter the physics space where it stands. A kinematic body added at its
+	# parent's origin (the world origin: camp nodes sit at 0,0,0) and moved afterwards sweeps
+	# its broadphase box from the core to the camp in its first step, and every test_motion in
+	# that frame then culls thousands of colliders (0.4-1.4 s per man at an outer camp).
+	e.position = r.node.global_transform.affine_inverse() * (slot.pos + Vector3(0, 0.05, 0))
 	r.node.add_child(e)
-	e.global_position = slot.pos + Vector3(0, 0.05, 0)
 	entities.register(e, eid, &"enemy")
 	e.died.connect(_on_enemy_died)
 	e.alerted.connect(_on_enemy_alerted)
@@ -374,8 +416,9 @@ func _on_enemy_died(e: Enemy, headshot: bool) -> void:
 	_claims.erase(e)
 	if not r.is_empty():
 		_mark_gone(r, e)
+		var shot_from: Variant = e.last_hit_from if e.last_hit_from != Vector3.ZERO else null
 		for other in enemies_of(r.id):
-			if other != e: other.ally_down(e.global_position)
+			if other != e: other.ally_down(e.global_position, shot_from)
 		# loot: ammo most of the time, coins half the time
 		var rng := RandomNumberGenerator.new(); rng.seed = r.seed + int(e.get_meta("slot", 0)) * 31
 		var clips := 1 if rng.randf() < 0.65 else 0
@@ -408,6 +451,7 @@ func _mark_gone(r: Dictionary, e: Enemy) -> void:
 func _check_cleared(id: StringName) -> void:
 	var r: Dictionary = camps.get(id, {})
 	if r.is_empty() or cleared.has(id): return
+	if pending_men(id) > 0: return
 	for e in enemies_of(id):
 		if not e.is_dead() and not e.is_queued_for_deletion(): return
 	cleared[id] = true
@@ -423,8 +467,10 @@ func _check_cleared(id: StringName) -> void:
 func _on_enemy_alerted(e: Enemy) -> void:
 	var r: Dictionary = camps.get(e.camp_id, {})
 	if r.is_empty(): return
+	# the shout carries through the whole camp (a camp is ~30 m across; men who went to look
+	# or bounded forward are still in earshot)
 	for other in enemies_of(r.id):
-		if other != e and other.global_position.distance_to(e.global_position) < 60.0:
+		if other != e and other.global_position.distance_to(e.global_position) < 150.0:
 			other.alert_to(e.target_pos)
 	if not r.alerted:
 		r.alerted = true
@@ -437,6 +483,21 @@ func _on_shot(origin: Vector3, shooter: StringName, loudness: float) -> void:
 		if r.node == null: continue
 		if Vector2(origin.x - r.pos.x, origin.z - r.pos.z).length() > loudness + 40.0: continue
 		for e in enemies_of(id): e.hear(origin, loudness, shooter)
+
+
+## A round from the courier struck or cracked past within a few metres: whoever it nearly hit
+## knows he is under fire and from which way (roughly), however far off the rifle was.
+func _on_bullet(at: Vector3, from: Vector3, shooter: StringName) -> void:
+	if shooter != &"player": return
+	for id in camps:
+		var r: Dictionary = camps[id]
+		if r.node == null: continue
+		if Vector2(at.x - r.pos.x, at.z - r.pos.z).length() > 60.0: continue
+		for e: Enemy in enemies_of(id):
+			if e.is_dead(): continue
+			var near := Geometry3D.get_closest_point_to_segment(e.global_position + Vector3(0, 1.2, 0), from, at)
+			if near.distance_to(e.global_position + Vector3(0, 1.2, 0)) < 4.0:
+				e.under_fire(from)
 
 
 func _lose_track() -> void:
