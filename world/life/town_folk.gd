@@ -23,6 +23,8 @@ const RELEASE := 760.0
 const VIEW_RADIUS := 150.0
 const MAX_BODIES := 160
 const MAX_NEAR := 40
+const FREE_KEEP := 24                # idle bodies kept while a town is active (none once the courier has left every town, m-4)
+const FREE_TRIM_PER_PASS := 6
 const NEAR_MESH := 24.0            # show the detailed mesh inside this (hysteresis +3 m)
 const TICK_SLICE := 0.5            # every person is re-evaluated this often (s)
 const CARRY_PAUSE := 3.5
@@ -369,6 +371,14 @@ func _select_views() -> void:
 	var free: Array = []
 	for b: TownBody in bodies:
 		if b.person == null: free.append(b)
+	# m-4: bodies left over when the courier leaves a town are freed a few per pass (a whole pool of
+	# 160 rigged bodies stayed in the tree for the rest of the session), keeping a reserve
+	var keep_free := FREE_KEEP if not active.is_empty() else 0
+	if free.size() > keep_free and cands.size() < bodies.size() - keep_free:
+		for k in range(mini(FREE_TRIM_PER_PASS, free.size() - keep_free)):
+			var extra: TownBody = free.pop_back()
+			bodies.erase(extra)
+			extra.queue_free()
 	viewed.clear()
 	var assigned := 0; var created := 0
 	_pending_views = false

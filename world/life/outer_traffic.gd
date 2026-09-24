@@ -49,6 +49,7 @@ var frame_us := 0
 var physics_us := 0
 var _cells: Dictionary = {}             # Vector2i (100 m) -> [nav node ids] (outer roads only)
 var _pool: Dictionary = {}              # kind -> [views]
+const POOL_KEEP := 2                    # parked views kept per kind (m-4)
 var _rng := RandomNumberGenerator.new()
 var _spawn_t := 0.0
 var _target_t := 0.0
@@ -417,7 +418,10 @@ func _remove(v: Dictionary) -> void:
 		view.visible = false
 		(view.get_meta("body") as AnimatableBody3D).collision_layer = 0
 		if not _pool.has(v.kind): _pool[v.kind] = []
-		_pool[v.kind].append(view)
+		# m-4: a small reserve per kind is kept for reuse; the rest are freed, so the views made
+		# for a busy highway do not stay in the tree for the rest of the session
+		if (_pool[v.kind] as Array).size() >= POOL_KEEP: view.queue_free()
+		else: _pool[v.kind].append(view)
 
 
 # ---------------------------------------------------------------- views
