@@ -14,7 +14,13 @@ uniform vec3 dark_col : source_color = vec3(0.17, 0.075, 0.03);
 uniform float ring_scale = 330.0;
 uniform float roughness_base = 0.40;
 varying vec3 lp;
-float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// integer hash (m-16: a sin() hash of 1e5-scale arguments has no precision left on a GPU)
+float h21(vec2 p) {
+	uvec2 q = uvec2(ivec2(floor(p)) + ivec2(1 << 20));
+	uint h = q.x * 374761393u + q.y * 668265263u;
+	h = (h ^ (h >> 13u)) * 1274126177u;
+	return float((h ^ (h >> 16u)) & 0xffffu) / 65535.0;
+}
 float vn(vec2 p) {
 	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y);
@@ -26,7 +32,9 @@ void fragment() {
 	float rings = sin(lp.y * ring_scale + lp.x * 90.0 + warp * 6.0);
 	float band = smoothstep(0.35, 1.0, rings * 0.5 + 0.5);
 	// fine pores stretched along the grain
-	float pores = vn(vec2(lp.z * 260.0, lp.y * 1400.0 + lp.x * 900.0));
+	vec2 pp = vec2(lp.z * 260.0, lp.y * 1400.0 + lp.x * 900.0);
+	// sub-pixel pores would sparkle as the rifle moves: fade them to their mean once a cell is < ~1 px
+	float pores = mix(vn(pp), 0.5, smoothstep(0.5, 1.5, max(fwidth(pp.x), fwidth(pp.y))));
 	float figure = vn(vec2(lp.z * 2.0 + 3.0, lp.y * 6.0));
 	vec3 c = mix(base_col, dark_col, band * 0.32 + pores * 0.2 + figure * 0.18);
 	ALBEDO = c;
@@ -45,11 +53,17 @@ uniform float metal = 0.55;
 uniform float rough = 0.62;
 uniform float speckle = 0.10;
 varying vec3 lp;
-float h31(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+float h31(vec3 p) {
+	uvec3 q = uvec3(ivec3(p) + ivec3(1 << 20));
+	uint h = q.x * 374761393u + q.y * 668265263u + q.z * 2246822519u;
+	h = (h ^ (h >> 13u)) * 1274126177u;
+	return float((h ^ (h >> 16u)) & 0xffffu) / 65535.0;
+}
 void vertex() { lp = VERTEX; }
 void fragment() {
 	// phosphate finish: a fine crystalline speckle and a faint grey-green mottle
-	float s = h31(floor(lp * 1400.0));
+	vec3 sp = lp * 1400.0;
+	float s = mix(h31(floor(sp)), 0.5, smoothstep(0.5, 1.5, length(fwidth(sp))));   // no sub-pixel sparkle
 	float m = h31(floor(lp * 60.0));
 	ALBEDO = base_col * (1.0 - speckle + s * speckle * 2.0) * (0.94 + m * 0.1);
 	METALLIC = metal;

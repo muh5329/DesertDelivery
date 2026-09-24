@@ -30,6 +30,9 @@ var _last_dir := Vector3.ZERO
 var _sel_origin := PackedVector2Array()
 var _sel_level := PackedInt32Array()
 var camera_override: Camera3D
+var _r16_task := -1
+var _r16: Image
+var _r16_range := Vector2.ZERO
 
 
 func setup(p_ground: OuterGround) -> void:
@@ -42,6 +45,11 @@ func setup(p_ground: OuterGround) -> void:
 	var htex := ImageTexture.create_from_image(ground.height_image)
 	material.set_shader_parameter("height_tex", htex)
 	material.set_shader_parameter("height_lin", htex)
+	# m-16: the filtered reads (normals) sample an R32F texture with linear filtering, which not
+	# every GPU / MoltenVK combination supports (Apple silicon does). A normalised R16 copy (2.5 cm
+	# steps, filterable everywhere) is built on a worker and swapped in when ready.
+	if DisplayServer.get_name() != "headless":
+		_r16_task = WorkerThreadPool.add_task(_build_r16, false, "outer height r16")
 	var atex := ImageTexture.create_from_image(ground.aux_image)
 	material.set_shader_parameter("aux_tex", atex)
 	material.set_shader_parameter("aux_lin", atex)
@@ -97,11 +105,22 @@ func _patch_mesh() -> ArrayMesh:
 	return mesh
 
 
+static var _decoded: Array = []
+static var _compress := false
+
+
 static func texture_arrays() -> Array:
+	# decoded, mipmapped and compressed one layer per worker task (26 images)
+	_compress = DisplayServer.get_name() != "headless" and RenderingServer.has_os_feature("s3tc")
+	_decoded = []; _decoded.resize(LAYERS.size() * 2)
+	var g := WorkerThreadPool.add_group_task(func(i: int):
+		var nm: String = LAYERS[i / 2]
+		_decoded[i] = _tex_image("res://assets/terrain/%s_%s.png" % [nm, "alb_ht" if i % 2 == 0 else "nrm_rgh"]), LAYERS.size() * 2, -1, true, "terrain layers")
+	WorkerThreadPool.wait_for_group_task_completion(g)
 	var albs: Array[Image] = []; var nrms: Array[Image] = []
-	for name in LAYERS:
-		albs.append(_tex_image("res://assets/terrain/%s_alb_ht.png" % name))
-		nrms.append(_tex_image("res://assets/terrain/%s_nrm_rgh.png" % name))
+	for i in range(LAYERS.size()):
+		albs.append(_decoded[i * 2]); nrms.append(_decoded[i * 2 + 1])
+	_decoded = []
 	var a := Texture2DArray.new(); a.create_from_images(albs)
 	var n := Texture2DArray.new(); n.create_from_images(nrms)
 	return [a, n]
@@ -115,6 +134,11 @@ static func _tex_image(path: String) -> Image:
 	img.convert(Image.FORMAT_RGBA8)
 	if img.get_width() != 512: img.resize(512, 512, Image.INTERPOLATE_LANCZOS)
 	img.generate_mipmaps()
+	# m-14: DXT5 on a GPU (26 layers: 36 MB -> 9 MB); the alpha (height / roughness) keeps its own
+	# block. A texel a hair under opaque keeps every layer DXT5 (an array has one format).
+	if _compress:
+		var c := img.get_pixel(0, 0); c.a = minf(c.a, 0.99); img.set_pixel(0, 0, c)
+		img.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB if path.contains("_alb") else Image.COMPRESS_SOURCE_GENERIC)
 	return img
 
 
@@ -137,7 +161,43 @@ func _ready() -> void:
 	if DisplayServer.get_name() == "headless": set_process(false)
 
 
+func _build_r16() -> void:
+	var raw := ground.height_image.get_data()
+	var n := raw.size() / 4
+	var lo := INF; var hi := -INF
+	var f := raw.to_float32_array()
+	for i in range(n):
+		var v := f[i]
+		if v < lo: lo = v
+		if v > hi: hi = v
+	var span := maxf(hi - lo, 1.0)
+	var out := PackedByteArray(); out.resize(n * 2)
+	var k := 65535.0 / span
+	for i in range(n):
+		out.encode_u16(i * 2, int((f[i] - lo) * k + 0.5))
+	_r16_range = Vector2(lo, span / 65535.0)
+	_r16 = Image.create_from_data(ground.height_image.get_width(), ground.height_image.get_height(), false, Image.FORMAT_R16, out)
+
+
+func _swap_r16() -> void:
+	WorkerThreadPool.wait_for_task_completion(_r16_task)
+	_r16_task = -1
+	if _r16 == null: return
+	var tex := ImageTexture.create_from_image(_r16)
+	material.set_shader_parameter("height_lin", tex)
+	material.set_shader_parameter("height_lin_scale", _r16_range.y * 65535.0)
+	material.set_shader_parameter("height_lin_offset", _r16_range.x)
+	height_lin_ready.emit(tex, _r16_range.y * 65535.0, _r16_range.x)
+	_r16 = null
+
+
+## The filtered height texture was swapped for its R16 copy: (texture, scale, offset) - metres are
+## r * scale + offset. OuterWorld hands it to the sea.
+signal height_lin_ready(tex: Texture2D, scale: float, offset: float)
+
+
 func _process(_delta: float) -> void:
+	if _r16_task >= 0 and WorkerThreadPool.is_task_completed(_r16_task): _swap_r16()
 	var cam := _camera()
 	if cam == null: return
 	var p := cam.global_position
