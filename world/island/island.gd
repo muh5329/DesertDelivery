@@ -379,8 +379,8 @@ func _define_roads() -> void:
 	terrain.add_road([Vector2(-321.59, -430.91), Vector2(-338, -448), Vector2(-343, -480), Vector2(-340, -530), Vector2(-332, -580), Vector2(-327, -622)])
 	# east: from the lighthouse road's end, north of the lighthouse, out over the eastern lagoon
 	terrain.add_road([Vector2(510.545, -273.56), Vector2(518, -263), Vector2(535, -258), Vector2(565, -262), Vector2(622, -270)])
-	# south: from the Torre Vieja road's end down the headland
-	terrain.add_road([Vector2(330.0, 520.0), Vector2(342, 534), Vector2(349, 560), Vector2(352, 590), Vector2(354, 622)])
+	# south: off the Torre Vieja road below the fort, west of its walls and down the headland
+	terrain.add_road([Vector2(296.29, 496.28), Vector2(300, 530), Vector2(318, 565), Vector2(340, 595), Vector2(354, 622)])
 	# west: off the west-coast road, straight out over the western shelf
 	terrain.add_road([Vector2(-446.83, 200.8), Vector2(-480, 203), Vector2(-530, 205), Vector2(-575, 207), Vector2(-622, 209)])
 
@@ -1297,7 +1297,8 @@ func _build_harbour(hb_rec: Hub) -> void:
 		cafe.add_child(Mats.cylinder(0.04, 0.75, Mats.solid(Color(0.2, 0.2, 0.2), 0.5, 0.3), Vector3(-1.5 + i * 3.0, 0.37, -4.2)))
 	for p in [Vector2(-14, -10), Vector2(-8, 12), Vector2(10, -6)]:
 		_houses.append(Vector2(cx + p.x * K, cz + p.y * K))
-	_lamp_post(hb, Vector3(cx + 2 * K, g, cz + 4 * K))
+	# (the first lamp stood exactly on the Harbour Cafe ring: a courier stopping there hit it)
+	_lamp_post(hb, Vector3(cx + 2 * K + 5.0, g, cz + 4 * K + 2.0))
 	_lamp_post(hb, Vector3(cx + 18 * K, g, cz + 12 * K))
 	_signpost(hb, Vector3(cx - 6 * K, _ground(cx - 6 * K, cz - 20 * K), cz - 20 * K), -30, [["VILLA ROSA", -1.0], ["HARBOUR", 1.0]])
 	_pot_plant(hb, Vector3(cx - 2 * K, g, cz + 10 * K), 1.1)

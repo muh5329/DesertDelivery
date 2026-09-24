@@ -276,6 +276,18 @@ def layout_sarmada(town, ctx):
     main = resample_line(chaikin(main, 2), 8.0)
     town.main_street = town.add_street("main", 9.0, main)
     pz = town.add_street("plaza", 44.0, [plaza - ax * 26, plaza + ax * 26]); set_rule(town, pz, ("flat", None))
+    # the kasbah in the inland corner away from the harbour: its ground is kept free of derbs
+    kc = mc + ax * (W / 2 - 45) + ay * (D / 2 - 45)
+    kas = np.array([kc - ax * 36 - ay * 32, kc + ax * 36 - ay * 32, kc + ax * 36 + ay * 32, kc - ax * 36 + ay * 32])
+    def outside_kasbah(w):
+        if w is None: return None
+        keep = np.array([not T.point_in_poly(p, kas) for p in w])
+        if keep.all(): return w
+        idx = np.where(keep)[0]
+        if len(idx) < 2: return None
+        runs = np.split(idx, np.where(np.diff(idx) != 1)[0] + 1)
+        run = max(runs, key=len)
+        return w[run[0]:run[-1] + 1] if len(run) >= 2 else None
     # the derbs: a jittered grid of narrow lanes, some dropped, all wobbling
     lanes = []
     for a in range(-4, 5):
@@ -283,7 +295,7 @@ def layout_sarmada(town, ctx):
         p0 = mc + ay * (a * 34) - ax * (W / 2 - 8); p1 = mc + ay * (a * 34) + ax * (W / 2 - 8)
         if rng.random() < 0.15: continue
         w = wiggle(p0, p1, rng, 5, 20)
-        w = T.clip_to_poly(town.boundary)(w)
+        w = outside_kasbah(T.clip_to_poly(town.boundary)(w))
         if w is not None: lanes.append(town.add_street("lane", 4.5, w))
     for b in range(-5, 6):
         if b == 0: continue
@@ -293,7 +305,7 @@ def layout_sarmada(town, ctx):
             # a dead-end derb: only half the way across
             p1 = mc + ax * off + ay * rng.uniform(-40, 40)
         w = wiggle(p0, p1, rng, 4, 16)
-        w = T.clip_to_poly(town.boundary)(w)
+        w = outside_kasbah(T.clip_to_poly(town.boundary)(w))
         if w is not None: lanes.append(town.add_street("lane", 4.0, w))
     # the harbour: a quay along the shore outside the sea wall and a mole with the lighthouse
     q0 = shore[max(k - 26, 0)]; q1 = shore[min(k + 26, len(shore) - 1)]
@@ -320,9 +332,7 @@ def layout_sarmada(town, ctx):
             else:
                 town.try_plot("wall", p, out, L / nseg, 3.0, 3, [], None, check_streets=True, check_bounds=False)
         town.try_plot("tower", a, out, 9, 9, 4, ["corner"], None, check_streets=False, check_bounds=False)
-    # the kasbah in the inland corner away from the harbour
-    kc = mc + ax * (W / 2 - 45) + ay * (D / 2 - 45)
-    town.try_plot("citadel", kc, -ay, 62, 52, 3, ["corner"], land, check_streets=False)
+    town.try_plot("citadel", kc, -ay, 62, 52, 3, ["corner"], land, check_streets=True)
     # houses: flat-roofed courtyard houses along every derb and the main street
     fl = lambda: int(rng.integers(1, 4))
     for idx in [town.main_street] + lanes:
@@ -466,9 +476,15 @@ def layout_valdoro(town, ctx):
     lane_idx = []
     for lvl, con in terraces:
         k = town.add_street("lane", 6.0, con); set_rule(town, k, ("flat", lvl)); lane_idx.append((k, lvl, con))
-    # the switchback main street: from the gate up the terrace lanes, a ramp at alternate ends
+    # the plaza on the middle terrace
+    mid = lane_idx[len(lane_idx) // 2]
+    pc, pt = along(mid[2], poly_len(mid[2]) * 0.5)
+    up = -down
+    plaza_c = pc + up * 18
+    town.plaza = plaza_c
+    # the switchback main street: from the gate up the terrace lanes, a ramp at alternate ends,
+    # and along the plaza's terrace to the plaza
     gate = np.asarray(town.gate, float)
-    path = [gate]
     zig = []
     for n, (k, lvl, con) in enumerate(lane_idx):
         a = con[0] if n % 2 == 0 else con[-1]
@@ -476,21 +492,17 @@ def layout_valdoro(town, ctx):
         zig.append((a, b, lvl))
     main_pts = [np.append(gate, ctx.H(*gate, smooth=True))]
     for n, (a, b, lvl) in enumerate(zig):
-        if n >= 4: break
-        # ramp in from the previous terrace's far end to 70 m along this terrace
         main_pts.append(np.append(a + unit(b - a) * 30, lvl))
+        if lvl >= mid[1] - 0.01:
+            main_pts.append(np.append(pc, lvl))
+            main_pts.append(np.append(plaza_c, lvl))
+            break
         main_pts.append(np.append(a + unit(b - a) * 70, lvl))
     main3 = np.array(main_pts)
     from outer_route import chaikin
     xy = chaikin(main3[:, :2], 2)
     town.main_street = town.add_street("main", 7.0, resample_line(xy, 6.0))
     set_rule(town, town.main_street, ("ramp", main3.tolist()))
-    # the plaza on the middle terrace, the church and the bell tower on it
-    mid = lane_idx[len(lane_idx) // 2]
-    pc, pt = along(mid[2], poly_len(mid[2]) * 0.5)
-    up = -down
-    plaza_c = pc + up * 18
-    town.plaza = plaza_c
     pz = town.add_street("plaza", 30.0, [plaza_c - pt * 18, plaza_c + pt * 18]); set_rule(town, pz, ("flat", mid[1]))
     town.try_plot("church", plaza_c + up * 30, -up, 14, 24, 2, ["corner"], land)
     town.try_plot("tower", plaza_c + up * 26 + pt * 16, -up, 6, 6, 7, [], land)
@@ -507,7 +519,7 @@ def layout_valdoro(town, ctx):
     for k, lvl, con in lane_idx:
         for side in (1, -1):
             town.line_plots(k, side, None, (6.0, 10.0), (8.0, 12.0), land, setback=0.3, floors=fl,
-                            kinds=["house"] * 8 + ["shop", "barn"], tags=["terrace"])
+                            kinds=["house"] * 8 + ["shop", "barn"])
     for p in town.plots:
         if "_street" in p:
             for k, lvl, con in lane_idx:

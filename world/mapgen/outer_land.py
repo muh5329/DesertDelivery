@@ -29,6 +29,8 @@ LAKE = (2350.0, -7250.0, 640.0, 760.0)    # centre x, z, radius, water level
 DAM = (2330.0, -6560.0)
 # Valdoro's valley: a glacial trough from the foothills up into the range
 VALDORO_VALLEY = [(-300, -2300), (-850, -3500), (-900, -4300), (-1250, -5000), (-1300, -5800), (-1850, -6600), (-2150, -7400), (-2700, -8200)]
+# the Rambla: a broad dry river valley through the southern plateau, lagoon plain to the south bay
+SOUTH_VALLEY = [(450, 1500), (650, 2700), (1050, 4000), (900, 5200), (1300, 6400), (1650, 7400), (1900, 8300)]
 # western archipelago: (x, z, rx, rz, height, yaw)
 ISLANDS = [(-9350, 1250, 1900, 1250, 150, 0.35), (-8150, -2450, 950, 700, 110, -0.4), (-10450, -1350, 700, 520, 80, 0.2),
            (-8350, 3900, 820, 600, 90, 0.8), (-10850, 3350, 520, 420, 60, 0.1), (-11050, -150, 380, 300, 45, 0.0),
@@ -202,6 +204,13 @@ def shape(h, f):
     trough = floor + (h - floor) * (u ** 2.2)
     wv = 1 - smoothstep(0.85, 1.0, u)
     h = np.where(h > trough, h + (trough - h) * wv, h)
+    # the Rambla through the plateau: a flat-floored valley stepping down to the south bay
+    d, t = polyline_distance(x, z, SOUTH_VALLEY)
+    floor = 42 - 36 * t + nz.fbm(x, z, 121, 500.0, 2) * 4
+    width = 380 + 220 * np.sin(t * 9.0) ** 2 + nz.fbm(x, z, 122, 1300.0, 2) * 120
+    u = np.clip(d / width, 0, 1)
+    valley = floor + (h - floor) * (smoothstep(0.35, 1.0, u) ** 1.4)
+    h = np.where((h > valley) & (u < 1.0), valley, h)
     # the mountain lake: a basin 30 m below the water level, rim kept above it
     lx, lz, lr, ll = LAKE
     ld = np.hypot(x - lx, z - lz) + nz.fbm(x, z, 101, 400.0, 3) * 150

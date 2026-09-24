@@ -102,8 +102,8 @@ def paint(h, fields, flat, towns, lake_mask, field_mask_out=None):
 def macro_tint(h, s, biome, n1, n2, n3, wN, wS, wE, wW, farm, forest, dry):
     """Broad colour variation over the base textures (multiplier; 1.0 = texture as is)."""
     lush = np.array([0.80, 1.02, 0.72]); straw = np.array([1.10, 1.00, 0.72])
-    olive = np.array([0.92, 0.98, 0.74]); ochre = np.array([1.14, 0.92, 0.72])
-    red = np.array([1.18, 0.82, 0.64]); alpine = np.array([0.86, 0.98, 0.84])
+    olive = np.array([0.92, 0.98, 0.74]); ochre = np.array([1.06, 0.97, 0.80])
+    red = np.array([1.10, 0.90, 0.76]); alpine = np.array([0.86, 0.98, 0.84])
     grey = np.array([0.98, 0.98, 0.96])
     t = np.zeros(h.shape + (3,))
     base = lush[None, None] * (1 - dry[..., None]) + straw[None, None] * dry[..., None]

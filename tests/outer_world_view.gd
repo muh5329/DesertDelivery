@@ -25,7 +25,7 @@ func _process(_dt: float) -> void:
 	if frame%45!=0: return
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(out+"/outer_%d.png"%index)
-	print("OUTER DRESSING ",Game.current.world.expanse.dressing.stats())
+	print("OUTER FLORA ",Game.current.world.outer.flora.stats())
 	index+=1
 	if index==spots.size(): get_tree().quit(); return
 	_place()

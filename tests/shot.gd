@@ -20,7 +20,12 @@ func _ready() -> void:
 	out = game.cli.get_string("out", out)
 	settle = game.cli.get_int("settle", 24)
 	DirAccess.make_dir_recursive_absolute(out)
-	if not "--hud" in OS.get_cmdline_user_args(): game.hud.visible = false
+	if not "--hud" in OS.get_cmdline_user_args():
+		game.hud.visible = false
+		var ui := game.get_node_or_null("UI")
+		if ui:
+			for c in ui.get_children():
+				if c is CanvasLayer or c is Control: c.visible = false
 	if not "--player" in OS.get_cmdline_user_args():
 		game.bike.visible = false; game.player.visible = false; game.truck.visible = false
 	var t: Terrain = game.world.terrain
@@ -52,6 +57,12 @@ func _place() -> void:
 	game.bike.place(Vector3(focus.x, game.world.terrain.height_at(focus.x, focus.z) + 40.0, focus.z), Vector3(0, 0, -1))
 	game.world.set_focus(game.bike)
 	game.world.streamer.load_all_pending()
+	# the outer world streams round the camera: build its ribbons and wilderness now
+	var outer: OuterWorld = game.world.outer
+	if outer and outer.ok:
+		outer.view.update_selection(from, (at - from).normalized())
+		outer.roads.flush()
+		outer.flora.flush()
 	frame = 0
 
 

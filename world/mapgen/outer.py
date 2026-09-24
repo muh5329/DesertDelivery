@@ -276,7 +276,7 @@ def core_water():
     return hc
 
 
-def stage_lanes(h, towns, harbour):
+def stage_lanes(h, towns, harbour, exits=None):
     hc = core_water()
     # 50 m lane grid over the whole world
     C = 50.0; n = int(25000 / C) + 1
@@ -294,6 +294,15 @@ def stage_lanes(h, towns, harbour):
     ok_core = (clear >= 25) & (hh < -1.5)
     near_core = np.maximum(np.abs(X), np.abs(Z)) < 1300
     passable = np.where(near_core, ok_core | ok, ok)
+    # the core exits leave on low decks: ships keep clear of their corridors across the lagoon
+    for name, ex in (exits or {}).items():
+        pts = np.asarray(ex["points"], float)[:, [0, 2]]
+        b0 = ex["bridges"][0][0] if ex["bridges"] else len(pts) - 1
+        a = pts[max(b0 - 5, 0)]; t = T.unit(pts[-1] - pts[-8]); b = pts[-1] + t * 260.0
+        ab = b - a; L2 = ab @ ab
+        tt = np.clip(((X - a[0]) * ab[0] + (Z - a[1]) * ab[1]) / L2, 0, 1)
+        d = np.hypot(X - (a[0] + ab[0] * tt), Z - (a[1] + ab[1] * tt))
+        passable &= d > 90.0
     forbid = (~passable).astype(np.uint8)
     ports = {"core": harbour}
     for t in towns:
@@ -455,8 +464,8 @@ def make_profile(h, pts, cls, fixed, lanes):
     target = ndimage.gaussian_filter1d(target, max(c["sigma"], 1.0), mode="nearest")
     y = R.lipschitz_profile(target, 4.0, c["gmax"], fixed, lower)
     y = R.smooth_profile(y, c["sigma"] * 0.7, fixed, np.where(lower > -1e8, lower, -1e9), c["gmax"], 4.0)
-    # re-apply the grade limit after smoothing (tiny drift at pinned ends)
-    y = R.lipschitz_profile(y, 4.0, c["gmax"] * 1.02, fixed, np.where(lower > -1e8, lower, None) if False else None)
+    # re-apply the grade limit after smoothing (tiny drift at pinned ends), keeping the clearances
+    y = R.lipschitz_profile(y, 4.0, c["gmax"] * 1.02, fixed, lower)
     return y, g
 
 
@@ -554,11 +563,16 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
     gy["isola_junction"] = max(float(bil(h, [ISOLA_JUNCTION[0]], [ISOLA_JUNCTION[1]])[0]), 2.0)
     clear = [(g, 180.0) for g in gates.values()]
 
-    def link(rid, cls, a_id, b_id, a=None, b=None, ya=None, yb=None, lead_a=None, lead_b=None):
+    def link(rid, cls, a_id, b_id, a=None, b=None, ya=None, yb=None, lead_a=None, lead_b=None, vias=()):
         pa = gates[a_id] if a is None else a; pb = gates[b_id] if b is None else b
-        cells = route(grid, pa + (lead_a if lead_a is not None else 0), pb, cls, roadcell_mask(net, n), clear_around=clear + [(pa, 300.0)])
-        if cells is None:
-            log("ROUTE FAILED", rid); return None
+        stops = [pa + (lead_a if lead_a is not None else 0)] + [np.asarray(v, float) for v in vias] + [pb]
+        parts = []
+        for s0, s1 in zip(stops[:-1], stops[1:]):
+            c = route(grid, s0, s1, cls, roadcell_mask(net, n), clear_around=clear + [(pa, 300.0), (s0, 200.0), (s1, 200.0)])
+            if c is None:
+                log("ROUTE FAILED", rid); return None
+            parts.append(c if not parts else c[1:])
+        cells = np.vstack(parts)
         pts = shape_path(cells, pa, pb, cls, lead_a=lead_a, lead_b=lead_b)
         r = add_road(net, h, rid, cls, pts, lanes, (gy.get(a_id) if ya is None else ya, gy.get(b_id) if yb is None else yb), a_id, b_id)
         log("road", rid, cls, "%.2f km" % (len(pts) * 0.004), "bridges", len(r["bridges"]))
@@ -567,15 +581,18 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
     # --- the ring highway joining the five towns
     ring = [("valdoro", "campo_real"), ("campo_real", "puerto_alto"), ("puerto_alto", "sarmada"),
             ("sarmada", "isola_junction"), ("isola_junction", "valdoro")]
+    ring_vias = {("sarmada", "isola_junction"): [(-1800, 8700), (-5400, 6400)]}
     for a_id, b_id in ring:
-        link("ring.%s.%s" % (a_id, b_id), "highway", a_id, b_id)
+        link("ring.%s.%s" % (a_id, b_id), "highway", a_id, b_id, vias=ring_vias.get((a_id, b_id), ()))
     # --- the four spokes from the core exits
+    spoke_vias = {}
     for name, dest in (("north", "valdoro"), ("east", "campo_real"), ("south", "sarmada"), ("west", "isola_junction")):
         ex = exits[name]
         p = np.asarray(ex["points"], float)
         last = p[-1]; prev = p[-8]
         tan = T.unit(last[[0, 2]] - prev[[0, 2]])
-        link("spoke.%s" % name, "highway", "core_" + name, dest, a=last[[0, 2]], ya=float(last[1]), lead_a=tan * 160.0)
+        link("spoke.%s" % name, "highway", "core_" + name, dest, a=last[[0, 2]], ya=float(last[1]), lead_a=tan * 160.0,
+             vias=spoke_vias.get(name, ()))
     # --- the causeway to Isola Serena
     link("causeway.isola_serena", "road", "isola_junction", "isola_serena")
     net.gy = gy
@@ -786,8 +803,12 @@ def link_points(net, grid, h, lanes, rid, cls, a, b, snap=500.0):
     """A road between two points; an end within `snap` m of the network starts exactly on a
     junction sample of it."""
     ends = []
+    ctx = LY.Ctx(h)
     for p in (a, b):
         (r, k), d = nearest_sample(net, p, ("highway", "road", "track"))
+        if d >= snap:
+            q = find_site(ctx, p, 700, 4.0, 900, 25.0, (0.0, 0.2))
+            if q is not None: p = q
         if d < snap:
             k = junction_on(r, k)
             ends.append((r["pts"][k].copy(), float(r["y"][k]), r, k))
@@ -995,7 +1016,7 @@ def main():
     log("town surfaces carved")
     lake_mask = (np.hypot(fields_x() - L.LAKE[0], fields_z() - L.LAKE[1]) < L.LAKE[2] + 150).astype(np.uint8)
     harbour = np.array([262.0, -40.0])
-    lanes = stage_lanes(h1, towns, harbour)
+    lanes = stage_lanes(h1, towns, harbour, exits)
     net = stage_roads(h1, towns, exits, lanes, lake_mask)
     hamlets, pois = stage_extras(h1, net, towns, lanes, lake_mask, net.gy)
     total = sum(len(r["pts"]) for r in net.roads) * 0.004

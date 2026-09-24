@@ -16,6 +16,9 @@ uniform sampler2D normal_b : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D foam_noise : filter_linear_mipmap, repeat_enable;
 uniform sampler2D height_map : filter_linear;            // sea_depth.png: r * 90 - 10 = ground height (m)
 uniform float world_size = 1000.0;                       // height_map covers -world_size/2 .. +world_size/2
+uniform sampler2D outer_height : filter_linear;          // the outer world's heightfield (RF, 2001^2 over 25 km)
+uniform bool outer_enabled = false;
+uniform float water_level = 0.0;                         // the lake reuses this shader at its own level
 uniform float depth_fallback_start = 300.0;              // metres from camera where the height map takes over
 uniform float depth_fallback_end = 600.0;
 
@@ -168,8 +171,14 @@ float rock_proximity(vec2 suv, float surf_d, float radius_m, float near_m, float
 float heightmap_depth(vec2 xz) {
 	vec2 uv = xz / world_size + 0.5;
 	float h = -12.0;
-	if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) { h = texture(height_map, uv).r * 90.0 - 10.0; }
-	return max(-h, 0.0);
+	bool core = abs(xz.x) < 624.0 && abs(xz.y) < 624.0;
+	if (outer_enabled && !core) {
+		// the outer world: its own heightfield out to +-12.5 km, the deep sea beyond
+		vec2 ouv = (xz + 12500.0 + 6.25) / 25012.5;
+		h = -40.0;
+		if (ouv.x > 0.0 && ouv.x < 1.0 && ouv.y > 0.0 && ouv.y < 1.0) { h = texture(outer_height, ouv).r; }
+	} else if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) { h = texture(height_map, uv).r * 90.0 - 10.0; }
+	return max(water_level - h, 0.0);
 }
 
 void vertex() {

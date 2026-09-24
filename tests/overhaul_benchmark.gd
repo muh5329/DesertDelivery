@@ -33,7 +33,7 @@ func run() -> void:
 		if scene=="harbour": pos=game.world.database.location_pos(&"harbour_cafe")
 		if scene=="coast": pos=Vector3(-522,5,-200)
 		game.bike.global_position=pos
-		game.world.expanse.refresh_collision()
+		game.world.outer.refresh_collision()
 		camera.look_at_from_position(pos+Vector3(10,5,12),pos+Vector3(0,1,0))
 		if scene=="coast": camera.look_at_from_position(Vector3(-598,38,-326),pos)
 		get_window().grab_focus()
@@ -54,7 +54,7 @@ func run() -> void:
 		var total:=0.0
 		for ms in times: total+=ms
 		times.sort()
-		var row: Dictionary={"scene":scene,"focused_frames":focused_frames,"sample_wall_ms":total,"average_fps":300000.0/total,"median_frame_ms":times[150],"p95_frame_ms":times[285],"p99_frame_ms":times[297],"max_frame_ms":times[-1],"mean_draw_calls":draws/300.0,"mean_visible_objects":objects/300.0,"static_memory_mib":Performance.get_monitor(Performance.MEMORY_STATIC)/1048576.0,"video_memory_mib":Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1048576.0,"node_count":Performance.get_monitor(Performance.OBJECT_NODE_COUNT),"actors":game.life.actors.size(),"dressing":game.world.expanse.dressing.stats() if game.world.expanse.get("dressing")!=null else {}}
+		var row: Dictionary={"scene":scene,"focused_frames":focused_frames,"sample_wall_ms":total,"average_fps":300000.0/total,"median_frame_ms":times[150],"p95_frame_ms":times[285],"p99_frame_ms":times[297],"max_frame_ms":times[-1],"mean_draw_calls":draws/300.0,"mean_visible_objects":objects/300.0,"static_memory_mib":Performance.get_monitor(Performance.MEMORY_STATIC)/1048576.0,"video_memory_mib":Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1048576.0,"node_count":Performance.get_monitor(Performance.OBJECT_NODE_COUNT),"actors":game.life.actors.size(),"flora":game.world.outer.flora.stats() if game.world.outer and game.world.outer.flora else {}}
 		result.scenes.append(row); print("BENCHMARK ",JSON.stringify(row))
 	var directory:=game.cli.get_string("out","res://artifacts/overhaul-2026-09-19")
 	var file:=FileAccess.open(directory+"/benchmark.json",FileAccess.WRITE)

@@ -216,6 +216,8 @@ func heightfield_drift() -> float:
 			var span: Vector2i = b.deck_span(self)
 			skip.append(span.x); skip.append(span.y)
 		for k in range(0, samples.size(), 4):
+			# the heightfield the build cut is the core's: outer roads stand on the outer ground
+			if maxf(absf(samples[k].x), absf(samples[k].z)) > CORE_SIZE * 0.5 - 6.0: continue
 			var on_deck := false
 			for q in range(0, skip.size(), 2):
 				if k >= skip[q] - 8 and k <= skip[q + 1] + 8: on_deck = true; break
@@ -261,7 +263,8 @@ func normal_at(x: float, z: float) -> Vector3:
 
 
 func road_dist_at(x: float, z: float) -> float:
-	if maxf(absf(x), absf(z)) > CORE_SIZE * 0.5: return 40.0
+	if maxf(absf(x), absf(z)) > CORE_SIZE * 0.5:
+		return expanse.road_dist_at(x, z) if expanse != null else 40.0
 	var g := world_to_grid(x, z)
 	var i := clampi(int(round(g.x)), 0, N - 1)
 	var j := clampi(int(round(g.y)), 0, N - 1)
@@ -1122,10 +1125,15 @@ func probe(pos: Vector3) -> Dictionary:
 
 var _road_grid: Dictionary = {}
 const ROAD_CELL := 8.0
+## A coarse second grid (every 2nd sample in 256 m cells) answers `nearest_road` anywhere in the
+## 25 km world when nothing lies within the fine grid's 480 m search.
+var _road_coarse: Dictionary = {}
+const ROAD_COARSE := 256.0
 
 
 func _build_road_grid() -> void:
 	_road_grid.clear()
+	_road_coarse.clear()
 	for r in range(road_samples.size()):
 		var pts: PackedVector3Array = road_samples[r]
 		for k in range(pts.size()):
@@ -1133,6 +1141,10 @@ func _build_road_grid() -> void:
 			if not _road_grid.has(c):
 				_road_grid[c] = []
 			_road_grid[c].append([r, k])
+			if k % 2 == 0 or k == pts.size() - 1:
+				var cc := Vector2i(int(floor(pts[k].x / ROAD_COARSE)), int(floor(pts[k].z / ROAD_COARSE)))
+				if not _road_coarse.has(cc): _road_coarse[cc] = []
+				_road_coarse[cc].append([r, k])
 
 
 ## Nearest road sample to a world position: {point: Vector3, tangent: Vector3 (flat, unit)}.
@@ -1167,6 +1179,25 @@ func nearest_road(pos: Vector3) -> Dictionary:
 		if best_d < INF and sqrt(best_d) < (ring + 0.5) * ROAD_CELL:
 			break
 		ring += 1
+	if best_d == INF:
+		# far from every road: search the coarse grid outwards (the whole world if need be)
+		var ccc := Vector2i(int(floor(pos.x / ROAD_COARSE)), int(floor(pos.z / ROAD_COARSE)))
+		ring = 0
+		while ring < 120:
+			for dj in range(-ring, ring + 1):
+				for di in range(-ring, ring + 1):
+					if ring > 0 and absi(di) != ring and absi(dj) != ring: continue
+					var c := Vector2i(ccc.x + di, ccc.y + dj)
+					if not _road_coarse.has(c): continue
+					for e in _road_coarse[c]:
+						var p: Vector3 = road_samples[e[0]][e[1]]
+						var d := Vector2(p.x - pos.x, p.z - pos.z).length_squared()
+						if d < best_d:
+							best_d = d; best_r = e[0]; best_k = e[1]
+			if best_d < INF and sqrt(best_d) < (ring + 0.5) * ROAD_COARSE:
+				break
+			ring += 1
+	if road_samples.is_empty(): return {"point": pos, "tangent": Vector3.FORWARD}
 	var pts: PackedVector3Array = road_samples[best_r]
 	var k0 := clampi(best_k, 0, pts.size() - 2)
 	var tangent: Vector3 = pts[k0 + 1] - pts[k0]

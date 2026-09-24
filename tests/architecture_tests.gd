@@ -150,7 +150,7 @@ func _check_ground_seam() -> void:
 	navigation.build(terrain)
 	var outer_road: PackedVector3Array = terrain.road_samples[-1]
 	var outer_route := navigation.path(terrain.road_samples[0][0], outer_road[-1], 1.05, terrain)
-	_check(not outer_route.is_empty(), "the core road network reaches the outer highlands across the north viaduct")
+	_check(not outer_route.is_empty(), "the core road network reaches the outer world across the core exits")
 	# Ground cover is told what to leave bare; it does not know where the Town Square is.
 	_check(not terrain.keep_clear.is_empty(), "the Island hands the terrain its keep-clear regions (%d)" % terrain.keep_clear.size())
 
