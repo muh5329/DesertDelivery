@@ -2,7 +2,7 @@
 
 A third-person courier game on a **25 km × 25 km** country: a detailed 1.248 km Mediterranean island at the centre, ringed by a lagoon, and round it a generated country — an alpine range with a dammed lake in the north, an arid plateau of mesas and canyons in the south, farmland plains and an estuary in the east, a rugged coast and an archipelago in the west. Five towns (the port city of Puerto Alto, the alpine hill town of Valdoro, the walled desert port of Sarmada, the island village of Isola Serena, the plains market town of Campo Real) and fourteen hamlets are joined by ~220 km of highways, roads and tracks with 40+ bridges, and by sea lanes between the ports. See [ADR 0010](docs/adr/0010-outer-world.md).
 
-The September 2026 overhaul adds a hand-painted, Ghibli-inspired summer palette, an ImageGen gouache surface used by terrain and object materials, a newly authored Blender delivery truck, regraded existing GLBs, and occupation-based wardrobe silhouettes for all 64 residents. The shared base character and most existing model topology remain. Godot **4.7 Forward+ (Vulkan)** is the current renderer on macOS; Terrain3D draws and collides the detailed core.
+The September 2026 overhaul adds a hand-painted, Ghibli-inspired summer palette, an ImageGen gouache surface used by terrain and object materials, a newly authored Blender delivery truck, regraded existing GLBs, and individually generated townsfolk for all 64 residents (see Island life). The courier's model and most existing topology remain. Godot **4.7 Forward+ (Vulkan)** is the current renderer on macOS; Terrain3D draws and collides the detailed core.
 
 The gameplay pass adds explicit player/resident states, responsive bike and truck handling, buffered/coyote jumps, safe mounting, blocked-route recovery, spatial traffic lookup, and atomic delivery payouts with saved receipts. Implementation, real screenshots, adversarial findings and remaining quality gaps are in [the overhaul review](artifacts/overhaul-2026-09-19/README.md). AAA quality has not been demonstrated.
 
@@ -83,9 +83,20 @@ wheels and steering, and nearby body collisions. Wildlife includes grazing sheep
 rabbits and dogs, circling gulls, and two boats on validated water routes. Sky clouds drift
 while daylight changes with the simulation clock.
 
-These are stylized game assets inspired by the supplied references. Residents share
-the courier base rig with identity proportions, hair variants and occupation-specific hats, aprons, satchels and spectacles; their occupations are outdoor activity
-stations with timed work cycles, rather than enterable shops with a production economy.
+These are stylized game assets inspired by the supplied references. Every resident is their
+own person (`CharacterLook`, `entities/people`): sex, age (elders stoop and grey), height, build
+(slim / average / heavy bodies), skin tone, a sculpted face (jaw, chin, nose, brow, cheekbones,
+lips, eye size and spacing), eye colour, brows, stubble, moustaches and beards, 13 hair styles in
+12 colours, and clothing with real silhouettes — shirts, T-shirts, blouses, sweaters, waistcoats,
+jackets, long coats, dresses, skirts, overalls, tunics and robes over trousers, shorts, shoes,
+boots or sandals — in cotton, linen, wool, knit, denim and leather with stripes, checks, plaid,
+dots and cable knits, dressed by town palette (the Lisbon-like port, the alpine hill town, the
+desert port, the pastel fishing island, the plains market town) and by occupation (bakers'
+aprons and toques, fishermen's knits, farm overalls and straw hats, dockworkers' caps). Bodies
+are generated on the courier's animated rig, so they walk, work, sit and drive as before; each
+person is one draw call. Looks come from the resident's id, so nothing extra is saved. Their
+occupations are outdoor activity stations with timed work cycles, rather than enterable shops
+with a production economy.
 
 ## Blender assets
 
@@ -116,6 +127,9 @@ godot --headless --path . -- --test=life_tests                  # routines, navi
 godot --path . -- --test=catalogue_view --out=/tmp/journal.png   # actual UI checks and two viewport captures
 godot --path . -- --test=town_world_view --out=/tmp/town         # streamed street and aerial captures
 godot --path . -- --test=life_view --out=/tmp/residents          # real working resident and driver views
+godot --headless --path . -s tests/character_look_tests.gd      # townsfolk looks: deterministic, diverse, budgets, rig
+xvfb-run godot --path . --rendering-driver vulkan -- --facet --test=character_lineup --out=/tmp/people   # lineups, crowds, styles, faces
+xvfb-run godot --path . --rendering-driver vulkan -- --facet --test=people_benchmark   # draw calls: old residents vs townsfolk
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=feature_shots --out=/tmp/fshots
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --out=/tmp/view   # 20+ fixed views, streamed
 xvfb-run godot --path . --rendering-driver opengl3 -- --shots=/tmp/shots --autotest   # + screenshots
