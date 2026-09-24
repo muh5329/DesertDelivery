@@ -20,6 +20,8 @@ var world: WorldManager
 var entities: EntityManager
 var navigation := RoadNavigation.new()
 var ambient: IslandWildlife
+## The outer towns' people, the traffic on the outer roads and the fishing boats (OuterLife).
+var outer: OuterLife
 var _accumulator := 0.0
 var _last_minute := -1
 const NEIGHBOR_CELL := 24.0
@@ -92,6 +94,8 @@ func setup(p_world: WorldManager, p_entities: EntityManager) -> void:
 		_assign_task(r,true)
 	ambient=IslandWildlife.new(); ambient.name="WildlifeAndBoats"; add_child(ambient)
 	ambient.setup(world,entities)
+	outer=OuterLife.new(); add_child(outer)
+	outer.setup(world,entities,self)
 	_sync_views(0.0)
 	print("[life] %d residents, %d road nodes, seven-day routines" % [residents.size(),navigation.graph.get_point_count()])
 
@@ -396,6 +400,7 @@ func load_state(data: Dictionary) -> void:
 		r.task_key=""; _assign_task(r,true)
 		r.apply_dict(data.get("residents",{}).get(r.id,{}))
 	if ambient: ambient.elapsed=float(data.get("ambient_time",0.0))
+	if outer and outer.towns: outer.towns.reset()
 	_sync_views(0.0); _update_daylight(); calendar_changed.emit()
 
 
@@ -413,4 +418,5 @@ func advance_to(absolute_minute: float) -> void:
 		r.blocked_time=0.0; r.wait=0.0; r.work_progress=0.0
 		_assign_task(r,true)
 		r.restore_lifetime(totals[r.id])
+	if outer and outer.towns: outer.towns.reset()
 	_sync_views(0.0); _update_daylight(); calendar_changed.emit()

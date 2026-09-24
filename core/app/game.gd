@@ -297,6 +297,9 @@ func _on_mayor_active(active: bool) -> void:
 ## them finish (a GDScript task still running while the tree goes away hangs the exit).
 func _exit_tree() -> void:
 	PersonBuilder.wait_all()
+	PersonBuilder.cancel_parts()
+	PersonBuilder.wait_parts()
+	if life != null and life.outer != null: life.outer.wait()
 	if colony != null and colony.economy != null: colony.economy.shipping.wait()
 
 
