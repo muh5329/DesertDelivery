@@ -7,11 +7,12 @@ extends Node
 ##   lineup      bandits and pirates side by side (outfits and guns; the studio lineup in
 ##               garand_view.gd frames them better)
 ##   ambush      a bandit roadblock on an outer highway
+##   riding      the courier on the bike with the Garand slung across his back
 ## xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=combat_view --out=DIR [--only=a,b]
 
 var game: Game
 var out := "/tmp/combat_view"
-var shots: Array[String] = ["aim_ots", "fire", "camp_fight", "cove", "ambush"]
+var shots: Array[String] = ["aim_ots", "fire", "camp_fight", "cove", "ambush", "riding"]
 var idx := -1
 var sc: Controls.Scripted
 var cam: Camera3D
@@ -20,8 +21,8 @@ var frames := 0
 var phase := 0
 var focus_camp := &""
 var aim_target := Vector3.ZERO
-var mark_t := -1.0
-var slowed := false
+var shots0 := -1
+var since_shot := 0
 
 
 func _ready() -> void:
@@ -157,6 +158,18 @@ func _next_shot() -> void:
 			cam.look_at(_ground(s0.x + 3.0, s0.z) + Vector3(0, 1.0, 0), Vector3.UP)
 			cam.fov = 56.0
 			cam.current = true
+		"riding":
+			_hud(false)
+			var b: Bike = game.bike
+			var p := b.global_position
+			game.player.global_position = p + b.global_transform.basis.x * 1.2
+			game.rider.request_mount()
+			var side := b.global_transform.basis.x
+			var back := b.global_transform.basis.z
+			cam.global_position = p + side * 2.6 + back * 1.6 + Vector3(0, 1.5, 0)
+			cam.look_at(p + Vector3(0, 1.1, 0), Vector3.UP)
+			cam.fov = 45.0
+			cam.current = true
 		"ambush":
 			_hud(false)
 			var outer: OuterWorld = game.world.outer
@@ -207,9 +220,11 @@ func _physics_process(delta: float) -> void:
 		"aim_ots", "fire":
 			_aim_at(aim_target)
 			if s == "fire" and t > 2.0 and phase == 0:
+				# slow time first, so the flash, the smoke and the tracer are still there when drawn
 				phase = 1
+				shots0 = game.gun.shots_fired
+				Engine.time_scale = 0.01
 				sc.press("fire")
-				mark_t = t
 		"camp_fight":
 			if t > 0.5 and phase == 0:
 				phase = 1
@@ -219,19 +234,21 @@ func _physics_process(delta: float) -> void:
 				# aim at the nearest standing bandit
 				var best: Enemy = null
 				for e in men:
-					if not e.is_dead() and (best == null or e.global_position.distance_to(game.player.global_position) < best.global_position.distance_to(game.player.global_position)): best = e
+					if e.is_dead() or e.role == &"lookout": continue
+					if best == null or e.global_position.distance_to(game.player.global_position) < best.global_position.distance_to(game.player.global_position): best = e
 				if best: aim_target = best.global_position + Vector3(0, 1.1, 0)
 			_aim_at(aim_target)
 			if t > 5.5 and phase == 1:
 				phase = 2
+				shots0 = game.gun.shots_fired
+				Engine.time_scale = 0.01
 				sc.press("fire")
-				mark_t = t
 			# a chase-style view from behind and above the courier's right shoulder
 			var p := game.player.global_position
 			var to := (aim_target - p); to.y = 0.0; to = to.normalized()
 			var right := to.cross(Vector3.UP)
-			cam.global_position = p - to * 3.6 + right * 1.3 + Vector3(0, 2.4, 0)
-			cam.look_at(p + to * 14.0 + Vector3(0, 0.6, 0), Vector3.UP)
+			cam.global_position = p - to * 3.4 + right * 1.4 + Vector3(0, 1.9, 0)
+			cam.look_at(p + to * 14.0 + Vector3(0, 1.0, 0), Vector3.UP)
 			cam.fov = 58.0
 			cam.current = true
 
@@ -239,16 +256,14 @@ func _physics_process(delta: float) -> void:
 func _process(_delta: float) -> void:
 	if idx < 0 or idx >= shots.size(): return
 	frames += 1
-	if mark_t >= 0.0 and not slowed:
-		slowed = true
-		Engine.time_scale = 0.01
+	if shots0 >= 0 and game.gun.shots_fired > shots0: since_shot += 1
 	var s := shots[idx]
 	var ready := false
 	match s:
 		"aim_ots": ready = phase == 0 and t > 2.5 and frames > 20
-		"fire": ready = phase == 1 and slowed and frames > 22
-		"camp_fight": ready = phase == 2 and slowed
-		"cove", "ambush": ready = t > 2.5 and frames > 20
+		"fire": ready = phase == 1 and since_shot >= 2
+		"camp_fight": ready = phase == 2 and since_shot >= 2
+		"cove", "ambush", "riding": ready = t > 2.5 and frames > 20
 		"lineup":
 			# frame whoever is standing there, from in front
 			var men: Array = game.encounters.enemies_of(&"camp.view.bandits") + game.encounters.enemies_of(&"camp.view.pirates")
@@ -270,6 +285,6 @@ func _process(_delta: float) -> void:
 		cam.current = false
 		game.cam.current = true
 		Engine.time_scale = 1.0
-		slowed = false
-		mark_t = -1.0
+		shots0 = -1
+		since_shot = 0
 		_next_shot()

@@ -13,6 +13,7 @@ var cam: Camera3D
 var rifle: GarandModel
 var person: RiderModel
 var crew: Array = []            # bandits and pirates for the outfit lineup
+var fx_stage: Node3D            # the frozen effects (only in the effects shot)
 var stage: Node3D
 
 
@@ -62,6 +63,7 @@ func _init() -> void:
 		["hands_rest", pc + Vector3(0.9, -0.3, -1.2), pc + Vector3(0.2, -0.45, 0), 30.0, "rest"],
 		["pose_reload", pc + Vector3(1.9, 0.25, -1.3), pc + Vector3(0, -0.25, -0.3), 36.0, "reload"],
 	]
+	shots.append(["effects", Vector3(-6.0, 1.6, -7.0), Vector3(-6.0, 0.9, -13.0), 50.0, "effects"])
 	shots.append(["enemies", Vector3(0.0, 1.35, 16.2), Vector3(0.0, 1.0, 10.0), 42.0, "enemies"])
 	shots.append(["enemies_close", Vector3(-1.2, 1.55, 12.6), Vector3(-1.9, 1.35, 10.0), 34.0, "enemies"])
 	# a turntable: the rifle turns in 45 degree steps in front of a fixed camera
@@ -89,6 +91,23 @@ func _pose(kind: String) -> void:
 			_:
 				person.animate("idle", 0.0, 0.05, false, 0.0, 0.0)
 	person.sync_resident_pose()
+
+
+## Muzzle flash, smoke and tracer from a rifle on a stand, and an impact of every surface
+## kind in a row on the ground: frozen mid-effect.
+func _effects() -> void:
+	fx_stage = Node3D.new(); stage.add_child(fx_stage)
+	var fx := CombatFx.new(); fx_stage.add_child(fx)
+	var g := GarandModel.new(); fx_stage.add_child(g)
+	g.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-70.0)), Vector3(-7.4, 1.1, -10.5))
+	var kinds := [&"dust", &"stone", &"wood", &"metal", &"cloth"]
+	for i in range(kinds.size()):
+		fx.impact(Vector3(-8.0 + i * 1.1, 0.02, -13.5), Vector3.UP, kinds[i])
+	for k in range(6): fx._process(0.015)          # the bursts spread for 90 ms
+	fx.muzzle(g.get_node("Muzzle").global_transform)
+	fx.tracer(g.get_node("Muzzle").global_position, Vector3(20.0, 0.9, -14.0))
+	fx._process(0.01)
+	fx.time_scale = 0.0                            # ... and everything holds for the photo
 
 
 func _process(_d: float) -> bool:
@@ -119,7 +138,9 @@ func _process(_d: float) -> bool:
 	var s: Array = shots[idx]
 	var f := frame - 2
 	if f % 8 == 0:
-		person.visible = s[4] != "none" and s[4] != "enemies"
+		if fx_stage: fx_stage.queue_free(); fx_stage = null
+		if s[4] == "effects": _effects()
+		person.visible = s[4] != "none" and s[4] != "enemies" and s[4] != "effects"
 		rifle.visible = s[4] == "none"
 		for m in crew:
 			m.visible = s[4] == "enemies"

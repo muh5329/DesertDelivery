@@ -93,6 +93,7 @@ var _mark: Label3D
 var _look_yaw := 0.0
 var _investigate := Vector3.ZERO
 var _alone_hit := false
+var _flank_rolled := false
 var _anim_accum := 0.0
 
 
@@ -318,7 +319,8 @@ func _animate(delta: float) -> void:
 	var fighting := state == State.COMBAT
 	var aiming := state == State.COMBAT and sub != Sub.FLANK
 	var want_crouch := 0.0
-	if state == State.COMBAT and (sub == Sub.HIDE or (sub == Sub.OPEN and _reload_t > 0.0)) and spd < 0.5: want_crouch = 1.0
+	# kneel in cover and when fighting in the open (a smaller target); stand to peek
+	if state == State.COMBAT and (sub == Sub.HIDE or sub == Sub.OPEN) and spd < 0.5: want_crouch = 1.0
 	if role == &"sitter" and state == State.IDLE: want_crouch = 1.0
 	_crouch = move_toward(_crouch, want_crouch, dt * 4.0)
 	model.crouch = _crouch
@@ -439,6 +441,7 @@ func _enter_combat(pos: Vector3, shout: bool) -> void:
 	target_pos = pos
 	if was != State.COMBAT:
 		last_seen = _t
+		_last_flank = _t          # no flanking in the first seconds of a fight
 		_cover = null
 		sub = Sub.OPEN
 		_sub_t = 0.0
@@ -468,6 +471,7 @@ func _think_combat(dt: float, d: float, courier: Node3D) -> void:
 			if global_position.distance_to(_cover) < 0.7 or _sub_t < -8.0:
 				_has_goal = false
 				sub = Sub.HIDE
+				_flank_rolled = false
 				_sub_t = _rng.randf_range(0.6, 1.5)
 		Sub.HIDE:
 			_has_goal = false
@@ -480,9 +484,12 @@ func _think_combat(dt: float, d: float, courier: Node3D) -> void:
 					_cover = null
 					_pick_cover()
 					return
-			if role != &"lookout" and _t - _last_flank > 11.0 and ctx.allies_alive(camp_id) >= 3 and _rng.randf() < 0.3 and d > 12.0:
-				_last_flank = _t
-				if _flank(courier): return
+			# now and then (one roll per stint in cover), work round his side
+			if not _flank_rolled and role != &"lookout" and _t - _last_flank > 11.0 and ctx.allies_alive(camp_id) >= 3 and d > 12.0:
+				_flank_rolled = true
+				if _rng.randf() < 0.3:
+					_last_flank = _t
+					if _flank(courier): return
 			if _sub_t <= 0.0 and _reload_t <= 0.0:
 				sub = Sub.PEEK
 				_sub_t = _rng.randf_range(1.4, 2.6)
@@ -492,6 +499,7 @@ func _think_combat(dt: float, d: float, courier: Node3D) -> void:
 			_try_shoot(courier, d)
 			if _sub_t <= 0.0 or mag <= 0:
 				sub = Sub.HIDE
+				_flank_rolled = false
 				_sub_t = _rng.randf_range(1.0, 2.3)
 		Sub.OPEN:
 			# nothing to hide behind: kneel and fight, keep looking for cover
@@ -588,21 +596,21 @@ func _pick_cover() -> bool:
 		_sub_t = _rng.randf_range(0.5, 1.2)
 		return true
 	var threat := target_pos
-	var cands: Array = []
+	var my_d := global_position.distance_to(threat)
+	var pref := 22.0 if weapon != &"revolver" else 14.0
+	var camp_pts: Array = []
 	for c: Vector3 in ctx.cover_points(camp_id):
-		if c.distance_to(global_position) < 24.0 and not ctx.cover_taken(c, self): cands.append(c)
-	for i in range(5):
+		if c.distance_to(global_position) < 24.0 and c.distance_to(threat) > minf(my_d - 4.0, pref) and not ctx.cover_taken(c, self):
+			camp_pts.append(c)
+	camp_pts.sort_custom(func(a: Vector3, b: Vector3): return _cover_score(a, threat, pref) < _cover_score(b, threat, pref))
+	var sampled: Array = []
+	for i in range(4):
 		var a := _rng.randf() * TAU
 		var p := global_position + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(3.0, 9.0)
 		p.y = _ground(p)
-		cands.append(p)
-	var pref := 22.0 if weapon != &"revolver" else 14.0
-	cands.sort_custom(func(a: Vector3, b: Vector3): return _cover_score(a, threat, pref) < _cover_score(b, threat, pref))
-	var tested := 0
+		if p.distance_to(threat) > 6.0: sampled.append(p)
+	var cands: Array = camp_pts.slice(0, 3) + sampled.slice(0, 1)
 	for c: Vector3 in cands:
-		if tested >= 3: break
-		if c.distance_to(threat) < 6.0: continue
-		tested += 1
 		var ok = _covered(c, threat)
 		if ok == null: return false
 		if ok:

@@ -14,6 +14,7 @@ static var _mats: Dictionary = {}
 static var _meshes: Dictionary = {}
 var _live: Array = []          # [node, t, life, kind, data]
 var impacts := 0               # counters for tests / the debug overlay
+var time_scale := 1.0          # render tools freeze the effects (0) to photograph them
 var tracers := 0
 var last_surface := &""
 
@@ -23,57 +24,64 @@ func _ready() -> void:
 
 
 static func _build_assets() -> void:
+	# mixed, not added: an additive flash vanishes against a sunlit desert
 	var flash := StandardMaterial3D.new()
 	flash.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	flash.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	flash.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	flash.cull_mode = BaseMaterial3D.CULL_DISABLED
-	flash.albedo_color = Color(1.0, 0.72, 0.32, 1.0)
+	flash.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
 	flash.vertex_color_use_as_albedo = true
+	flash.no_depth_test = false
 	_mats.flash = flash
-	var tracer := flash.duplicate()
-	tracer.albedo_color = Color(1.0, 0.85, 0.55, 0.9)
+	var tracer := StandardMaterial3D.new()
+	tracer.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	tracer.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	tracer.albedo_color = Color(1.0, 0.9, 0.55, 0.85)
+	tracer.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_mats.tracer = tracer
-	for k in [["smoke", Color(0.82, 0.80, 0.76, 0.45)], ["dust", Color(0.80, 0.70, 0.52, 0.6)], ["stone", Color(0.70, 0.68, 0.64, 0.6)],
-			["wood", Color(0.62, 0.48, 0.33, 0.5)], ["cloth", Color(0.62, 0.58, 0.52, 0.45)], ["metal", Color(0.6, 0.6, 0.6, 0.3)]]:
+	for k in [["smoke", Color(0.86, 0.85, 0.82, 0.55)], ["dust", Color(0.93, 0.86, 0.72, 0.8)], ["stone", Color(0.80, 0.79, 0.76, 0.75)],
+			["wood", Color(0.70, 0.55, 0.38, 0.6)], ["cloth", Color(0.70, 0.66, 0.60, 0.55)], ["metal", Color(0.6, 0.6, 0.6, 0.3)]]:
 		var m := StandardMaterial3D.new()
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.albedo_color = k[1]
-		m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-		m.vertex_color_use_as_albedo = true
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		m.albedo_texture = _soft_dot()
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_mats[k[0]] = m
-	var chip := StandardMaterial3D.new(); chip.albedo_color = Color(0.62, 0.60, 0.56); chip.roughness = 0.9
-	chip.vertex_color_use_as_albedo = true
+	var chip := StandardMaterial3D.new(); chip.albedo_color = Color(0.50, 0.48, 0.45); chip.roughness = 0.9
 	_mats.chip = chip
+	var dirt := chip.duplicate(); dirt.albedo_color = Color(0.55, 0.43, 0.30)
+	_mats.dirt = dirt
+	var wood_bit := chip.duplicate(); wood_bit.albedo_color = Color(0.74, 0.57, 0.37)
+	_mats.splinter = wood_bit
 	var spark := StandardMaterial3D.new()
 	spark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	spark.albedo_color = Color(1.0, 0.8, 0.35)
 	spark.emission_enabled = true; spark.emission = Color(1.0, 0.65, 0.2); spark.emission_energy_multiplier = 4.0
-	spark.vertex_color_use_as_albedo = true
 	_mats.spark = spark
 	# a flash star: three crossed quads along the bore + a disc facing forward
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for a in [0.0, PI / 3.0, 2.0 * PI / 3.0]:
 		var side := Vector3(cos(a), sin(a), 0.0)
-		var q := [side * -0.07, side * 0.07, side * 0.02 + Vector3(0, 0, -0.34), side * -0.02 + Vector3(0, 0, -0.34)]
+		var q := [side * -0.09, side * 0.09, side * 0.025 + Vector3(0, 0, -0.46), side * -0.025 + Vector3(0, 0, -0.46)]
 		for i in [0, 1, 2, 0, 2, 3]:
-			st.set_color(Color(1, 1, 1, 1) if i < 2 else Color(1, 0.6, 0.2, 0.0))
+			st.set_color(Color(1, 0.97, 0.75, 1) if i < 2 else Color(1, 0.5, 0.12, 0.15))
 			st.add_vertex(q[i])
-	for i in range(8):
-		var a0 := TAU * i / 8.0; var a1 := TAU * (i + 1) / 8.0
-		st.set_color(Color(1, 1, 0.9, 1)); st.add_vertex(Vector3(0, 0, -0.02))
-		st.set_color(Color(1, 0.7, 0.3, 0)); st.add_vertex(Vector3(cos(a0), sin(a0), 0) * 0.11)
-		st.set_color(Color(1, 0.7, 0.3, 0)); st.add_vertex(Vector3(cos(a1), sin(a1), 0) * 0.11)
+	for i in range(10):
+		var a0 := TAU * i / 10.0; var a1 := TAU * (i + 1) / 10.0
+		var r0 := 0.16 if i % 2 == 0 else 0.10
+		st.set_color(Color(1, 1, 0.85, 1)); st.add_vertex(Vector3(0, 0, -0.03))
+		st.set_color(Color(1, 0.6, 0.18, 0.2)); st.add_vertex(Vector3(cos(a0), sin(a0), 0) * r0)
+		st.set_color(Color(1, 0.6, 0.18, 0.2)); st.add_vertex(Vector3(cos(a1), sin(a1), 0) * r0)
 	_meshes.flash = st.commit()
 	var q := QuadMesh.new(); q.size = Vector2(0.5, 0.5)
 	_meshes.puff = q
-	var bm := BoxMesh.new(); bm.size = Vector3(0.02, 0.012, 0.018)
+	var bm := BoxMesh.new(); bm.size = Vector3(0.04, 0.025, 0.035)
 	_meshes.chip = bm
-	var sp := BoxMesh.new(); sp.size = Vector3(0.006, 0.006, 0.07)
+	var sp := BoxMesh.new(); sp.size = Vector3(0.012, 0.12, 0.012)
 	_meshes.spark = sp
-	var splinter := BoxMesh.new(); splinter.size = Vector3(0.008, 0.006, 0.06)
+	var splinter := BoxMesh.new(); splinter.size = Vector3(0.012, 0.01, 0.09)
 	_meshes.splinter = splinter
 	var cm := CylinderMesh.new(); cm.top_radius = 0.006; cm.bottom_radius = 0.006; cm.height = 1.0; cm.radial_segments = 4; cm.rings = 1
 	_meshes.tracer = cm
@@ -100,11 +108,7 @@ func muzzle(xform: Transform3D, scale: float = 1.0) -> void:
 
 
 func smoke(pos: Vector3, dir: Vector3, count: int, scale: float = 1.0) -> void:
-	var p := _burst(pos, _mats.smoke, _meshes.puff, count, 1.4, dir.normalized() * 0.9 + Vector3.UP * 0.25, 0.5, 0.35, Vector3(0, 0.25, 0))
-	p.scale_amount_min = 0.25 * scale
-	p.scale_amount_max = 0.55 * scale
-	p.scale_amount_curve = _grow_curve()
-	p.color_ramp = _fade_ramp(0.45)
+	_burst(pos, _mats.smoke, _meshes.puff, count, 1.5, dir.normalized() * 0.9 + Vector3.UP * 0.25, 0.9, 0.35, Vector3(0, 0.3, 0), 0.3 * scale, 0.6 * scale, 2.6, false)
 
 
 # ------------------------------------------------------------------------------ tracer
@@ -135,32 +139,21 @@ func impact(pos: Vector3, normal: Vector3, surface: StringName) -> void:
 	var n := normal.normalized() if normal.length_squared() > 0.01 else Vector3.UP
 	match surface:
 		&"stone":
-			var d := _burst(pos + n * 0.03, _mats.stone, _meshes.puff, 5, 0.9, n, 1.2, 0.6, Vector3(0, -1.0, 0))
-			d.scale_amount_min = 0.2; d.scale_amount_max = 0.45; d.color_ramp = _fade_ramp(0.6)
-			var c := _burst(pos + n * 0.02, _mats.chip, _meshes.chip, 7, 0.9, n, 4.5, 0.7, Vector3(0, -9.8, 0))
-			c.scale_amount_min = 0.6; c.scale_amount_max = 1.3
-			c.angular_velocity_min = -720; c.angular_velocity_max = 720
+			_burst(pos + n * 0.08, _mats.stone, _meshes.puff, 6, 1.0, n, 1.4, 0.6, Vector3(0, -1.0, 0), 0.35, 0.8, 2.0, false)
+			_burst(pos + n * 0.02, _mats.chip, _meshes.chip, 7, 0.9, n, 4.5, 0.7, Vector3(0, -9.8, 0), 0.7, 1.3, 1.0, true)
 		&"wood":
-			var d := _burst(pos + n * 0.03, _mats.wood, _meshes.puff, 3, 0.7, n, 0.8, 0.6, Vector3(0, -0.6, 0))
-			d.scale_amount_min = 0.15; d.scale_amount_max = 0.3; d.color_ramp = _fade_ramp(0.5)
-			var s := _burst(pos + n * 0.02, _mats.chip, _meshes.splinter, 6, 1.0, n, 3.2, 0.8, Vector3(0, -9.8, 0))
-			s.color = Color(0.72, 0.55, 0.36)
-			s.angular_velocity_min = -900; s.angular_velocity_max = 900
+			_burst(pos + n * 0.03, _mats.wood, _meshes.puff, 3, 0.7, n, 0.8, 0.6, Vector3(0, -0.6, 0), 0.2, 0.4, 2.0, false)
+			_burst(pos + n * 0.02, _mats.splinter, _meshes.splinter, 6, 1.0, n, 3.2, 0.8, Vector3(0, -9.8, 0), 0.8, 1.3, 1.0, true)
 		&"metal":
-			var s := _burst(pos + n * 0.02, _mats.spark, _meshes.spark, 10, 0.25, n, 7.0, 0.9, Vector3(0, -9.8, 0))
-			s.particle_flag_align_y = true
-			s.scale_amount_min = 0.5; s.scale_amount_max = 1.2
+			_burst(pos + n * 0.02, _mats.spark, _meshes.spark, 10, 0.25, n, 7.0, 0.9, Vector3(0, -9.8, 0), 0.6, 1.2, 1.0, true, true)
 			var light := OmniLight3D.new(); light.light_color = Color(1, 0.7, 0.3); light.light_energy = 1.5; light.omni_range = 2.0
 			add_child(light); light.global_position = pos + n * 0.1
 			_track(light, 0.05, &"light")
 		&"cloth":
-			var d := _burst(pos, _mats.cloth, _meshes.puff, 4, 0.5, n, 0.7, 0.7, Vector3(0, 0.3, 0))
-			d.scale_amount_min = 0.12; d.scale_amount_max = 0.28; d.color_ramp = _fade_ramp(0.45)
+			_burst(pos, _mats.cloth, _meshes.puff, 4, 0.5, n, 0.7, 0.7, Vector3(0, 0.3, 0), 0.15, 0.3, 1.8, false)
 		_:
-			var d := _burst(pos + n * 0.05, _mats.dust, _meshes.puff, 7, 1.3, n + Vector3.UP * 0.4, 1.4, 0.55, Vector3(0, -0.8, 0))
-			d.scale_amount_min = 0.3; d.scale_amount_max = 0.7; d.scale_amount_curve = _grow_curve(); d.color_ramp = _fade_ramp(0.6)
-			var g := _burst(pos + n * 0.02, _mats.chip, _meshes.chip, 5, 0.6, n + Vector3.UP, 3.0, 0.8, Vector3(0, -9.8, 0))
-			g.color = Color(0.66, 0.55, 0.40)
+			_burst(pos + n * 0.15, _mats.dust, _meshes.puff, 9, 1.4, n + Vector3.UP * 0.5, 1.8, 0.55, Vector3(0, -0.6, 0), 0.5, 1.1, 2.4, false)
+			_burst(pos + n * 0.02, _mats.dirt, _meshes.chip, 5, 0.6, n + Vector3.UP, 3.0, 0.8, Vector3(0, -9.8, 0), 0.7, 1.2, 1.0, true)
 
 
 ## Classify a ray's collider: explicit `surface` meta first (camp props, enemies), then the kind
@@ -189,40 +182,45 @@ static func surface_of(collider: Object) -> StringName:
 
 
 # ------------------------------------------------------------------------------ internals
-func _burst(pos: Vector3, mat: Material, mesh: Mesh, count: int, life: float, dir: Vector3, speed: float, spread: float, gravity: Vector3) -> CPUParticles3D:
-	var p := CPUParticles3D.new()
-	p.one_shot = true
-	p.explosiveness = 0.92
-	p.amount = count
-	p.lifetime = life
-	p.local_coords = false
-	p.mesh = mesh
-	p.material_override = mat
-	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	p.direction = dir.normalized() if dir.length_squared() > 0.0001 else Vector3.UP
-	p.spread = rad_to_deg(spread) * 0.9
-	p.initial_velocity_min = speed * 0.45
-	p.initial_velocity_max = speed
-	p.gravity = gravity
-	p.damping_min = 0.5; p.damping_max = 1.5
-	add_child(p)
-	p.global_position = pos
-	p.emitting = true
-	_track(p, life + 0.2, &"burst")
-	return p
+## A handful of sprites or chips flung from `pos` along `dir` (within `spread` rad), falling
+## with `gravity`, each growing to `grow` times its size and fading over `life`. Simulated
+## here (not CPUParticles), so render tools can freeze them with `time_scale`.
+func _burst(pos: Vector3, mat: Material, mesh: Mesh, count: int, life: float, dir: Vector3, speed: float, spread: float,
+		gravity: Vector3, size_min: float, size_max: float, grow: float, solid: bool, align: bool = false) -> void:
+	var d := dir.normalized() if dir.length_squared() > 0.0001 else Vector3.UP
+	var side := d.cross(Vector3.UP if absf(d.y) < 0.95 else Vector3.RIGHT).normalized()
+	var up := side.cross(d).normalized()
+	for i in range(count):
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		var a := randf() * TAU
+		var r := spread * sqrt(randf())
+		var v := (d + (side * cos(a) + up * sin(a)) * tan(r)).normalized() * speed * randf_range(0.45, 1.0)
+		var size := randf_range(size_min, size_max)
+		mi.global_position = pos + v * 0.01
+		mi.scale = Vector3.ONE * size
+		if solid: mi.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
+		_track(mi, life * randf_range(0.7, 1.0), &"bit", {"v": v, "g": gravity, "size": size, "grow": grow, "solid": solid,
+			"align": align, "spin": Vector3(randf_range(-12, 12), randf_range(-12, 12), randf_range(-12, 12)) if solid and not align else Vector3.ZERO})
 
 
-func _fade_ramp(alpha: float) -> Gradient:
+static func _soft_dot() -> GradientTexture2D:
+	if _meshes.has("dot"): return _meshes.dot
 	var g := Gradient.new()
-	g.set_color(0, Color(1, 1, 1, alpha))
-	g.set_color(1, Color(1, 1, 1, 0.0))
-	return g
-
-
-func _grow_curve() -> Curve:
-	var c := Curve.new()
-	c.add_point(Vector2(0, 0.4)); c.add_point(Vector2(1, 1.0))
-	return c
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.add_point(0.45, Color(1, 1, 1, 0.8))
+	g.set_color(g.get_point_count() - 1, Color(1, 1, 1, 0))
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(1.0, 0.5)
+	t.width = 64; t.height = 64
+	_meshes.dot = t
+	return t
 
 
 func _track(node: Node, life: float, kind: StringName, data: Dictionary = {}) -> void:
@@ -230,6 +228,7 @@ func _track(node: Node, life: float, kind: StringName, data: Dictionary = {}) ->
 
 
 func _process(delta: float) -> void:
+	delta *= time_scale
 	for i in range(_live.size() - 1, -1, -1):
 		var e: Array = _live[i]
 		var node: Node = e[0]
@@ -242,6 +241,23 @@ func _process(delta: float) -> void:
 				(node as MeshInstance3D).transparency = clampf(k, 0.0, 1.0)
 			&"light":
 				(node as OmniLight3D).light_energy *= 0.6
+			&"bit":
+				var b: Dictionary = e[4]
+				var mi := node as MeshInstance3D
+				var v: Vector3 = b.v
+				v += (b.g as Vector3) * delta
+				v *= 1.0 - minf(delta * (1.5 if b.solid else 2.5), 0.5)
+				b.v = v
+				mi.global_position += v * delta
+				if b.solid:
+					if b.align and v.length_squared() > 0.01:
+						mi.look_at(mi.global_position + v, Vector3.UP if absf(v.normalized().y) < 0.95 else Vector3.RIGHT)
+						mi.rotate_object_local(Vector3.RIGHT, PI * 0.5)
+					else:
+						mi.rotation += (b.spin as Vector3) * delta
+				else:
+					mi.scale = Vector3.ONE * float(b.size) * lerpf(1.0, float(b.grow), clampf(k, 0.0, 1.0))
+				mi.transparency = clampf((k - 0.35) / 0.65, 0.0, 1.0) if not b.solid else clampf((k - 0.7) / 0.3, 0.0, 1.0)
 			&"tracer":
 				var d: Dictionary = e[4]
 				var travel: float = minf(e[1] * 900.0, d.len - d.streak * 0.5)

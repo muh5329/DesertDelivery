@@ -458,7 +458,8 @@ func _pose_long_gun(mode: String, pitch: float) -> void:
 	var dir := body_basis * (Basis(Vector3.UP, sway.x) * Vector3(0, -sin(p_eff), -cos(p_eff)))
 	if aim_point is Vector3 and r > 0.5:
 		var to: Vector3 = (aim_point as Vector3) - pocket
-		if to.length() > 2.0:
+		# only a point out in front (a camera ray that hit the ground behind him is no aim)
+		if to.length() > 2.0 and to.normalized().dot(dir) > 0.8:
 			var conv := to.normalized()
 			# converge on the aim point, keep the sway and the recoil climb on top
 			conv = Basis(body_basis.y, sway.x) * conv
