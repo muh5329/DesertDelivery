@@ -41,6 +41,7 @@ var plot_count := 0
 var recipe_count := 0
 var locations: Array[StringName] = []
 var names: Dictionary = {}          # id -> display name
+var props: OuterProps
 var _mat_cache: StandardMaterial3D
 var _lamp_mm_mesh: ArrayMesh
 var _kit_methods: Dictionary = {}
@@ -62,6 +63,8 @@ func setup(p_outer: OuterWorld, p_db: WorldDatabase, p_kit: WorldKit) -> void:
 	for lm: Dictionary in plan.get("landmarks", []):
 		_define_landmark(lm)
 	_define_signposts()
+	props = OuterProps.new()
+	props.setup(outer, db, kit)
 	if Events.has_signal("chunk_loaded"):
 		Events.chunk_loaded.connect(_on_chunk_loaded)
 		Events.chunk_unloaded.connect(_on_chunk_unloaded)
