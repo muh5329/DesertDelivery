@@ -200,13 +200,13 @@ def mat_rubble(seed=41):
     edge2, cid2, _ = cells(seed + 20, 900, stretch=(1.3, 1.0), warp=3, warp_seed=seed + 21)
     mortar_w = 3.0 + 1.5 * n01(fbm(seed + 2, 1.5, 4, 60))
     big = np.clip((edge - mortar_w) / 2.5, 0, 1)
-    small = np.clip((edge2 - 2.5) / 2.0, 0, 1) * (1 - big) * (edge < mortar_w + 1.5) * (fbm(seed + 22, 1.0, 20, 200) > -0.3)
+    small = np.clip((edge2 - 2.5) / 2.0, 0, 1) * (1 - big) * (edge < mortar_w + 1.5) * (fbm(seed + 22, 1.0, 20, 200) > 1.2)
     stone = np.maximum(big, small)
     bulge = np.clip((edge - mortar_w) / 30.0, 0, 1) ** 0.6
     r = hash01(cid, seed); r2 = hash01(cid, seed + 5)
     rs = hash01(cid2, seed + 7)
     rr = np.where(big > 0.5, r, rs)
-    h = big * bulge * (0.02 + 0.025 * r) + small * 0.008 + fbm(seed + 3, 2.0, 6, 200) * 0.002
+    h = big * bulge * (0.012 + 0.012 * r) + small * 0.005 + fbm(seed + 3, 2.2, 6, 120) * 0.0015
     h = h * stone + (-0.01 + fbm(seed + 4, 1.0, 40) * 0.0015) * (1 - stone)
     base = 0.5 + 0.17 * rr
     col = np.stack([base, base * 0.99, base * 0.965], -1)

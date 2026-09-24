@@ -290,7 +290,7 @@ static func shopfront(w: float, h: float, R: float) -> String:
 	m.box(Vector3(-w * 0.5, top, z), Vector3(w * 0.5, h, 0.08), 4 | 8 | 16 | 1 | 2)
 	m.box(Vector3(-w * 0.5 - 0.1, h - 0.1, 0.08), Vector3(w * 0.5 + 0.1, h, 0.2), 63 - 32)
 	# the sign lettering band (dark)
-	_part(m, L.IRON, Color(0.85, 0.8, 0.6), 0)
+	_part(m, L.PLASTER, Color(0.93, 0.88, 0.74), 0)
 	m.box(Vector3(-w * 0.35, top + 0.14, 0.08), Vector3(w * 0.35, h - 0.16, 0.095), 16)
 	return _put(key, m)
 
