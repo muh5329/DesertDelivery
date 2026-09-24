@@ -96,6 +96,39 @@ def clip_radius(pts, c, r):
     return pts[run[0]:run[-1] + 1] if len(run) >= 2 else None
 
 
+def fillet_path(pts, rmax, step=2.0):
+    """The polyline with every corner replaced by a circular arc tangent to both legs, of radius
+    up to `rmax` (smaller where the legs are too short to hold it)."""
+    P = np.asarray(pts, float)
+    if len(P) < 3: return P
+    out = [P[0]]
+    prev_cut = 0.0
+    for k in range(1, len(P) - 1):
+        a = P[k - 1]; v = P[k]; b = P[k + 1]
+        d1 = unit(v - a); d2 = unit(b - v)
+        l1 = math.hypot(*(v - a)); l2 = math.hypot(*(b - v))
+        th = math.acos(max(-1.0, min(1.0, float(d1 @ d2))))
+        if th < 1e-3:
+            out.append(v); continue
+        tn = math.tan(th * 0.5)
+        T = min(rmax * tn, 0.48 * l1 - prev_cut * 0.0, 0.48 * l2)
+        r = T / tn
+        p1 = v - d1 * T; p2 = v + d2 * T
+        side = 1.0 if (d1[0] * d2[1] - d1[1] * d2[0]) > 0 else -1.0
+        n1 = perp(d1) * side
+        c = p1 + n1 * r
+        a0 = math.atan2(*(p1 - c)[::-1]); a1 = math.atan2(*(p2 - c)[::-1])
+        da = (a1 - a0 + math.pi) % (2 * math.pi) - math.pi
+        m = max(2, int(abs(da) * r / step))
+        out.append(p1)
+        for i in range(1, m):
+            ang = a0 + da * i / m
+            out.append(c + r * np.array([math.cos(ang), math.sin(ang)]))
+        out.append(p2)
+    out.append(P[-1])
+    return np.array(out)
+
+
 def land_fn(ctx, min_h=1.0):
     return lambda x, z: ctx.H(x, z) > min_h
 
@@ -279,7 +312,9 @@ def layout_sarmada(town, ctx):
     land_gate = mc + ay * D / 2
     sea_gate = mc - ay * D / 2
     gate = np.asarray(town.gate, float)
-    main = np.vstack([sea_gate - ay * 30, plaza, land_gate, land_gate + ay * 40, gate])
+    main = [sea_gate - ay * 30, plaza, land_gate, land_gate + ay * 40, gate]
+    if np.hypot(*(main[3] - gate)) < 8.0: del main[3]       # (the gate is that point: no zero-length kink)
+    main = np.vstack(main)
     from outer_route import chaikin
     main = resample_line(chaikin(main, 2), 8.0)
     town.main_street = town.add_street("main", 9.0, main)
@@ -331,27 +366,39 @@ def layout_sarmada(town, ctx):
     town.quay_edges.append([(mole1 - ax * 7.5).tolist(), (mole0 - ax * 7.5).tolist()])
     town.landmarks.append({"id": "sarmada.lighthouse", "kind": "lighthouse", "pos": mole1 + sea * 4, "yaw_deg": 0.0})
     town.port = {"berth": (mole0 + mole1) * 0.5 - ax * 24, "heading_deg": math.degrees(math.atan2(-sea[0], -sea[1]))}
-    # ---- walls, towers and gates (the kit builds them from these plots)
+    # ---- walls, towers and gates (the kit builds them from these plots): where a street passes the
+    # wall line the wall stops at twin bastions either side of an open passage as wide as the street
     for e in range(4):
-        a = wall_poly[e]; b = wall_poly[(e + 1) % 4]
-        L = math.hypot(*(b - a)); t = unit(b - a)
-        nseg = max(1, int(L / 30))
+        a = wall_poly[e]; t = unit(wall_poly[(e + 1) % 4] - a)
         out = unit(perp(t)) if (perp(t) @ (a - mc)) > 0 else -unit(perp(t))
-        for s in range(nseg):
-            p = a + t * (L * (s + 0.5) / nseg)
-            gate_here = min(np.hypot(*(p - land_gate)), np.hypot(*(p - sea_gate))) < L / nseg * 0.6
-            if gate_here:
-                town.try_plot("gate", p, out, 16, 9, 3, [], None, check_streets=False, check_bounds=False)
-            else:
-                town.try_plot("wall", p, out, L / nseg, 3.0, 3, [], None, check_streets=True, check_bounds=False)
-        town.try_plot("tower", a, out, 9, 9, 4, ["corner"], None, check_streets=False, check_bounds=False)
+        town.try_plot("tower", a, out, 9, 9, 4, ["corner"], None, check_streets=True, check_bounds=False)
+    wall_line(town, np.vstack([wall_poly, wall_poly[:1]]), mc, 30.0, 3.0, 3, skip_ends=6.0)
     town.try_plot("citadel", kc, -ay, 62, 52, 3, ["corner"], land, check_streets=True)
-    # houses: flat-roofed courtyard houses along every derb and the main street
-    fl = lambda: int(rng.integers(1, 4))
+    # M-10: the medina's skyline: minarets over the quarters, sabats (houses bridging a derb on an
+    # arch, the kit's gate over a lane), and the houses' heights, depths and set-backs by quarter:
+    # tall and tight round the souk and the main street, low with forecourts toward the walls
+    for q in (plaza + ax * 70 + ay * 60, plaza - ax * 110 - ay * 30, mc + ax * 120 - ay * 95):
+        town.try_plot("tower", q, -ay, 6.5, 6.5, 5, [], land, check_streets=True)
+    for idx in lanes:
+        P = town.streets[idx]["pts"]; Ln = poly_len(P)
+        if Ln < 90 or rng.random() > 0.6: continue
+        p, t = along(P, Ln * rng.uniform(0.3, 0.7))
+        town.try_plot("gate", p, t, town.streets[idx]["width"] + 4.6, 6.0, 2, ["sabat"], land, check_streets=False)
+    def fl_at(p):
+        # 3-4 floors within ~70 m of the souk, 2-3 in the quarters, 1-2 by the walls
+        r = math.hypot(*(p - plaza)) / 150.0
+        lo = 3 if r < 0.45 else (2 if r < 0.9 else 1)
+        return int(min(4, lo + rng.integers(0, 2) + (1 if rng.random() < 0.08 else 0)))
+    def fl():
+        return 1
+    setback = lambda: 0.3 if rng.random() < 0.72 else rng.uniform(1.2, 3.2)
     for idx in [town.main_street] + lanes:
         for side in (1, -1):
-            town.line_plots(idx, side, None, (7.0, 13.0), (8, 13), land, setback=0.3, floors=fl,
-                            kinds=["house"] * 7 + ["shop"] * 2, tags=["terrace"])
+            made = town.line_plots(idx, side, None, (6.0, 13.0), (7, 15), land, setback=setback, floors=fl,
+                                   kinds=["house"] * 7 + ["shop"] * 2, tags=["terrace"])
+            for p in made:
+                p["floors"] = fl_at(np.array([p["x"], p["z"]]))
+                if p["floors"] <= 1 or rng.random() < 0.35: p["tags"] = [tg for tg in p["tags"] if tg != "terrace"]
     for side in (1, -1):
         town.line_plots(pz, side, None, (8, 14), (10, 14), land, setback=0.5, floors=2, kinds=["shop", "market_hall", "house"], tags=["arcade", "shopfront"])
     for side in (1, -1):
@@ -388,22 +435,11 @@ def layout_campo(town, ctx):
     # the ring road outside the wall
     ring_out = arc(c, R + 22, 0, 2 * math.pi, 90)
     rings.append(town.add_street("lane", 7.0, ring_out))
-    # the wall: segments on the circle, a gate where each cross street leaves
+    # the wall: straight pieces round the circle, twin bastions and an open passage where each
+    # cross street leaves (the kit's arched gate is 4.4 m wide: too narrow for the 8-10 m streets)
+    circle = arc(c, R, 0, 2 * math.pi, 29)
     town.walls.append(arc(c, R, 0, 2 * math.pi, 64).tolist())
-    nseg = 28
-    gate_angles = [math.atan2(d[1], d[0]) for d in dirs]
-    for s in range(nseg):
-        a0 = 2 * math.pi * s / nseg; a1 = 2 * math.pi * (s + 1) / nseg; am = 0.5 * (a0 + a1)
-        p = c + R * np.array([math.cos(am), math.sin(am)])
-        out = np.array([math.cos(am), math.sin(am)])
-        near_gate = min(abs((am - g + math.pi) % (2 * math.pi) - math.pi) for g in gate_angles)
-        seg_len = 2 * R * math.sin(math.pi / nseg)
-        if near_gate < math.pi / nseg:
-            town.try_plot("gate", p, out, 14, 8, 3, [], None, check_streets=False, check_bounds=False)
-        else:
-            town.try_plot("wall", p, out, seg_len, 2.5, 3, [], None, check_bounds=False)
-            if s % 4 == 0:
-                town.try_plot("tower", c + (R + 1) * out, out, 7, 7, 4, [], None, check_bounds=False)
+    wall_line(town, circle, c, 30.0, 2.5, 3, towers_every=4, tower_size=7.0)
     # plaza: the town hall with its tower, the church, arcaded houses round the square
     pn = gdir; pt = perp(gdir)
     town.try_plot("town_hall", c - pn * 44, pn, 26, 18, 3, ["arcade", "corner"], land)
@@ -434,6 +470,69 @@ def layout_campo(town, ctx):
         p = np.array([6150.0, -3180.0]) + np.array([200.0, 150.0]) * k + rng.uniform(-25, 25, 2)
         town.try_plot("windmill", p, unit(c - p), 9, 9, 3, [], land, check_bounds=False)
         town.landmarks.append({"id": "campo_real.windmill%d" % k, "kind": "windmill_site", "pos": p, "yaw_deg": 0.0})
+
+
+def _street_crossings(town, a, b):
+    """Where the town's streets cross the wall piece a-b: [(s along a-b, half width of the passage
+    measured along the wall)]."""
+    ab = b - a; L = math.hypot(*ab); t = ab / max(L, 1e-9)
+    out = []
+    for st in town.streets:
+        if st["kind"] not in ("main", "lane", "street"): continue
+        P = st["pts"]
+        for k in range(len(P) - 1):
+            p = P[k]; q = P[k + 1]; pq = q - p
+            den = ab[0] * pq[1] - ab[1] * pq[0]
+            if abs(den) < 1e-9: continue
+            u = ((p[0] - a[0]) * pq[1] - (p[1] - a[1]) * pq[0]) / den
+            v = ((p[0] - a[0]) * ab[1] - (p[1] - a[1]) * ab[0]) / den
+            if 0.0 <= u <= 1.0 and 0.0 <= v <= 1.0:
+                sin_a = abs(t[0] * pq[1] - t[1] * pq[0]) / max(math.hypot(*pq), 1e-9)
+                out.append((u * L, (st["width"] * 0.5 + 0.8) / max(sin_a, 0.35)))
+    return out
+
+
+def wall_line(town, poly, centre, seg_len, thick, floors, towers_every=0, tower_size=7.0, skip_ends=0.0):
+    """A town wall along the closed polyline `poly`: straight wall plots about `seg_len` long, cut
+    open wherever a street crosses (C-3: gates straddle their street with a passage as wide as it),
+    each passage flanked by two bastions; towers on every `towers_every`-th vertex away from the
+    passages."""
+    bw, bd = 7.0, 8.0                     # a bastion: along the wall, across it
+    passes = []
+    for e in range(len(poly) - 1):
+        a = np.asarray(poly[e], float); b = np.asarray(poly[e + 1], float)
+        L = math.hypot(*(b - a))
+        if L < 1e-6: continue
+        t = unit(b - a)
+        out = unit(perp(t)) if (perp(t) @ (a - centre)) > 0 else -unit(perp(t))
+        cuts = sorted(_street_crossings(town, a, b))
+        free = [[skip_ends, L - skip_ends]]
+        for s, half in cuts:
+            lo = s - half - bw; hi = s + half + bw
+            nxt = []
+            for f0, f1 in free:
+                if hi <= f0 or lo >= f1: nxt.append([f0, f1]); continue
+                if lo > f0: nxt.append([f0, lo])
+                if hi < f1: nxt.append([hi, f1])
+            free = nxt
+            for side in (-1.0, 1.0):
+                sb = s + side * (half + bw * 0.5)
+                if -bw < sb < L + bw:
+                    town.try_plot("wall", a + t * sb, out, bw, bd, floors + 1, ["gate"], None, check_streets=True, check_bounds=False)
+            passes.append(a + t * s)
+        for f0, f1 in free:
+            span = f1 - f0
+            if span < 2.0: continue
+            n = max(1, int(round(span / seg_len)))
+            for q in range(n):
+                s0 = f0 + span * q / n; s1 = f0 + span * (q + 1) / n
+                town.try_plot("wall", a + t * (0.5 * (s0 + s1)), out, s1 - s0, thick, floors, [], None, check_streets=True, check_bounds=False)
+    if towers_every > 0:
+        for e in range(0, len(poly) - 1, towers_every):
+            p = np.asarray(poly[e], float)
+            if any(math.hypot(*(p - q)) < 22.0 for q in passes): continue
+            out = unit(p - centre)
+            town.try_plot("tower", p + out * 1.0, out, tower_size, tower_size, 4, [], None, check_streets=True, check_bounds=False)
 
 
 def _farm(town, fc, yaw, land):
@@ -503,18 +602,27 @@ def layout_valdoro(town, ctx):
         a = con[0] if n % 2 == 0 else con[-1]
         b = con[-1] if n % 2 == 0 else con[0]
         zig.append((a, b, lvl))
+    # m-17: one long diagonal leg per terrace (alternating ends) joined by filleted hairpins; the old
+    # path ran 40 m along each terrace and doubled back, a 140-165 degree corner in one 6 m sample
+    # that every vehicle cut into the houses
     main_pts = [np.append(gate, ctx.H(*gate, smooth=True))]
-    for n, (a, b, lvl) in enumerate(zig):
-        main_pts.append(np.append(a + unit(b - a) * 30, lvl))
+    for n, (k, lvl, con) in enumerate(lane_idx):
         if lvl >= mid[1] - 0.01:
             main_pts.append(np.append(pc, lvl))
             main_pts.append(np.append(plaza_c, lvl))
             break
-        main_pts.append(np.append(a + unit(b - a) * 70, lvl))
+        Lc = poly_len(con)
+        p_, _ = along(con, Lc * (0.2 if n % 2 == 0 else 0.8))
+        main_pts.append(np.append(p_, lvl))
     main3 = np.array(main_pts)
-    from outer_route import chaikin
-    xy = chaikin(main3[:, :2], 2)
-    town.main_street = town.add_street("main", 7.0, resample_line(xy, 6.0))
+    ms = resample_line(fillet_path(main3[:, :2], 13.0), 6.0)
+    town.main_street = town.add_street("main", 7.0, ms)
+    town.add_clear_corridor(ms, 3.5 + 2.2)
+    for k in range(1, len(ms) - 1):
+        a = ms[k] - ms[k - 1]; b = ms[k + 1] - ms[k]
+        turn = abs(math.atan2(a[0] * b[1] - a[1] * b[0], a @ b))
+        if turn > math.radians(18.0):
+            town.add_clear_corridor(np.vstack([ms[k], ms[k] + 0.01]), 14.0)
     set_rule(town, town.main_street, ("ramp", main3.tolist()))
     pz = town.add_street("plaza", 30.0, [plaza_c - pt * 18, plaza_c + pt * 18]); set_rule(town, pz, ("flat", mid[1]))
     town.try_plot("church", plaza_c + up * 30, -up, 14, 24, 2, ["corner"], land)

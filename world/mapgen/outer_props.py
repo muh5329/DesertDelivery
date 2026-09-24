@@ -384,8 +384,10 @@ def dress(towns, h, flat, micro, roads, surface_at, ctx, hamlet_ids=()):
             near = np.hypot(*(P - t.center).T) < rad
             if not near.any(): continue
             idx = np.where(near)[0]
+            # the whole ribbon (carriageway and its gravel shoulder) and half a metre (C-3, m-17)
+            shoulder = {"highway": 1.6, "road": 1.1, "track": 0.7}.get(r["class"], 0.0)
             for k in idx[:-1]:
-                if k + 1 < len(P): nav.append((P[k], P[k + 1], r["width"] * 0.5 + 0.5))
+                if k + 1 < len(P): nav.append((P[k], P[k + 1], r["width"] * 0.5 + shoulder + 0.5))
         D = Dresser(t, h, surf, nav)
         if t.plaza is not None:
             pz = np.asarray(t.plaza[:1] + t.plaza[2:] if len(t.plaza) == 3 else t.plaza, float)

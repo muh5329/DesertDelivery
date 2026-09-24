@@ -408,7 +408,68 @@ def route_grid(h, towns, lake_mask):
     for t in towns:
         d = np.hypot(X - t.center[0], Z - t.center[1])
         forbid[d < t.radius * 0.8] = 1
+    set_hard_forbid(towns, X, Z)
     return hr, water, forbid, X, Z
+
+
+HARD = None                # route cells no road may use, even round a gate: the towns' plots and walls
+HARD_REACH = 14.0          # a cell is off limits when its centre is this close to a plot or a wall
+
+
+def set_hard_forbid(towns, X=None, Z=None):
+    """The towns' (and hamlets') plots, walls and walled precincts as route cells (C-3): the ring
+    and the spokes used to cut through Sarmada's wall and citadel because the cells round a gate
+    were cleared for the approach. Cells within 30 m of a gate stay open."""
+    global HARD
+    n = int(25000 / ROUTE_CELL) + 1
+    if X is None:
+        a = ORIGIN + np.arange(n) * ROUTE_CELL
+        X, Z = np.meshgrid(a, a)
+    hard = np.zeros(X.shape, np.uint8)
+    def mark(px, pz, reach):
+        i0 = max(int((px - reach - ORIGIN) / ROUTE_CELL), 0); i1 = min(int((px + reach - ORIGIN) / ROUTE_CELL) + 1, X.shape[1] - 1)
+        j0 = max(int((pz - reach - ORIGIN) / ROUTE_CELL), 0); j1 = min(int((pz + reach - ORIGIN) / ROUTE_CELL) + 1, X.shape[0] - 1)
+        return j0, j1, i0, i1
+    for t in towns:
+        for p in t.plots:
+            poly = p["_poly"]
+            r0 = 0.5 * math.hypot(p["w"], p["d"]) + HARD_REACH
+            j0, j1, i0, i1 = mark(p["x"], p["z"], r0)
+            if j1 < j0 or i1 < i0: continue
+            xs = X[j0:j1 + 1, i0:i1 + 1]; zs = Z[j0:j1 + 1, i0:i1 + 1]
+            dmin = np.full(xs.shape, 1e9)
+            for k in range(4):
+                a = poly[k]; b = poly[(k + 1) % 4]; ab = b - a; L2 = max(ab @ ab, 1e-9)
+                tt = np.clip(((xs - a[0]) * ab[0] + (zs - a[1]) * ab[1]) / L2, 0, 1)
+                dmin = np.minimum(dmin, np.hypot(xs - a[0] - ab[0] * tt, zs - a[1] - ab[1] * tt))
+            inside = np.ones(xs.shape, bool)
+            for k in range(4):
+                a = poly[k]; b = poly[(k + 1) % 4]
+                c = (b[0] - a[0]) * (zs - a[1]) - (b[1] - a[1]) * (xs - a[0])
+                inside &= c >= 0
+            inside2 = np.ones(xs.shape, bool)
+            for k in range(4):
+                a = poly[k]; b = poly[(k + 1) % 4]
+                c = (b[0] - a[0]) * (zs - a[1]) - (b[1] - a[1]) * (xs - a[0])
+                inside2 &= c <= 0
+            hard[j0:j1 + 1, i0:i1 + 1] |= ((dmin < HARD_REACH) | inside | inside2).astype(np.uint8)
+        # walled precincts: everything inside the wall line (and just outside it)
+        for wl in t.walls:
+            W_ = np.asarray(wl, float)
+            if len(W_) < 3: continue
+            lo_ = W_.min(0) - 40; hi_ = W_.max(0) + 40
+            j0, j1, i0, i1 = mark(0.5 * (lo_[0] + hi_[0]), 0.5 * (lo_[1] + hi_[1]), 0.5 * max(hi_ - lo_))
+            for j in range(j0, j1 + 1):
+                for i in range(i0, i1 + 1):
+                    q = (X[j, i], Z[j, i])
+                    if T.point_in_poly(q, W_): hard[j, i] = 1; continue
+                    for k in range(len(W_) - 1):
+                        if T.seg_seg_dist(np.array(q), np.array(q), W_[k], W_[k + 1]) < 20.0: hard[j, i] = 1; break
+        # the gate stays reachable
+        if t.gate is not None:
+            g = np.asarray(t.gate, float)
+            hard[np.hypot(X - g[0], Z - g[1]) < 30.0] = 0
+    HARD = hard
 
 
 def to_node(p, n):
@@ -440,6 +501,12 @@ def route(grid, a, b, cls, roadcells, target=None, extra_forbid=None, clear_arou
         i = int(round((p[0] - ORIGIN) / ROUTE_CELL)); j = int(round((p[1] - ORIGIN) / ROUTE_CELL))
         k = int(r / ROUTE_CELL) + 1
         fb[max(j - k, 0):j + k + 1, max(i - k, 0):i + k + 1] = 0
+    if HARD is not None:
+        hard = HARD.copy()
+        # the ends themselves (a gate, a junction on the network, a hamlet's yard) stay open
+        for p in ([a] + ([b] if b is not None else [])):
+            hard[np.hypot(X - p[0], Z - p[1]) < 30.0] = 0
+        fb |= hard
     c = dict(CLASSES[cls])
     if gmax is not None: c["gmax"] = gmax
     s = to_node(a, n)
@@ -471,9 +538,14 @@ def shape_path(cells, a, b, cls, lead_a=None, lead_b=None):
         if tail and np.hypot(*(p - tail[0])) < 40: continue
         keep.append(p)
     poly = np.vstack(head + keep + tail) if keep else np.vstack(head + tail)
+    # no spurs: a route that overshoots a lead-in and comes back would leave a U-turn in the road
+    poly = R.remove_cusps(poly, 100.0, len(head), len(tail))
     poly = R.chaikin(poly, 3)
     poly = R.resample(poly, 6.0)
-    poly = R.curvature_smooth(poly, CLASSES[cls]["radius"], 80, 2 if lead_a is not None else 1, 2 if lead_b is not None else 1)
+    poly = R.curvature_smooth(poly, CLASSES[cls]["radius"], 80, 1, 1)
+    # switchbacks: the legs kept far enough apart for the grid to hold both beds (M-6, M-9)
+    poly = R.separate_legs(poly, CLASSES[cls]["width"] + 26.0, 48.0, 60, 3 if lead_a is not None else 1, 3 if lead_b is not None else 1)
+    poly = R.curvature_smooth(poly, CLASSES[cls]["radius"], 60, 1, 1)
     return R.resample(poly, 4.0)
 
 
@@ -533,6 +605,7 @@ CUT_BIAS = 0.62
 # wet runs shorter than this many samples (4 m) are filled as an embankment (a shore track crosses
 # its coves on a rubble causeway rather than a string of little bridges)
 EMBANK = {"highway": 16, "road": 16, "track": 50, "street": 16}
+RIVER_ABUT = 14.0          # a river bridge spans the channel plus this much of each bank
 RIVER_FN = None            # (pts) -> (distance to a river channel's edge, its water level): set by main()
 RIVER_MASK = None          # N x N: river channel cells (routing treats them as water to cross)
 
@@ -553,7 +626,8 @@ def find_bridges(y, g, cls, pts=None):
     high = wet | (y - g > LAND_BRIDGE[cls])
     riv = river_samples(pts) if pts is not None else None
     if riv is not None:
-        high |= riv[0] < 4.0
+        # the abutments stand back from the banks (the road bed is carved flat 9 m past its edge)
+        high |= riv[0] < RIVER_ABUT
     spans = []
     k = 0; n = len(y)
     while k < n:
@@ -570,7 +644,7 @@ def find_bridges(y, g, cls, pts=None):
         else: merged.append(list(s))
     out = []
     for a, b in merged:
-        if b - a < 2 and g[a] > 0.6 and (riv is None or riv[0][a:b + 1].min() >= 4.0): continue
+        if b - a < 2 and g[a] > 0.6 and (riv is None or riv[0][a:b + 1].min() >= RIVER_ABUT): continue
         out.append([max(a - 1, 0), min(b + 1, n - 1)])
     return out
 
@@ -588,7 +662,8 @@ def add_road(net, h, rid, cls, pts, lanes, fixed_ends, frm, to):
     if fixed_ends[1] is not None: fixed[len(pts) - 1] = fixed_ends[1]
     y, g = make_profile(h, pts, cls, fixed, lanes, ROAD_GMAX.get(rid))
     br = find_bridges(y, g, cls, pts)
-    road = {"id": rid, "class": cls, "width": CLASSES[cls]["width"], "pts": pts, "y": y, "g": g, "g0": g.copy(), "y0": y.copy(), "bridges": br, "from": frm, "to": to}
+    road = {"id": rid, "class": cls, "width": CLASSES[cls]["width"], "pts": pts, "y": y, "g": g, "g0": g.copy(), "y0": y.copy(), "bridges": br, "from": frm, "to": to,
+            "pinned": (fixed_ends[0] is not None, fixed_ends[1] is not None)}
     net.roads.append(road)
     return road
 
@@ -639,7 +714,7 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
 
     def link(rid, cls, a_id, b_id, a=None, b=None, ya=None, yb=None, lead_a=None, lead_b=None, vias=(), water=None):
         pa = gates[a_id] if a is None else a; pb = gates[b_id] if b is None else b
-        stops = [pa + (lead_a if lead_a is not None else 0)] + [np.asarray(v, float) for v in vias] + [pb]
+        stops = [pa + (lead_a if lead_a is not None else 0)] + [np.asarray(v, float) for v in vias] + [pb + (lead_b if lead_b is not None else 0)]
         parts = []
         for s0, s1 in zip(stops[:-1], stops[1:]):
             c = route(grid, s0, s1, cls, roadcell_mask(net, n), clear_around=clear + [(pa, 300.0), (s0, 200.0), (s1, 200.0)], water=water,
@@ -664,7 +739,10 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
     spoke_vias = {}
     # the north spoke meets the ring in the valley below Valdoro instead of at the town gate, so
     # the gate is not a five-way knot of highways
-    spoke_join = {"north": ("ring.valdoro.campo_real", (-830.0, -4000.0))}
+    # the west spoke joins the ring north of the Isola junction instead of running beside it into
+    # the junction (two highways side by side at different heights, M-6)
+    spoke_join = {"north": ("ring.valdoro.campo_real", (-830.0, -4000.0)),
+                  "west": ("ring.sarmada.isola_junction", (-7298.0, 3125.0))}
     byid = {r["id"]: r for r in net.roads}
     for name, dest in (("north", "valdoro"), ("east", "campo_real"), ("south", "sarmada"), ("west", "isola_junction")):
         ex = exits[name]
@@ -686,10 +764,85 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
         link("spoke.%s" % name, "highway", "core_" + name, dest, a=last[[0, 2]], ya=float(last[1]), lead_a=tan * 160.0,
              vias=spoke_vias.get(name, ()))
     # --- the causeway to Isola Serena
-    # straight over the strait at its narrows (it used to run 2 km down the shore to a later crossing)
-    link("causeway.isola_serena", "road", "isola_junction", "isola_serena", water=2.5)
+    # straight over the strait at its narrows (it used to run 2 km down the shore to a later crossing);
+    # it leaves the ring where the ring turns away from the strait, not at the junction (the two
+    # shared their first 240 m side by side, one climbing, one descending: the washboard of M-6)
+    ring_w = byid.get("ring.isola_junction.valdoro") or next((r for r in net.roads if r["id"] == "ring.isola_junction.valdoro"), None)
+    if ring_w is not None:
+        k = junction_on(ring_w, int(np.argmin(np.hypot(*(ring_w["pts"] - np.array([-7440.0, 2760.0])).T))))
+        J = ring_w["pts"][k]; yJ = float(ring_w["y"][k])
+        t = ring_w["pts"][min(k + 1, len(ring_w["pts"]) - 1)] - ring_w["pts"][max(k - 1, 0)]
+        nrm = T.perp(T.unit(t))
+        if nrm @ (gates["isola_serena"] - J) < 0: nrm = -nrm
+        r = link("causeway.isola_serena", "road", "isola_junction", "isola_serena", a=J, ya=yJ, lead_a=nrm * 30.0, water=2.5)
+        if r is not None: r["join"] = {"road": ring_w["id"], "index": int(k)}
+    else:
+        link("causeway.isola_serena", "road", "isola_junction", "isola_serena", water=2.5)
     net.gy = gy
     return net
+
+
+# the gravel shoulder beyond the carriageway (OuterRoads.SHOULDER): part of the ribbon
+SHOULDER = {"highway": 1.6, "road": 1.1, "track": 0.7, "street": 0.0}
+# how far a plot or a prop keeps from a navigation road's ribbon; the town streets' own plots front
+# them at their setback
+PLOT_ROAD_MARGIN = 1.0
+PLOT_STREET_MARGIN = 0.25
+
+
+def road_clearance(r):
+    """Half width a plot must keep from road r's centre line."""
+    if r["class"] == "street": return r["width"] * 0.5 + PLOT_STREET_MARGIN
+    return r["width"] * 0.5 + SHOULDER[r["class"]] + PLOT_ROAD_MARGIN
+
+
+def _seg_arrays(roads):
+    A = []; B = []; H = []; I = []
+    for r in roads:
+        P = r["pts"]; c = road_clearance(r)
+        A.append(P[:-1]); B.append(P[1:]); H.append(np.full(len(P) - 1, c)); I += [r["id"]] * (len(P) - 1)
+    return np.vstack(A), np.vstack(B), np.concatenate(H), I
+
+
+def poly_road_overlap(poly, A, B, H):
+    """How far (m) the convex quad `poly` reaches into any road clearance band (<= 0: clear), and
+    the index of the worst segment."""
+    c = poly.mean(0); R0 = float(np.max(np.hypot(*(poly - c).T)))
+    lo = np.minimum(A, B) - H[:, None]; hi = np.maximum(A, B) + H[:, None]
+    m = np.where((c[0] + R0 > lo[:, 0]) & (c[0] - R0 < hi[:, 0]) & (c[1] + R0 > lo[:, 1]) & (c[1] - R0 < hi[:, 1]))[0]
+    if len(m) == 0: return -1e9, -1
+    best = -1e9; bi = -1
+    for i in m:
+        d = T.seg_seg_dist(A[i], B[i], poly[0], poly[1])
+        for k in (1, 2, 3):
+            d = min(d, T.seg_seg_dist(A[i], B[i], poly[k], poly[(k + 1) % 4]))
+        if T.point_in_poly(A[i], poly) or T.point_in_poly(B[i], poly): d = 0.0
+        if H[i] - d > best: best = H[i] - d; bi = i
+    return best, bi
+
+
+def clear_plots_off_roads(towns, roads):
+    """C-3: no building stands in a navigation road's ribbon. Whatever still reaches into one after
+    routing (a road smoothed round a corner, a hamlet's lane) is dropped; a town-wall piece the
+    road passes through becomes the road's gateway (the wall is cut back to the passage)."""
+    A, B, H, I = _seg_arrays(roads)
+    dropped = 0
+    for t in towns:
+        keep = []
+        for p in t.plots:
+            over, i = poly_road_overlap(p["_poly"], A, B, H)
+            if over > 0.0:
+                dropped += 1
+                log("plot %s (%s) cleared off %s: %.1f m into its ribbon" % (p["id"], p["kind"], I[i], over))
+                continue
+            keep.append(p)
+        if len(keep) != len(t.plots):
+            t.plots = keep
+            t._plot_cells = {}
+            for p in keep:
+                xmin, zmin = p["_poly"].min(0); xmax, zmax = p["_poly"].max(0)
+                for cc in t._cells(xmin, zmin, xmax, zmax): t._plot_cells.setdefault(cc, []).append(p["_poly"])
+    return dropped
 
 
 # ------------------------------------------------------------------ stage 5: streets, hamlets, secondary roads, tracks
@@ -721,7 +874,7 @@ def export_main_streets(net, h, towns, gy):
         yy = R.lipschitz_profile(yy, 4.0, 0.16, {0: gy[t.id]}, None)
         g_along = ground_along(h, P)
         road = {"id": "street.%s.main" % t.id, "class": "street", "width": st["width"], "pts": P, "y": yy, "g": g_along,
-                "bridges": [], "from": "gate", "to": t.id, "town": t.id}
+                "bridges": [], "from": "gate", "to": t.id, "town": t.id, "pinned": (True, True)}
         net.roads.append(road)
 
 
@@ -818,7 +971,9 @@ def stage_extras(h, net, towns, lanes, lake_mask, gy):
         # the hamlet's lane: the last ~160 m of its access road
         m = max(len(P) - 40, 0)
         ht.gate = P[m]
-        ht.main_street = ht.add_street("main", 5.5, P[m:])
+        # the lane is the access road itself: the plots keep clear of its ribbon (carriageway +
+        # shoulder) by a metre, so the street they line is laid out that wide
+        ht.main_street = ht.add_street("main", road["width"] + 2.0 * (SHOULDER[road["class"]] + 1.0) + 0.2, P[m:])
         ht.streets[ht.main_street]["y"] = road["y"][m:]
         ht.streets[ht.main_street]["rule"] = ("road", None)
         ht.plaza = P[-1]
@@ -826,7 +981,7 @@ def stage_extras(h, net, towns, lanes, lake_mask, gy):
         fl = lambda: int(ht.rng.integers(1, 3))
         if kind == "farmstead":
             tdir = T.unit(P[-1] - P[-5])
-            LY._farm(ht, P[-1] + tdir * 22, math.atan2(tdir[1], tdir[0]), land)
+            LY._farm(ht, P[-1] + tdir * 30, math.atan2(tdir[1], tdir[0]), land)
             ht.line_plots(ht.main_street, 1, None, (8, 12), (8, 12), land, start=6, floors=fl, kinds=["house", "barn", "granary"], max_plots=4)
         else:
             for side in (1, -1):
@@ -837,6 +992,8 @@ def stage_extras(h, net, towns, lanes, lake_mask, gy):
                 ht.try_plot("church", P[-1] + tdir * 16, -tdir, 9, 15, 1, [], land, check_bounds=False)
         hamlets.append(ht)
         log("hamlet", hid, style, kind, "plots", len(ht.plots))
+    # from here on new roads keep off the hamlets' plots too
+    set_hard_forbid(towns + hamlets)
     # secondary roads and tracks to the landmarks
     pois = []
     def poi(pid, kind, around, rad, hmin, hmax, cls, slope=(0.0, 0.2)):
@@ -910,38 +1067,125 @@ def link_points(net, grid, h, lanes, rid, cls, a, b, snap=500.0):
         else:
             ends.append((p, None, None, None))
     pa, ya, ra, ka = ends[0]; pb, yb, rb, kb = ends[1]
-    cells = route(grid, pa, pb, cls, roadcell_mask(net, grid[0].shape[0]), clear_around=[(pa, 200.0), (pb, 200.0)], gmax=ROAD_GMAX.get(rid))
-    if cells is None:
-        log("LINK FAILED", rid); return None
     def lead(r, k, p, other):
         if r is None: return None
         t = r["pts"][min(k + 1, len(r["pts"]) - 1)] - r["pts"][max(k - 1, 0)]
         nrm = T.perp(T.unit(t))
         return (nrm if nrm @ (other - p) > 0 else -nrm) * 30.0
-    pts = shape_path(cells, pa, pb, cls, lead_a=lead(ra, ka, pa, pb), lead_b=lead(rb, kb, pb, pa))
+    la = lead(ra, ka, pa, pb); lb = lead(rb, kb, pb, pa)
+    # routed between the lead-in points, so the road leaves and meets its parents square
+    qa = pa + la if la is not None else pa; qb = pb + lb if lb is not None else pb
+    cells = route(grid, qa, qb, cls, roadcell_mask(net, grid[0].shape[0]), clear_around=[(pa, 200.0), (pb, 200.0)], gmax=ROAD_GMAX.get(rid))
+    if cells is None:
+        log("LINK FAILED", rid); return None
+    pts = shape_path(cells, pa, pb, cls, lead_a=la, lead_b=lb)
     road = add_road(net, h, rid, cls, pts, lanes, (ya, yb), "network", "network")
     if ra is not None: road["join"] = {"road": ra["id"], "index": int(ka)}
     if rb is not None: road["join_end"] = {"road": rb["id"], "index": int(kb)}
     return road
 
 # ------------------------------------------------------------------ stage 6: carve, finalise, camps, export
-def stage_carve(h, net, flat):
+# the carve: exact (flat across, the profile along) within half width + CARVE_EXACT, blending into
+# the land over CARVE_BLEND beyond. The runtime surface at a point mixes data nodes up to ~18 m away
+# (bilinear 12.5 m data on a 6.25 m lattice), so the exact zone reaches well past the carriageway.
+CARVE_EXACT = 9.0
+CARVE_BLEND = 40.0
+# under a deck the ground stays BRIDGE_CLEAR below it, except toward the abutments: the clearance
+# ramps in from 0 at BRIDGE_ABUT metres past the abutment at BRIDGE_RAMP per metre, so the ground
+# the approach samples stand on is never dug away (the old 3x3-cell cut left a 4 m cliff at every
+# bridge end, C-1)
+BRIDGE_CLEAR = 4.0
+BRIDGE_ABUT = 8.0
+BRIDGE_RAMP = 0.25
+# profile <-> carve consistency passes (M-6, M-9): where two roads (a junction, a crossing, a
+# parallel pair, the legs of a hairpin) ask the 12.5 m grid for different heights within reach of
+# each other, the grid holds a mix; each pass re-fits the profiles to what the grid holds (within
+# their grade limits) until the ground under every road is its profile
+RELAX_PASSES = 30
+RELAX_TOL = 0.05
+RELAX_OVER = 0.6
+
+
+def _bridge_mask(r):
+    br = np.zeros(len(r["pts"]), bool)
+    for a, b in r["bridges"]: br[a:b + 1] = True
+    return br
+
+
+def carve_net(h, net, rivers):
+    """Carve every road into `h` (bridge spans excepted), lower the ground under the decks, recut
+    the river channels. Returns (h2, dist to the nearest carved road, its half width)."""
     dist = np.full(h.shape, 1e9); yt = np.zeros(h.shape); hw = np.zeros(h.shape)
     for r in net.roads:
         P = r["pts"]; y = r["y"]
         ok = np.ones(len(P) - 1, np.uint8)
         for a, b in r["bridges"]: ok[max(a, 0):b] = 0
-        R.carve_roads(h, ORIGIN, STEP, P[:, 0].copy(), P[:, 1].copy(), y.astype(np.float64), np.full(len(P), r["width"] * 0.5), ok, 7.0, 40.0, dist, yt, hw)
-    h2, w = R.apply_carve(h, dist, yt, hw, 7.0, 40.0)
-    # bridges over land: keep the ground under the deck 4 m below it
+        R.carve_roads(h, ORIGIN, STEP, P[:, 0].copy(), P[:, 1].copy(), y.astype(np.float64), np.full(len(P), r["width"] * 0.5), ok,
+                      CARVE_EXACT, CARVE_BLEND, dist, yt, hw)
+    h2, w = R.apply_carve(h, dist, yt, hw, CARVE_EXACT, CARVE_BLEND)
+    # under the decks: the ground at most (deck - clearance), the clearance ramping in from the
+    # abutments; only cells nearer the deck than any carved road (a road under a bridge keeps its bed)
+    db = np.full(h.shape, 1e9); ytb = np.zeros(h.shape); hwb = np.zeros(h.shape)
     for r in net.roads:
         P = r["pts"]; y = r["y"]
         for a, b in r["bridges"]:
-            for k in range(a, b + 1):
-                i = int(round((P[k, 0] - ORIGIN) / STEP)); j = int(round((P[k, 1] - ORIGIN) / STEP))
-                sl = (slice(max(j - 1, 0), j + 2), slice(max(i - 1, 0), i + 2))
-                h2[sl] = np.minimum(h2[sl], y[k] - 4.0)
-    fm = np.clip(1.0 - (dist - (hw + 5.0)) / 10.0, 0, 1)
+            if b <= a: continue
+            seg = np.hypot(*np.diff(P[a:b + 1], axis=0).T)
+            s = np.concatenate([[0], np.cumsum(seg)])
+            from_end = np.minimum(s, s[-1] - s)
+            c = np.clip((from_end - BRIDGE_ABUT) * BRIDGE_RAMP, 0.0, BRIDGE_CLEAR)
+            Q = P[a:b + 1]
+            R.carve_roads(h2, ORIGIN, STEP, Q[:, 0].copy(), Q[:, 1].copy(), (y[a:b + 1] - c).astype(np.float64),
+                          np.full(b - a + 1, r["width"] * 0.5 + 1.0), np.ones(b - a, np.uint8), 0.0, 13.0, db, ytb, hwb)
+    under = (db < hwb + 13.0) & (db < dist)
+    h2 = np.where(under, np.minimum(h2, ytb), h2)
+    # the river channels are cut again (the carve's blend may have filled them next to a bridge),
+    # but not into a road's own bed: the rivers are bridged with the abutments clear of the banks
+    hr = recarve_rivers(h2, rivers, net)
+    road_bed = (dist < hw + CARVE_EXACT + 2.0) & ~under
+    h2 = np.where(road_bed, h2, hr)
+    return h2, dist, hw
+
+
+def relax_profiles(h2, flat, micro, net):
+    """Fit every road's profile to the surface the grid now holds (bridge decks and pinned ends
+    stay), within the road's grade limit. Returns the worst |surface - profile| before the fit."""
+    byid = {r["id"]: r for r in net.roads}
+    worst = 0.0; worst_at = None
+    for r in net.roads:
+        P = r["pts"]; y = r["y"]; n = len(P)
+        s = surface_at(h2, flat, micro, P[:, 0], P[:, 1])
+        br = _bridge_mask(r)
+        # the approach samples next to a deck keep the deck's ramp
+        near = br.copy()
+        for a, b in r["bridges"]:
+            near[max(a - 2, 0):min(b + 3, n)] = True
+        dev = np.abs(s - y); dev[near] = 0.0
+        k = int(np.argmax(dev))
+        if dev[k] > worst: worst = float(dev[k]); worst_at = (r["id"], k)
+        fixed = {int(k): float(y[k]) for k in np.where(near)[0]}
+        for end, key in ((0, "join"), (n - 1, "join_end")):
+            if key in r and r[key]["road"] in byid:
+                p = byid[r[key]["road"]]; fixed[end] = float(p["y"][r[key]["index"]])
+            elif r.get("pinned", (True, True))[0 if end == 0 else 1]:
+                fixed[end] = float(y[end])
+        # over-relaxed a little: two roads pulling on each other's ground meet in fewer passes
+        target = np.where(near, y, s + RELAX_OVER * (s - y))
+        c = CLASSES[r["class"]]
+        g = ROAD_GMAX.get(r["id"], c["gmax"])
+        r["y"] = R.lipschitz_profile(target, 4.0, g, fixed, None)
+    return worst, worst_at
+
+
+def stage_carve(h, net, flat, rivers, micro):
+    for it in range(RELAX_PASSES + 1):
+        h2, dist, hw = carve_net(h, net, rivers)
+        fm = np.clip(1.0 - (dist - (hw + 5.0)) / 10.0, 0, 1)
+        fl = np.round(np.clip(np.maximum(flat, fm), 0, 1) * 255) / 255
+        if it == RELAX_PASSES: break
+        worst, at = relax_profiles(h2.astype(np.float32).astype(np.float64), fl, micro, net)
+        log("carve pass %d: worst ground/profile mismatch %.2f m at %s" % (it, worst, at))
+        if worst < RELAX_TOL: break
     flat[:] = np.maximum(flat, fm)
     return h2
 
@@ -1183,16 +1427,22 @@ def main():
     lanes = stage_lanes(h1, towns, harbour, exits)
     net = stage_roads(h1, towns, exits, lanes, lake_mask)
     hamlets, pois = stage_extras(h1, net, towns, lanes, lake_mask, net.gy)
+    log("plots cleared off the roads: %d" % clear_plots_off_roads(towns + hamlets, net.roads))
     total = sum(len(r["pts"]) for r in net.roads) * 0.004
     log("roads total %.1f km" % total)
-    h2 = stage_carve(h1, net, flat)
-    h2 = recarve_rivers(h2, rivers, net)
+    micro = micro_tile()
+    h2 = stage_carve(h1, net, flat, rivers, micro)
     # the runtime reads float32 heights and an 8-bit flatten mask: finalise against exactly those
     h2 = h2.astype(np.float32).astype(np.float64)
     flat[:] = np.round(np.clip(flat, 0, 1) * 255) / 255
     log("roads carved")
-    micro = micro_tile()
     finalise_heights(h2, flat, micro, net, towns + hamlets)
+    if os.environ.get("OUTER_STOP") == "roads":
+        # a quick look at the network without the dressing, the paint and the export
+        with open(os.path.join(CACHE, "debug_roads.pkl"), "wb") as f:
+            pickle.dump({"roads": net.roads, "towns": towns + hamlets}, f)
+        log("stopped after the roads (OUTER_STOP=roads)")
+        return
     import outer_props as PR
     nprops = PR.dress(towns + hamlets, h2, flat, micro, net.roads, surface_at, LY.Ctx(h2))
     log("props", nprops)

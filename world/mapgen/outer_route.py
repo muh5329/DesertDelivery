@@ -185,6 +185,53 @@ def curvature_smooth(pts, min_radius, iterations=60, fixed_head=1, fixed_tail=1)
     return p
 
 
+def remove_cusps(pts, max_turn_deg=100.0, fixed_head=1, fixed_tail=1):
+    """Drop interior points where the path doubles back (a spur where the route overshot a lead-in
+    and came back): repeatedly remove the sharpest turn above `max_turn_deg` until none is left."""
+    p = [np.asarray(q, float) for q in pts]
+    lim = np.radians(max_turn_deg)
+    while len(p) > 3:
+        worst = -1; wa = lim
+        for k in range(max(fixed_head, 1), len(p) - max(fixed_tail, 1)):
+            a = p[k] - p[k - 1]; b = p[k + 1] - p[k]
+            la = np.hypot(*a); lb = np.hypot(*b)
+            if la < 1e-6 or lb < 1e-6: worst = k; break
+            ang = np.arccos(np.clip((a @ b) / (la * lb), -1.0, 1.0))
+            if ang > wa: wa = ang; worst = k
+        if worst < 0: break
+        del p[worst]
+    return np.array(p)
+
+
+def separate_legs(pts, dmin, min_gap_m=40.0, iters=60, fixed_head=2, fixed_tail=2):
+    """Push apart the parts of a path that come back within `dmin` of themselves (the legs of a
+    switchback, a tight hairpin): the 12.5 m height grid cannot hold two carriageways at different
+    heights closer than that, so the ground between them would be a mix of both profiles. Samples
+    closer than `dmin` whose arc distance is over `min_gap_m` repel; the displacement is smoothed
+    along the path so each leg moves as a whole and a hairpin opens into a loop."""
+    from scipy.spatial import cKDTree
+    p = np.asarray(pts, float).copy()
+    n = len(p)
+    if n < 8: return p
+    for _ in range(iters):
+        seg = np.hypot(*np.diff(p, axis=0).T); s = np.concatenate([[0], np.cumsum(seg)])
+        pairs = cKDTree(p).query_pairs(dmin, output_type="ndarray")
+        if len(pairs) == 0: break
+        pairs = pairs[np.abs(s[pairs[:, 0]] - s[pairs[:, 1]]) > min_gap_m]
+        if len(pairs) == 0: break
+        d = p[pairs[:, 0]] - p[pairs[:, 1]]
+        L = np.maximum(np.hypot(d[:, 0], d[:, 1]), 1e-3)
+        push = (d / L[:, None]) * ((dmin - L) * 0.25)[:, None]
+        disp = np.zeros_like(p)
+        np.add.at(disp, pairs[:, 0], push); np.add.at(disp, pairs[:, 1], -push)
+        disp = np.stack([ndimage.gaussian_filter1d(disp[:, 0], 4.0, mode="nearest"),
+                         ndimage.gaussian_filter1d(disp[:, 1], 4.0, mode="nearest")], 1) * 2.0
+        disp[:fixed_head] = 0.0
+        if fixed_tail > 0: disp[-fixed_tail:] = 0.0
+        p += disp
+    return p
+
+
 def lipschitz_profile(target, ds, gmax, fixed, lower, cut_bias=0.5):
     """Grade-limited profile close to `target`: a blend of the upper and lower Lipschitz
     envelopes (`cut_bias` 0.5 = their mean, balanced cut and fill; toward 1 = the envelope under

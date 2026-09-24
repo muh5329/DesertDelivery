@@ -213,7 +213,8 @@ class Town:
             w = float(self.rng.uniform(*wr)); d = float(self.rng.uniform(*dr))
             p, t = along(pts, s + w * 0.5)
             n = perp(t) * side
-            c = p + n * (half + setback + d * 0.5)
+            sb = float(setback()) if callable(setback) else setback
+            c = p + n * (half + sb + d * 0.5)
             k = kind if kinds is None else kinds[int(self.rng.integers(0, len(kinds)))]
             fl = floors() if callable(floors) else (floors if floors is not None else self.floors())
             tg = list(tags)

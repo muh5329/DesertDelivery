@@ -72,3 +72,41 @@ itself (a bigger world), or finer road beds than 12.5 m can carry.
   placed with the plots and streets in hand so nothing lands on a building or a navigation road.
 - New data: `feat.png` (+1.8 MB), `rivers` / `estuary` / town `props` / `terraces` in plan.json;
   data/outer stays ~23 MB.
+
+## Addendum — the review fixes (September 2026, branch `fixworld`)
+
+- **Profiles and the carve agree (C-1, M-6, M-9).** `stage_carve` runs the carve and a profile
+  refit in turns (`RELAX_PASSES`): after each carve every road's profile is refitted, within its
+  grade limit, to the surface the 12.5 m grid now holds, so where two roads (a junction, a crossing,
+  a parallel pair, the legs of a hairpin) ask the grid for different heights they converge on one.
+  The exact zone of the carve is `CARVE_EXACT` = 9 m past the carriageway (the runtime surface mixes
+  data nodes up to ~18 m away). Paths are kept apart where they double back (`separate_legs`: the
+  legs of a switchback at least width + 26 m apart; `remove_cusps`: no spur where a route overshot
+  its lead-in); roads are routed between their lead-in points. The west spoke joins the ring north of
+  the Isola junction and the causeway leaves the ring where it turns away from the strait, instead
+  of four highways running side by side into one point.
+- **Bridge ends (C-1).** The ground under a deck is cut `BRIDGE_CLEAR` below it only past
+  `BRIDGE_ABUT` from the abutments, ramping in at `BRIDGE_RAMP` / m, and only in cells nearer the deck
+  than any carved road; the old 3 x 3-cell cut dug the approach samples 4 m down (a cliff at every
+  bridge end). River bridges start `RIVER_ABUT` = 14 m back from the banks and the river recut never
+  lowers a road's own bed.
+- **Towns keep off the roads (C-3).** Routing treats every plot (+14 m), every town wall and the
+  walled precinct as off limits (`set_hard_forbid`, only the gates stay open);
+  `clear_plots_off_roads` drops whatever still reaches into a navigation road's ribbon (carriageway +
+  shoulder + 1 m; a town street + 0.25 m). Hamlet lanes are laid out as wide as their road's ribbon.
+  Town walls (`wall_line`) open where a street crosses them, flanked by two bastions: the kit's
+  arched gate is 4.4 m wide, too narrow for an 8-12 m street. `outer_world_tests` checks every plot
+  and prop of every town and hamlet against every navigation road.
+- **Valdoro (m-17).** Its main street is one long diagonal leg per terrace joined by filleted
+  hairpins (`fillet_path`, r <= 13 m) with a 2.2 m margin and an open turning place round each bend.
+- **Sarmada (M-10).** Floors by quarter (3-4 round the souk, 1-2 by the walls), set-backs, minarets,
+  sabats (the kit's gate over a derb) — plot data only; the kit is unchanged.
+- **Core seams (C-4).** While the outer world is up, Island skips the core exits' stone arcades
+  and `OuterRoads._core_seams` builds the spoke's concrete deck back over the core exit's bridge,
+  its width growing from 6.5 m at the core bridgehead to the highway's; the core exit stays the
+  navigation road.
+- **Inland water (M-5).** `Terrain.water_level_at(x, z)` answers the sea level, the lake's level
+  inside its shore polygon, a river's level inside its channel (OuterRivers' 4 m cell index keeps the
+  level); `Terrain.vehicle_submerged(p)` is the vehicles' splash rule (the sea as before; inland
+  water deeper than `FORD_DEPTH` = 0.8 m). Swimming, the bike, the truck and the plane, and the
+  respawn "dry" check use them.
