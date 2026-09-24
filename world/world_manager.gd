@@ -49,6 +49,7 @@ func setup(p_config: WorldConfig) -> void:
 	# the kit's texture arrays were decoded and compressed on the workers during the generation:
 	# upload them now, behind the loading screen, not at the first town (m-14)
 	ArchMaterials.finish_boot()
+	RockGen.prefetch_library()   # the baked rocks read on the loader's threads, not mid-ride (m-5)
 	generate_ms = Time.get_ticks_msec() - t0
 
 
