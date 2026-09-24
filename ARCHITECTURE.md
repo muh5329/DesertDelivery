@@ -54,6 +54,9 @@ res://
 │   ├── gameplay_manager.gd  owns the systems below
 │   ├── controls/            controls.gd — the ControlIntent seam (Keyboard / Scripted sources)
 │   ├── delivery/            delivery_system.gd, job_definition.gd
+│   ├── journey/             journey_system.gd (courier counters, the fuel tank, engine upgrades),
+│   │                        road_services.gd (RoadServices: fuel stations, highway service stops,
+│   │                        coach & ferry travel), station_panel.gd (a town station's window)
 │   ├── weapons/             gun.gd (GunSystem: the M1 Garand), garand_model.gd, mesh_kit.gd, weapon_materials.gd, weapon_audio.gd
 │   ├── combat/              encounter_director.gd (camps, ambushes), camp_kit.gd, player_vitals.gd, health.gd, combat_fx.gd
 │   └── colony/              colony_system.gd (ColonySystem: core residents' jobs, areas, sites, roads, the save),
@@ -62,7 +65,8 @@ res://
 │                            colony_town.gd (ColonyTown: one colony's rules), colony_economy.gd (ColonyEconomy:
 │                            towns, charters, placement, the 4 Hz tick, saves), shipping_network.gd (water grid,
 │                            routes, lanes, ships, pirates), colony_views.gd (buildings, porters, ships, map overlay),
-│                            colony_props.gd + mesh_bits.gd (yards, scaffolds), ship_model.gd (coaster, schooner)
+│                            colony_props.gd + mesh_bits.gd (yards, scaffolds), ship_model.gd (coaster, schooner),
+│                            road_haulage.gd (RoadHaulage: carters' wagons between colonies by road)
 ├── ai/                      autopilot.gd (a Controls.Source that drives a Vehicle along the roads)
 ├── ui/                      hud/hud.gd, debug/debug_overlay.gd, mayor_view.gd (F4) + mayor/ (theme, trade page)
 ├── data/                    the database: island maps, outer/ (the outer world), config/world.tres, vehicles/*.tres, jobs/*.tres
@@ -256,6 +260,19 @@ cost nothing far from the viewer (the camera, or the courier):
   grid, planned on a worker within 3.2 km), boats and fishers drawn within 1.6 km; positions by
   the clock.
 
+## Fuel, stations and travel
+
+`JourneySystem` owns the tank: a full tank rides `TANK_RANGE_M` (30 km) on the level, cargo adds
+a third for heavy freight, flight burns 1.6x per metre, an empty tank limps at `Bike.LIMP_SPEED`
+(25 km/h). It warns at a quarter, at 10 % and when empty, naming the nearest pump. `RoadServices`
+places the fuel stations at boot from the world as loaded (the outer roads' samples, plots, props
+and rivers — nothing in the generator's plan): one at the edge of each town on the highway into its
+gate, highway service stops so no pump-to-pump stretch is longer than `MAX_GAP` (5.2 km), and the
+courier counters. A station is a record, drawn (apron, pumps, canopy, shop, tall sign) within 1.1 km.
+B on an apron fills up (a highway stop) or opens the `StationPanel` (a town: fuel and coach & ferry
+tickets). A ticket to a visited town moves the courier and his bike there for coins and game time
+(`RoadServices.travel`); the Villa Rosa counter and the town counters sell tickets too.
+
 ## Colonies and shipping
 
 `Colony` (ColonySystem, a child of Game) owns `Economy` (ColonyEconomy): a `ColonyTown` record per
@@ -264,6 +281,12 @@ worker thread at boot, routes, lanes and ships as records) and `ColonyViews` (wh
 viewer). The economy ticks at 4 Hz by rates, loaded or not; porters' trips and ships' positions
 are records the views read. Registered with `Saves` as `colony` (version 2). The Mayor view (F4)
 is the UI; pirates come from the EncounterDirector's camps (`camp_cleared` recomputes raid risk).
+`RoadHaulage` runs carters' wagons between any two chartered colonies by road (a distance along
+the road by the clock, like a ship), so inland Valdoro and Campo Real trade. Every town colony's
+hall keeps a kitchen garden (its staple food, two workers, filled last) and every town has local
+food buildings, so a charter left alone feeds itself. Loading is per record: a damaged town or
+lane is mended or dropped on its own and reported (`ColonySystem.load_report`,
+`Saves.last_report`, a message); saves are written to a temp file and renamed.
 `UrgentSupply` (in the economy) posts an optional truck job when a founded town colony runs short
 of food or goods; `DeliverySystem.start_extra_job` runs it on top of the route and resumes the
 route after. See ADR 0011.
@@ -274,10 +297,17 @@ route after. See ADR 0011.
 ray from the muzzle so nearby cover blocks, `take_hit()` on whatever `hurtbox` Area3D (layer 32) it
 meets. Enemies are `CharacterBody3D`s on layer 64 (the player's mask includes it) with hurtboxes
 on the rig's torso / hips / head pivots, so crouching behind cover really hides them. The
-`EncounterDirector` is the ctx seam an `Enemy` talks to (courier, cover points, allies, hits on the
+Hitscan starts at the muzzle's depth along the view ray, so nothing behind the courier is ever the
+aim point. `EncounterDirector` is the ctx seam an `Enemy` talks to (courier, cover points, allies, hits on the
 courier); enemies never touch the Rider or the HUD. Sight and cover rays share a budget of 10 per
 physics frame across all enemies. Tiers: FULL = physics + 10 Hz AI, REDUCED = kinematic
-(ground-snapped, no `move_and_slide`) + 3 Hz AI, below that frozen; camps despawn at 320 m anyway.
+(snapped to the surface under a moving man — a tower top, a roof — or kept where he stands, no
+`move_and_slide`) + 3 Hz AI, below that frozen; camps despawn at 320 m anyway. Entities register
+at the tier their distance gives. A streamed camp builds its props, then one man a frame; a man
+is positioned *before* he enters the tree (a kinematic body added at the origin and moved sweeps
+its broadphase box across the country in its first step: 0.4-1.4 s per man at an outer camp). A
+hit, a kill or a near miss tells the camp where the shot came from (roughly): rifles see 250 m in
+a fight, fire suppressively out to 260 m and bound forward when the shooter is out of their reach.
 `encounters.add_camp(id, kind, pos, facing, size)` is the whole API a world needs to place a camp.
 Enemies are townsfolk bodies: `EnemyOutfit.look_for(kind, seed)` (CharacterLook styles `bandit` /
 `pirate`, eight pinned variants per kind prebuilt at boot) plus the outfit's gear on the pivots.
