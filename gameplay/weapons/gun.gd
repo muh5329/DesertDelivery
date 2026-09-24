@@ -361,6 +361,18 @@ func try_fire(on_foot: bool) -> bool:
 	return true
 
 
+## What the crosshair covers (one ray a frame while the rifle is up), so the rifle converges on it.
+func _view_point() -> Variant:
+	var ray: Dictionary = camera.view_ray()
+	var from: Vector3 = ray.origin
+	var to: Vector3 = from + ray.direction * 200.0
+	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 2 | 16 | HURTBOX_LAYER)
+	q.collide_with_areas = true
+	q.exclude = [player.get_rid()]
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+	return hit.position if hit else to
+
+
 func _cone(dir: Vector3, spread_deg: float) -> Vector3:
 	var r := deg_to_rad(spread_deg) * sqrt(_rng.randf())
 	var a := _rng.randf() * TAU
@@ -505,6 +517,7 @@ func _process(delta: float) -> void:
 	# the pose: shouldered when aiming, at the hip for snap shots and reloads; walking sways it
 	var m := player.model
 	m.gun_ads = 1.0 if ads else 0.0
+	m.aim_point = _view_point() if player.aiming and player.visible else null
 	_sway_t += delta
 	var mv := clampf(player.speed() / maxf(player.walk_speed, 0.1), 0.0, 1.8)
 	var breathe := 0.004 + (1.0 - ads_blend) * 0.004

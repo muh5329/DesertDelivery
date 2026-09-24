@@ -12,6 +12,7 @@ var shots: Array = []
 var cam: Camera3D
 var rifle: GarandModel
 var person: RiderModel
+var crew: Array = []            # bandits and pirates for the outfit lineup
 var stage: Node3D
 
 
@@ -61,9 +62,11 @@ func _init() -> void:
 		["hands_rest", pc + Vector3(0.9, -0.3, -1.2), pc + Vector3(0.2, -0.45, 0), 30.0, "rest"],
 		["pose_reload", pc + Vector3(1.9, 0.25, -1.3), pc + Vector3(0, -0.25, -0.3), 36.0, "reload"],
 	]
+	shots.append(["enemies", Vector3(0.0, 1.35, 16.2), Vector3(0.0, 1.0, 10.0), 42.0, "enemies"])
+	shots.append(["enemies_close", Vector3(-1.2, 1.55, 12.6), Vector3(-1.9, 1.35, 10.0), 34.0, "enemies"])
 	# a turntable: the rifle turns in 45 degree steps in front of a fixed camera
 	for i in range(8):
-		shots.append(["turntable_%d" % i, rc + Vector3(0.0, 0.32, 1.75), rc + Vector3(0, 0, 0.0), 40.0, "none", i * 45.0])
+		shots.append(["turntable_%d" % i, rc + Vector3(0.0, 0.34, 2.0), rc + Vector3(0, 0, 0.0), 24.0, "none", i * 45.0])
 	if not only.is_empty():
 		shots = shots.filter(func(s): return s[0] in only)
 
@@ -91,6 +94,22 @@ func _pose(kind: String) -> void:
 func _process(_d: float) -> bool:
 	frame += 1
 	if frame == 1:
+		var kit := [[&"bandit", &"lever"], [&"bandit", &"revolver"], [&"bandit", &"lever"], [&"pirate", &"carbine"], [&"pirate", &"revolver"], [&"pirate", &"carbine"]]
+		for i in range(kit.size()):
+			var m := RiderModel.new()
+			stage.add_child(m)
+			m.position = Vector3(-3.1 + i * 1.24, 0, 10.0)
+			m.rotation.y = PI
+			EnemyOutfit.dress(m, kit[i][0], 1000 + i * 17)
+			if EnemyWeapons.is_long(kit[i][1]):
+				m.attach_long_gun(EnemyWeapons.make(kit[i][1]), EnemyWeapons.make(kit[i][1]))
+			else:
+				var rv := EnemyWeapons.make(kit[i][1])
+				m.hand_r.add_child(rv)
+				rv.position = Vector3(0.0, -0.085, -0.02)
+				rv.rotation_degrees = Vector3(-90, 0, 0)
+			m.visible = false
+			crew.append(m)
 		var held := GarandModel.new(); held.set_loaded(8)
 		var slung := GarandModel.new(); slung.set_loaded(8); slung.set_sling(true)
 		person.attach_long_gun(held, slung)
@@ -100,8 +119,14 @@ func _process(_d: float) -> bool:
 	var s: Array = shots[idx]
 	var f := frame - 2
 	if f % 8 == 0:
-		person.visible = s[4] != "none"
+		person.visible = s[4] != "none" and s[4] != "enemies"
 		rifle.visible = s[4] == "none"
+		for m in crew:
+			m.visible = s[4] == "enemies"
+			for k in range(30):
+				m.gun_ads = 0.0
+				m.animate("idle", 0.0, 0.05, m.long_gun != null, 0.0, 0.25)
+			m.sync_resident_pose()
 		# turntable shots spin the rifle about its middle; the others show it side-on
 		var spin: float = s[5] if s.size() > 5 else 0.0
 		rifle.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(spin + 90.0)), Vector3(3.0, 1.2, 0.0)) * Transform3D(Basis(), Vector3(0, 0, 0.55)) if s.size() > 5 else Transform3D(Basis(), Vector3(3.0, 1.2, 0.55))

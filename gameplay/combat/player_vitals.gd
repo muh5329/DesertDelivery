@@ -41,6 +41,7 @@ var _down := false
 var _down_t := 0.0
 var _safe_t := 0.0
 var _flicker_on := false
+var _grace := 0.0                   # the post-respawn invulnerability that flickers
 var _clock := 0.0
 
 
@@ -106,6 +107,7 @@ func _respawn() -> void:
 		delivery.wallet_changed.emit(delivery.coins)
 	health.reset()
 	health.invulnerable = INVULNERABLE
+	_grace = INVULNERABLE
 	_down = false
 	_down_t = RESPAWN_AT
 	rider.hold = false
@@ -122,10 +124,11 @@ func _process(delta: float) -> void:
 		if _down_t >= RESPAWN_AT: _respawn()
 		return
 	if fade > 0.0: fade = maxf(0.0, fade - delta / FADE_IN)
-	# invulnerability flicker
-	var flicker := health.invulnerable > 0.0
+	# invulnerability flicker (the respawn grace only; tools may make him invulnerable quietly)
+	_grace = maxf(0.0, _grace - delta)
+	var flicker := _grace > 0.0 and health.invulnerable > 0.0
 	if flicker:
-		var on := int(health.invulnerable * 12.0) % 2 == 0
+		var on := int(_grace * 12.0) % 2 == 0
 		player.model.visible = on
 		_flicker_on = true
 	elif _flicker_on:

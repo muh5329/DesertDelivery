@@ -41,6 +41,8 @@ static func _bandit(m: RiderModel, rng: RandomNumberGenerator) -> void:
 	var bandana := Mats.solid(_pick(rng, BANDANAS), 0.92)
 	var leather := Mats.solid(Color("4a3322"), 0.85)
 	var brass := Mats.solid(Color("c29a4c"), 0.35, 0.8)
+	_recolor(m, ["SkinnedSuspenders", "Waistband"], "Suspenders", duster.darkened(0.25))
+	_recolor(m, ["Torso_Geometry"], "Neckerchief", (bandana as StandardMaterial3D).albedo_color)
 	var crown := _node(m.head, "Outfit")
 	# hat: a flat brim with a slight roll and a tall pinched crown
 	var hat := MeshKit.new()
@@ -60,7 +62,10 @@ static func _bandit(m: RiderModel, rng: RandomNumberGenerator) -> void:
 	hbm.rotation_degrees = Vector3(90, 0, 0); hbm.position = Vector3(0, 0.16, 0.0)
 	crown.add_child(hbm)
 	# bandana over nose and mouth, knotted behind
-	crown.add_child(_band(0.142, -0.085, 0.0, 0.07, -150.0, 150.0, bandana, 0.0))
+	crown.add_child(_band(0.140, -0.085, 0.0, 0.07, -118.0, 118.0, bandana, 0.0))
+	crown.add_child(Mats.sphere(0.022, bandana, Vector3(0, -0.075, 0.125), Vector3(1.3, 1.0, 0.8), 8))
+	for side in [-1.0, 1.0]:
+		crown.add_child(Mats.box(Vector3(0.03, 0.09, 0.008), bandana, Vector3(side * 0.018, -0.12, 0.13), Vector3(-10, 0, side * 16.0)))
 	var tri := SurfaceTool.new(); tri.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for v in [Vector3(-0.11, -0.075, -0.10), Vector3(0.11, -0.075, -0.10), Vector3(0.0, -0.20, -0.105)]: tri.add_vertex(v)
 	for v in [Vector3(-0.11, -0.075, -0.10), Vector3(0.0, -0.20, -0.105), Vector3(0.11, -0.075, -0.10)]: tri.add_vertex(v)
@@ -97,6 +102,8 @@ static func _pirate(m: RiderModel, rng: RandomNumberGenerator) -> void:
 	var scarf := Mats.solid(_pick(rng, SCARVES), 0.92)
 	var sash := Mats.solid(_pick(rng, SASHES), 0.9)
 	var gold := Mats.solid(Color("d8b04a"), 0.3, 0.9)
+	_recolor(m, ["SkinnedSuspenders", "Waistband"], "Suspenders", Color("3b2c22"))
+	_recolor(m, ["Torso_Geometry"], "Neckerchief", (sash as StandardMaterial3D).albedo_color.lightened(0.1))
 	var crown := _node(m.head, "Outfit")
 	# headscarf: a snug cap over the crown, a knot at the back and two trailing ends
 	crown.add_child(Mats.sphere(0.158, scarf, Vector3(0, 0.075, 0.012), Vector3(1.0, 0.72, 1.05), 20))
@@ -169,6 +176,18 @@ static func _skirt(mat: Material, r_top: float, r_bottom: float, y_top: float, y
 	mat2.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = mat2
 	return mi
+
+
+## Re-tint the surfaces of the named meshes whose material names start with `prefix`.
+static func _recolor(m: RiderModel, meshes: Array, prefix: String, c: Color) -> void:
+	for node in m.find_children("*", "MeshInstance3D", true, false):
+		if not String(node.name) in meshes: continue
+		for i in range(node.mesh.get_surface_count()):
+			var src: Material = node.mesh.surface_get_material(i)
+			if src is StandardMaterial3D and src.resource_name.begins_with(prefix):
+				var mat: StandardMaterial3D = src.duplicate()
+				mat.albedo_color = c
+				node.set_surface_override_material(i, mat)
 
 
 static func _stripe_shirt(m: RiderModel, a: Color, b: Color) -> void:

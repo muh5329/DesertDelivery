@@ -376,6 +376,9 @@ var gun_raise := 0.0
 var gun_ads := 1.0
 var recoil := 0.0
 var sway := Vector2.ZERO
+## Where the shot will land (world), when the owner knows: the shouldered rifle converges on it
+## instead of pointing parallel to the view. null = along the aim pitch.
+var aim_point: Variant = null
 var _ads_blend := 1.0
 var _strap: MeshInstance3D
 ## A temporary target for the left hand in the rifle's frame (reloading), blended in by weight.
@@ -451,10 +454,18 @@ func _pose_long_gun(mode: String, pitch: float) -> void:
 	# --- the rifle: butt in the pocket, bore along the aim (+ sway, + recoil climb)
 	var body_basis := global_transform.basis.orthonormalized()
 	var p_eff := lerpf(0.85, pitch - recoil * 0.10 + sway.y, r)
+	var pocket := torso.global_transform * HIP_POCKET.lerp(SHOULDER_POCKET, ads)
 	var dir := body_basis * (Basis(Vector3.UP, sway.x) * Vector3(0, -sin(p_eff), -cos(p_eff)))
+	if aim_point is Vector3 and r > 0.5:
+		var to: Vector3 = (aim_point as Vector3) - pocket
+		if to.length() > 2.0:
+			var conv := to.normalized()
+			# converge on the aim point, keep the sway and the recoil climb on top
+			conv = Basis(body_basis.y, sway.x) * conv
+			conv = conv.rotated(body_basis.x.normalized(), recoil * 0.10 - sway.y).normalized()
+			dir = dir.slerp(conv, (r - 0.5) * 2.0)
 	var up := body_basis * Basis(Vector3(0, 0, 1), lerpf(-0.12, 0.0, ads)) * Vector3.UP
 	var basis := Basis.looking_at(dir, up)
-	var pocket := torso.global_transform * HIP_POCKET.lerp(SHOULDER_POCKET, ads)
 	var butt: Vector3 = long_gun.get_node("Butt").position
 	var origin := pocket - basis * butt + basis * Vector3(0, 0, recoil * 0.035)
 	long_gun.global_transform = Transform3D(basis, origin)

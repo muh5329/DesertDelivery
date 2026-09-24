@@ -82,9 +82,9 @@ var _boom_distance := 3.4
 var _collision_sphere := SphereShape3D.new()
 var _recoil := Vector2.ZERO          # (yaw, pitch-up) offset in radians, decays back to zero
 ## Aiming down the sights: a tight over-the-shoulder boom and a narrower view.
-@export var aim_distance := 1.35
-@export var aim_side := 0.52
-@export var aim_up := 0.13
+@export var aim_distance := 1.7
+@export var aim_side := 0.58
+@export var aim_up := 0.16
 @export var aim_fov_drop := 22.0
 
 

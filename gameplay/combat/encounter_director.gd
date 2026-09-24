@@ -132,7 +132,9 @@ func _load_plan_camps() -> void:
 func _core_camps() -> void:
 	var db := world.database
 	var lookout := db.location_pos(&"dunes_lookout")
-	var site: Variant = _settle_site(lookout + Vector3(150, 0, -8), 70.0)
+	# the open mesa top north-east of the lookout (tests/camp_site_probe.gd: no rocks or hoodoos
+	# within 13 m), looking down at the lookout and the road
+	var site: Variant = _settle_site(Vector3(192, 0, 53), 14.0)
 	if site != null:
 		var f: Vector3 = lookout - site
 		add_camp(&"camp.core.badlands", &"bandit", site, Vector3(f.x, 0, f.z).normalized(), 5)

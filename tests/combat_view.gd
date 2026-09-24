@@ -4,13 +4,14 @@ extends Node
 ##   fire        the same, a frame after a shot: muzzle flash, smoke, tracer
 ##   camp_fight  the badlands bandit camp in a fight: the courier aiming, bandits in cover
 ##   cove        the pirate cove on the south-west shore
-##   lineup      bandits and pirates side by side (outfits and guns)
+##   lineup      bandits and pirates side by side (outfits and guns; the studio lineup in
+##               garand_view.gd frames them better)
 ##   ambush      a bandit roadblock on an outer highway
 ## xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=combat_view --out=DIR [--only=a,b]
 
 var game: Game
 var out := "/tmp/combat_view"
-var shots: Array[String] = ["aim_ots", "fire", "camp_fight", "cove", "lineup", "ambush"]
+var shots: Array[String] = ["aim_ots", "fire", "camp_fight", "cove", "ambush"]
 var idx := -1
 var sc: Controls.Scripted
 var cam: Camera3D
@@ -19,6 +20,8 @@ var frames := 0
 var phase := 0
 var focus_camp := &""
 var aim_target := Vector3.ZERO
+var mark_t := -1.0
+var slowed := false
 
 
 func _ready() -> void:
@@ -71,8 +74,11 @@ func _vantage(cp: Vector3, dist: float, first_dir: Vector3) -> Vector3:
 		var q := PhysicsRayQueryParameters3D.create(eye, cp + Vector3(0, 1.2, 0), 1)
 		var hit := space.intersect_ray(q)
 		if not hit.is_empty() and hit.position.distance_to(cp) > 9.0: continue
-		var q2 := PhysicsRayQueryParameters3D.create(eye, eye + d * 4.0 + Vector3(0, 1.0, 0), 1)
-		if not space.intersect_ray(q2).is_empty(): continue
+		var right := (-d).cross(Vector3.UP).normalized()
+		for c in [eye + d * 4.0 + Vector3(0, 1.0, 0), eye + d * 3.6 + right * 1.3 + Vector3(0, 0.7, 0), eye + d * 1.7 + right * 0.6]:
+			var q2 := PhysicsRayQueryParameters3D.create(eye, c, 1)
+			if not space.intersect_ray(q2).is_empty(): p = Vector3.INF; break
+		if p == Vector3.INF: continue
 		return p
 	return _ground(cp.x + first_dir.x * dist, cp.z + first_dir.z * dist)
 
@@ -203,6 +209,7 @@ func _physics_process(delta: float) -> void:
 			if s == "fire" and t > 2.0 and phase == 0:
 				phase = 1
 				sc.press("fire")
+				mark_t = t
 		"camp_fight":
 			if t > 0.5 and phase == 0:
 				phase = 1
@@ -218,6 +225,7 @@ func _physics_process(delta: float) -> void:
 			if t > 5.5 and phase == 1:
 				phase = 2
 				sc.press("fire")
+				mark_t = t
 			# a chase-style view from behind and above the courier's right shoulder
 			var p := game.player.global_position
 			var to := (aim_target - p); to.y = 0.0; to = to.normalized()
@@ -231,12 +239,15 @@ func _physics_process(delta: float) -> void:
 func _process(_delta: float) -> void:
 	if idx < 0 or idx >= shots.size(): return
 	frames += 1
+	if mark_t >= 0.0 and not slowed:
+		slowed = true
+		Engine.time_scale = 0.01
 	var s := shots[idx]
 	var ready := false
 	match s:
 		"aim_ots": ready = phase == 0 and t > 2.5 and frames > 20
-		"fire": ready = phase == 1 and frames > 20 and t > 2.02
-		"camp_fight": ready = phase == 2 and t > 5.52
+		"fire": ready = phase == 1 and slowed and frames > 22
+		"camp_fight": ready = phase == 2 and slowed
 		"cove", "ambush": ready = t > 2.5 and frames > 20
 		"lineup":
 			# frame whoever is standing there, from in front
@@ -258,4 +269,7 @@ func _process(_delta: float) -> void:
 				print("[view]   %s state=%d sub=%d shots=%d at %s" % [e.enemy_id, e.state, e.sub, e.shots, e.global_position])
 		cam.current = false
 		game.cam.current = true
+		Engine.time_scale = 1.0
+		slowed = false
+		mark_t = -1.0
 		_next_shot()
