@@ -112,6 +112,7 @@ func _define_town(t: Dictionary) -> void:
 		_build_lod_cell(c, plots)
 	_define_lamps(t)
 	_build_town_lod(t)
+	_define_counter(t, pos)
 
 
 func _build_plots(parent: Node3D, plots: Array) -> void:
@@ -254,6 +255,18 @@ func _vertex_colour_material() -> StandardMaterial3D:
 		m.uv1_triplanar = true; m.uv1_scale = Vector3(0.12, 0.12, 0.12)
 	_mat_cache = m
 	return m
+
+
+## The red courier counter beside the plaza ring, like the core's pickup locations have.
+func _define_counter(t: Dictionary, ring: Vector3) -> void:
+	var road := outer.terrain.nearest_road(ring)
+	var out: Vector3 = ring - road.point; out.y = 0.0
+	if out.length() < 0.5: out = Vector3(-road.tangent.z, 0, road.tangent.x)
+	out = out.normalized()
+	var p := ring + out * 6.0 + Vector3(road.tangent.x, 0, road.tangent.z) * 3.0
+	p.y = outer.height_at(p.x, p.z)
+	var yaw := atan2(out.x, out.z)
+	db.add(p.x, p.z, func(): kit._courier_counter(kit.sink, p - (kit.sink.global_position if kit.sink and kit.sink.is_inside_tree() else Vector3.ZERO), yaw))
 
 
 # ---------------------------------------------------------------- far silhouettes

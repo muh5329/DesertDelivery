@@ -238,6 +238,7 @@ func _gen_courier_signs() -> void:
 	for job in GameplayManager.load_jobs():
 		var id: StringName=job.from_location
 		if id in done: continue
+		if not db.locations.has(id): continue   # an outer-world town: OuterTowns puts up its own counter
 		done.append(id)
 		var location:=db.location_pos(id)
 		var road:=terrain.nearest_road(location)

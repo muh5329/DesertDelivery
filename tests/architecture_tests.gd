@@ -83,7 +83,7 @@ func _physics_process(delta: float) -> void:
 			if pt > 0.2:
 				# --- definitions are data
 				_check(main.bike.definition != null and main.bike.definition.id == &"vehicle.courier_bike" and main.bike.takeoff_speed == main.bike.definition.takeoff_speed, "bike tunables come from its VehicleDefinition")
-				_check(main.gm.jobs.size() == 10 and main.gm.jobs[0].id == &"job.seed_crate", "jobs come from JobDefinition resources")
+				_check(main.gm.jobs.size() == 15 and main.gm.jobs[0].id == &"job.seed_crate", "jobs come from JobDefinition resources (10 island + 5 outer-world jobs)")
 				_check_intent_seam()
 				_check_ground_seam()
 				_check_hub_surfaces()
