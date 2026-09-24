@@ -58,6 +58,7 @@ var model: RiderModel
 var terrain: Terrain
 var camera: Camera3D
 var swimming := false
+var water_surface := WATER_SURFACE       ## the water level over the courier (sea, lake or river)
 var aiming := false
 var _intent: Controls.Intent = Controls.Intent.new()
 var aim_pitch := 0.0          # camera pitch (rad, + down) so the rifle follows the crosshair
@@ -66,7 +67,7 @@ var _move_dir := Vector3.ZERO
 var _speed_now := 0.0
 var _splash: CPUParticles3D
 
-const WATER_SURFACE := Terrain.SEA_LEVEL
+const WATER_SURFACE := Terrain.SEA_LEVEL     # the sea; inland water asks the terrain (water_level_at)
 const SWIM_DEPTH := 0.6           # how far the capsule origin sits below the surface
 
 
@@ -211,11 +212,14 @@ func _physics_process(delta: float) -> void:
 
 	# --- water check
 	var seabed: float = terrain.height_at(global_position.x, global_position.z) if terrain else 0.0
+	# the sea, or the mountain lake / a river over this spot (M-5: they were walked on like dry land)
+	var surface: float = terrain.water_level_at(global_position.x, global_position.z) if terrain else WATER_SURFACE
+	water_surface = surface
 	var in_water: bool
 	if swimming:
-		in_water = terrain != null and seabed < WATER_SURFACE - 0.45          # stays swimming until the bottom rises
+		in_water = terrain != null and seabed < surface - 0.45          # stays swimming until the bottom rises
 	else:
-		in_water = terrain != null and global_position.y < WATER_SURFACE - 0.15 and seabed < WATER_SURFACE - 0.75
+		in_water = terrain != null and global_position.y < surface - 0.15 and seabed < surface - 0.75
 	if in_water and not swimming:
 		swimming = true
 		_splash.emitting = true
@@ -238,7 +242,7 @@ func _physics_process(delta: float) -> void:
 		_intent.commands.erase(Controls.DODGE)
 		_set_motion(Motion.SWIM)
 		# buoyancy: settle the hips just below the surface, can climb out on a shallow bottom
-		var target_y := WATER_SURFACE - SWIM_DEPTH
+		var target_y := surface - SWIM_DEPTH
 		var ground := terrain.height_at(global_position.x, global_position.z) if terrain else -10.0
 		target_y = maxf(target_y, ground + 0.05)
 		v.y = (target_y - global_position.y) * 6.0

@@ -330,7 +330,7 @@ func _flight(delta: float) -> void:
 	rotate_object_local(Vector3.RIGHT, flight_pitch)
 	lean = lerpf(lean, flight_roll * 0.9, clampf(6.0 * delta, 0, 1))
 	odometer += speed * delta
-	if terrain and global_position.y < Terrain.SEA_LEVEL - 0.35:
+	if terrain and terrain.vehicle_submerged(global_position):
 		sea_resets += 1
 		airborne = false
 		fell_in_sea.emit()

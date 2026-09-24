@@ -186,6 +186,26 @@ func base_height(x: float, z: float) -> float:
 	return h
 
 
+## The water surface over world XZ: the sea level, or in the outer world the mountain lake's or a
+## river's level where one covers the point (whichever is higher). Callers compare it with the
+## ground (`height_at`) for the depth: swimming, the vehicles' splash-and-reset, a dry respawn spot.
+const FORD_DEPTH := 0.8          ## water shallower than this is a ford: vehicles drive through it
+
+func water_level_at(x: float, z: float) -> float:
+	if expanse != null and maxf(absf(x), absf(z)) > CORE_SIZE * 0.5 and expanse.has_method("water_level_at"):
+		return expanse.water_level_at(x, z)
+	return SEA_LEVEL
+
+
+## Is a vehicle body at `p` in water it cannot drive through? The sea as before (below the
+## waterline); inland water only where it is deeper than a ford.
+func vehicle_submerged(p: Vector3) -> bool:
+	var wl := water_level_at(p.x, p.z)
+	if p.y >= wl - 0.35: return false
+	if wl <= SEA_LEVEL + 0.01: return true
+	return wl - height_at(p.x, p.z) > FORD_DEPTH
+
+
 ## Ground height at world XZ: Terrain3D's data once it is built (exactly what is drawn and
 ## collided with), the 3 m heightfield before that or without the plugin.
 func height_at(x: float, z: float) -> float:

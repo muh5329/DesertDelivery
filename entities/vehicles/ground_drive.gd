@@ -304,8 +304,8 @@ func step(delta: float) -> Tick:
 	if _def.suspension_enabled: refresh_wheel_travel()
 
 	odometer += absf(speed) * delta
-	if terrain != null and _body.global_position.y < Terrain.SEA_LEVEL - 0.35:
-		tick.in_sea = true
+	if terrain != null and terrain.vehicle_submerged(_body.global_position):
+		tick.in_sea = true         # the sea, the mountain lake or a river too deep to ford
 
 	extra_velocity = Vector3.ZERO
 	min_vertical = -INF

@@ -176,6 +176,20 @@ func road_dist_at(x: float, z: float) -> float:
 	return ground.road_dist_at(x, z) if ok else 40.0
 
 
+## The water surface over (x, z) (M-5): the sea level, raised to the mountain lake's level inside
+## its shore polygon and to a river's level inside its channel (OuterRivers' 4 m cell index).
+## Cheap enough for every physics frame of the courier and the vehicles.
+func water_level_at(x: float, z: float) -> float:
+	var lv := Terrain.SEA_LEVEL
+	if not ok: return lv
+	if _lake_poly.size() >= 3 and _lake_box.has_point(Vector2(x, z)) and Geometry2D.is_point_in_polygon(Vector2(x, z), _lake_poly):
+		lv = maxf(lv, _lake_level)
+	if rivers:
+		var r := rivers.water_at(x, z)
+		if not is_nan(r): lv = maxf(lv, r)
+	return lv
+
+
 func plan() -> Dictionary:
 	return ground.plan
 
@@ -256,6 +270,11 @@ func _build_tile(k: Vector2i) -> void:
 
 
 # ---------------------------------------------------------------- the mountain lake
+var _lake_poly := PackedVector2Array()
+var _lake_box := Rect2()
+var _lake_level := -INF
+
+
 func _build_lake() -> void:
 	if not ground.plan.has("lake"): return
 	var lk: Dictionary = ground.plan.lake
@@ -263,6 +282,9 @@ func _build_lake() -> void:
 	for p in lk.get("polygon", []): poly.append(Vector2(p[0], p[1]))
 	if poly.size() < 3: return
 	if poly[0].distance_to(poly[poly.size() - 1]) < 1.0: poly.remove_at(poly.size() - 1)
+	_lake_poly = poly; _lake_level = float(lk.level)
+	_lake_box = Rect2(poly[0], Vector2.ZERO)
+	for q in poly: _lake_box = _lake_box.expand(q)
 	var tris := Geometry2D.triangulate_polygon(poly)
 	if tris.is_empty(): return
 	var verts := PackedVector3Array(); var normals := PackedVector3Array()

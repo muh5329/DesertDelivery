@@ -141,7 +141,7 @@ func _process(delta: float) -> void:
 		var c := rider.courier()
 		var p := c.global_position
 		var calm: bool = director == null or not director.threat_near(p, 70.0)
-		var dry := p.y > Terrain.SEA_LEVEL + 0.3
+		var dry := p.y > (world.terrain.water_level_at(p.x, p.z) if world and world.terrain else Terrain.SEA_LEVEL) + 0.3
 		if calm and dry and (_clock - last_hit_time) > 6.0 and rider.mode != Rider.Mode.FLYING:
 			last_safe = p
 
