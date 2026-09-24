@@ -73,6 +73,12 @@ func _light_line() -> String:
 		ArchMaterials.bytes_used / 1048576.0, GraphicsSettings.NAMES[GraphicsSettings.level]]
 
 
+## The shared mesh caches that grow with the towns visited (m-4: bounded by the kit's variety).
+func _cache_line() -> String:
+	return "caches: arch modules %d   person parts %d   rocks %d   texture copies %d" % [ArchModules._cache.size(),
+		PersonBuilder._parts.size(), RockGen.cache_size(), TexMips._cache.size()]
+
+
 func _process(_delta: float) -> void:
 	if not _visible or game == null: return
 	var st := game.world.streamer
@@ -91,6 +97,7 @@ func _process(_delta: float) -> void:
 		"biome %s   near %s   recipes %d" % [Terrain.Biome.keys()[game.world.terrain.biome_at(p.x, p.z)], String(db.nearest_location(p)), db.record_count],
 		"job %s -> %s   deliveries %d   save: %s" % [String(game.gm.target_location()), game.gm.target_name(), game.gm.deliveries, "quick" if Saves.has_save("quick") else "none"],
 		_light_line(),
+		_cache_line(),
 		"F3 hide   F5 save   F9 load   F6 next hub   F7 reload chunk   F8 streaming   F10 graphics",
 	]
 	_label.text = "\n".join(lines)

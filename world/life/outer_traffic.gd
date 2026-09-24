@@ -50,6 +50,7 @@ var physics_us := 0
 var _cells: Dictionary = {}             # Vector2i (100 m) -> [nav node ids] (outer roads only)
 var _pool: Dictionary = {}              # kind -> [views]
 const POOL_KEEP := 2                    # parked views kept per kind (m-4)
+const POOL_IDLE_S := 30.0               # a parked view unused this long is freed (m-4: none left once the roads are quiet)
 var _rng := RandomNumberGenerator.new()
 var _spawn_t := 0.0
 var _target_t := 0.0
@@ -153,6 +154,7 @@ func _process(delta: float) -> void:
 	if _spawn_t <= 0.0:
 		_spawn_t = 0.35
 		_despawn_far()
+		_trim_pool()
 		if vehicles.size() < _target: spawn_one()
 	frame_us = Time.get_ticks_usec() - t0
 
@@ -421,7 +423,19 @@ func _remove(v: Dictionary) -> void:
 		# m-4: a small reserve per kind is kept for reuse; the rest are freed, so the views made
 		# for a busy highway do not stay in the tree for the rest of the session
 		if (_pool[v.kind] as Array).size() >= POOL_KEEP: view.queue_free()
-		else: _pool[v.kind].append(view)
+		else:
+			view.set_meta("parked_ms", Time.get_ticks_msec())
+			_pool[v.kind].append(view)
+
+
+## Parked views nobody took for POOL_IDLE_S are freed, one per call (the spawn tick).
+func _trim_pool() -> void:
+	var now := Time.get_ticks_msec()
+	for k in _pool:
+		var list: Array = _pool[k]
+		if not list.is_empty() and now - int((list[0] as Node).get_meta("parked_ms", now)) > POOL_IDLE_S * 1000.0:
+			(list.pop_front() as Node).queue_free()
+			return
 
 
 # ---------------------------------------------------------------- views

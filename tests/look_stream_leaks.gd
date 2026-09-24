@@ -47,6 +47,13 @@ func _mem(label: String) -> void:
 		Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_COUNT),
 		Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT), Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
 		game.world.streamer.loaded.size(), Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)])
+	var traffic := game.world.get_node_or_null("IslandLife/OuterLife/OuterTraffic")
+	var pooled := 0
+	if traffic:
+		for k in traffic._pool: pooled += (traffic._pool[k] as Array).size()
+	print("[leaks]   live traffic %d (pooled views %d); caches: arch modules %d / arrays %d / runs %d, person parts %d, people %d, rocks %d, tex mips %d, mats %d, tree parts %d" % [
+		traffic.count() if traffic else -1, pooled, ArchModules._cache.size(), ArchModules._arrays.size(), ArchModules._runs.size(),
+		PersonBuilder._parts.size(), PersonBuilder._cache.size(), RockGen._cache.size(), TexMips._cache.size(), Mats._cache.size(), WorldKit._tree_parts_cache.size()])
 
 
 func _settle(frames: int) -> void:
@@ -55,7 +62,7 @@ func _settle(frames: int) -> void:
 
 func _run() -> void:
 	var start := game.bike.global_position
-	await _settle(120)
+	await _settle(game.cli.get_int("boot_settle", 900))
 	_mem("boot")
 	before = _snapshot()
 	var laps := game.cli.get_int("soak", 1)
