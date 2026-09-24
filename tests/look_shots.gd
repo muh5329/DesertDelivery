@@ -5,7 +5,9 @@ extends Node
 ##   godot --path . -- --facet --test=look_shots --out=DIR --size=1280x720 --cams="name@hour:fx,fy,fz:ax,ay,az[:bike];..."
 ##   A coordinate prefixed with "g" is ground relative ("g2" = 2 m above the ground). "@hour" pins
 ##   the clock for that view (DayNight.pin_hour); ":bike" parks the courier's bike, rider on, on the
-##   road nearest the camera's target, facing away from the camera (its headlight shows at night).
+##   road nearest the camera's target, facing away from the camera (its headlight shows at night);
+##   ":traffic" (or ":bike+traffic") puts outer traffic on the roads in front of the camera a few
+##   frames before the shot.
 ##   --settle=N frames per view (default 40), --quality=low|medium|high|ultra.
 
 var out := "/tmp/shots"
@@ -41,7 +43,8 @@ func _ready() -> void:
 		var nm := parts[0]; var hour := -1.0
 		if "@" in nm:
 			hour = float(nm.get_slice("@", 1)); nm = nm.get_slice("@", 0)
-		cams.append([nm, _vec(parts[1], t), _vec(parts[2], t), hour, parts.size() > 3 and parts[3] == "bike"])
+		var flags: PackedStringArray = parts[3].split("+") if parts.size() > 3 else PackedStringArray()
+		cams.append([nm, _vec(parts[1], t), _vec(parts[2], t), hour, "bike" in flags, "traffic" in flags])
 	cam = Camera3D.new(); cam.fov = game.cli.get_float("fov", 62.0); cam.far = 30000; cam.near = 0.1
 	add_child(cam); cam.current = true
 	t.set_view_camera(cam)
@@ -91,6 +94,7 @@ func _process(_d: float) -> void:
 	if not cams[idx][4]:
 		var focus := from.lerp(at, 0.35)
 		game.bike.global_position = Vector3(focus.x, game.world.terrain.height_at(focus.x, focus.z) + 40.0, focus.z)
+	if cams[idx][5] and frame == maxi(settle - 4, 1): _spawn_traffic(from, at)
 	if frame >= settle:
 		var img := get_tree().root.get_texture().get_image()
 		var p := "%s/%s.png" % [out, cams[idx][0]]
@@ -102,3 +106,22 @@ func _process(_d: float) -> void:
 		if idx >= cams.size():
 			get_tree().quit(); return
 		_place()
+
+
+## A few vehicles on the outer roads between 25 and 160 m in front of the camera.
+func _spawn_traffic(from: Vector3, at: Vector3) -> void:
+	var traffic := game.world.get_node_or_null("IslandLife/OuterLife/OuterTraffic")
+	if traffic == null: return
+	var dir := (at - from); dir.y = 0.0; dir = dir.normalized()
+	var used := {}
+	var n := 0
+	for dist: float in [28.0, 45.0, 65.0, 90.0, 120.0, 160.0]:
+		var p := from + dir * dist
+		var ids: Array = traffic.nodes_near(p, 0.0, 30.0)
+		for id: int in ids:
+			if used.has(id): continue
+			used[id] = true
+			var rec: Dictionary = traffic.spawn_one(id)
+			if not rec.is_empty(): n += 1
+			break
+	print("traffic: spawned %d in view" % n)
