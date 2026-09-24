@@ -51,7 +51,7 @@ func _measure() -> void:
 	var heavy := maxf(w, 0.0)
 	var elder: bool = int(look.age) >= 62
 	p.lf = 1.0 + .16 * w                      # limb girth
-	p.hip = Vector3(.150 + .020 * w, .098 + .022 * w, .100 + .020 * w) if not f else Vector3(.168 + .022 * w, .100 + .022 * w, .116 + .022 * w)
+	p.hip = Vector3(.172 + .020 * w, .098 + .022 * w, .100 + .020 * w) if not f else Vector3(.188 + .022 * w, .100 + .022 * w, .116 + .022 * w)
 	p.waist = Vector3(.132 + .030 * w, .092 + .012 * w + .050 * heavy, .086 + .010 * w) if not f else Vector3(.116 + .030 * w, .084 + .010 * w + .042 * heavy, .080 + .010 * w)
 	p.chest = Vector3(.146 + .010 * w, .104 + .012 * w + .01 * heavy, .096 + .008 * w) if not f else Vector3(.134 + .010 * w, .094 + .010 * w, .090 + .008 * w)
 	p.shoulder = (.152 if not f else .142) + .010 * heavy
@@ -119,8 +119,8 @@ func _make_torso_sections(ease: float, bottom: float) -> Array:
 	var wy: float = p.waist_y
 	var rows: Array = [
 		[.745, Vector3(0, 0, 0), 2.2, {}],
-		[.77, Vector3(hip.x * .62, .064, .074), 2.2, {}],
-		[.82, Vector3(hip.x * .92, hip.y * .93, hip.z * .95), 2.3, {"glute": p.glute * .7}],
+		[.77, Vector3(hip.x * .72, .066, .076), 2.2, {}],
+		[.82, Vector3(hip.x * .985, hip.y * .95, hip.z * .96), 2.3, {"glute": p.glute * .7}],
 		[.88, hip, 2.3, {"glute": p.glute}],
 		[lerpf(.88, wy, .5), hip.lerp(waist, .5), 2.25, {"glute": p.glute * .3, "belly": p.belly * .45}],
 		[wy, waist, 2.2, {"belly": p.belly}],
@@ -130,8 +130,8 @@ func _make_torso_sections(ease: float, bottom: float) -> Array:
 		[1.345, Vector3(chest.x * .985, chest.y * .95, chest.z * .98), 2.5, {"bust": p.bust * .3, "blade": p.blade}],
 		[1.40, Vector3(p.shoulder, chest.y * .84, chest.z * .94), 2.6, {"blade": p.blade * .6}],
 		[1.445, Vector3(p.shoulder * .955, chest.y * .76, chest.z * .88), 2.5, {"blade": p.blade * .3}],
-		[1.48, Vector3(p.shoulder * .80, .07, .076), 2.3, {}],
-		[1.508, Vector3(.092, .06, .064), 2.2, {}],
+		[1.478, Vector3(p.shoulder * .88, .07, .076), 2.4, {}],
+		[1.508, Vector3(.104, .06, .064), 2.2, {}],
 		[1.53, Vector3(p.neck + .01, p.neck + .004, p.neck + .006), 2.0, {}],
 		# the top tucks inside the neck, so no torso edge shows round it
 		[1.552, Vector3(p.neck * .92, p.neck * .8, p.neck * .9), 2.0, {}],
@@ -342,6 +342,17 @@ func _open_loft(sections: Array, cols: int, sub: int, scheme: int, pid: int, ope
 		"flip": float(rows_data[0].y) < float(rows_data[-1].y)})
 
 
+var _skirt_rows: Array = []
+
+## Front depth of the skirt (or coat tails) at height y, or 0 without one.
+func _skirt_front(y: float) -> float:
+	for k in _skirt_rows.size() - 1:
+		var a: Dictionary = _skirt_rows[k]; var b: Dictionary = _skirt_rows[k + 1]
+		if y <= float(a.y) and y >= float(b.y):
+			return lerpf(float(a.rf), float(b.rf), (float(a.y) - y) / maxf(float(a.y) - float(b.y), .0001)) + float(a.get("glute", 0.0)) * 0.0
+	return 0.0
+
+
 ## Skirts, dresses, robes, long tunics and coat tails.
 func _skirt() -> void:
 	var top: String = look.top
@@ -375,6 +386,7 @@ func _skirt() -> void:
 		if kind != "coat" and y > .84: s["glute"] = p.glute * .6
 		sections.append(s)
 	if kind == "coat":
+		_skirt_rows = sections.duplicate()
 		var open := func(y: float) -> float: return .16 + (.84 - y) * .35
 		_open_loft(sections, 30 if near else 10, 1, M.Rig.SKIRT, paint.top, open)
 	else:
@@ -382,6 +394,7 @@ func _skirt() -> void:
 		var last: Dictionary = sections[-1].duplicate()
 		last.y = hem + .012; last.rx -= .012; last.rf -= .012; last.rb -= .012
 		last.paint = paint.top_edge if kind != "skirt" else paint.bottom_edge
+		_skirt_rows = sections.duplicate()
 		sections.append(last)
 		m.loft(sections, 36 if near else 12, 1, M.Rig.SKIRT, {"uv_y": true})
 
@@ -443,7 +456,7 @@ func _fall_collar(pid: int, g_in: float, g_out: float, drop: float, ease: float,
 # ------------------------------------------------------------------ arms and hands
 func _arm(side: float) -> void:
 	var lf: float = p.lf
-	var table := [[1.455, .010], [1.45, .028], [1.438, .041], [1.415, .047], [1.38, .047], [1.32, .045],
+	var table := [[1.452, .010], [1.447, .028], [1.436, .041], [1.414, .047], [1.38, .047], [1.32, .045],
 		[1.25, .043], [1.17, .040], [1.10, .037], [1.05, .035], [1.00, .037], [.95, .036], [.90, .032], [.865, .028], [.84, .026]]
 	var sleeve: String = look.sleeves
 	var outer: String = look.top
@@ -516,7 +529,7 @@ func _hand(side: float) -> void:
 func _leg(side: float) -> void:
 	var lf: float = p.lf
 	var f: bool = look.sex == "f"
-	var table := [[.95, .074], [.87, .087 if not f else .092], [.78, .084 if not f else .088], [.68, .077], [.58, .067], [.50, .059],
+	var table := [[.95, .06], [.87, .073 if not f else .078], [.78, .08 if not f else .084], [.68, .076], [.58, .067], [.50, .059],
 		[.44, .054], [.40, .052], [.35, .053], [.30, .055], [.24, .052], [.18, .044], [.13, .037], [.10, .034], [.075, .033]]
 	var bottom: String = look.bottom
 	var top_y := .95
@@ -540,7 +553,8 @@ func _leg(side: float) -> void:
 		var e := 0.0
 		var pid: int = paint.skin
 		if covered:
-			e = ease
+			# trousers sit close at the hip (inside any untucked hem) and hang looser below
+			e = lerpf(ease, .009, smoothstep(.72, .86, y))
 			# a straight trouser leg below the knee
 			if y < .5: r = maxf(r, .062 * lf)
 			pid = cover_paint
@@ -652,7 +666,8 @@ func _apron() -> void:
 		var t := float(i) / float(rows - 1)
 		var y := lerpf(top_y, hem, t)
 		var half := lerpf(.10, .2, smoothstep(top_y, p.waist_y - .05, y)) if kind != "waist" else lerpf(.17, .21, t)
-		var depth := _front_depth(y) + .012 + .05 * smoothstep(.95, hem, y)
+		# clear of the body, hanging forward below the hips where a striding thigh pushes it
+		var depth := maxf(_front_depth(y) + .016 + .065 * smoothstep(.98, hem, y), _skirt_front(y) + .012)
 		for j in cols:
 			var u := -1.0 + 2.0 * float(j) / float(cols - 1)
 			var xx := u * half

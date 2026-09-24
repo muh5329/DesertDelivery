@@ -431,7 +431,19 @@ func _hair_region(q: Vector3) -> float:
 	return inside
 
 
+var _hairline_lut := PackedFloat32Array()
+
+## Hairline height at azimuth |az| (0 = forehead, PI = nape), from a 128-step table.
 func _hairline(az: float) -> float:
+	if _hairline_lut.is_empty():
+		_hairline_lut.resize(129)
+		for k in 129: _hairline_lut[k] = _hairline_exact(PI * float(k) / 128.0)
+	var t := clampf(absf(az) / PI, 0.0, 1.0) * 128.0
+	var i := mini(int(t), 127)
+	return lerpf(_hairline_lut[i], _hairline_lut[i + 1], t - float(i))
+
+
+func _hairline_exact(az: float) -> float:
 	var style: String = look.hair
 	var fy: float = .061 * float(f.forehead) + float(look.get("recede", 0.0))
 	var temple := fy - (.012 if not female else .004) + float(look.get("recede", 0.0)) * .6
@@ -473,9 +485,9 @@ func _hair() -> void:
 			var t := base * fall
 			var top := smoothstep(.02, .11, q.y)
 			match style:
-				"crop": t += .004 * top
+				"crop": t += .004 * top + .0016 * _noise(q, 430.0) * fall
 				"side_part":
-					t += .009 * top + .006 * smoothstep(0.0, .9, az * part_side) * smoothstep(.03, .09, q.y)
+					t += .009 * top + .006 * smoothstep(0.0, .9, az * part_side) * smoothstep(.03, .09, q.y) + .002 * _noise(q, 310.0) * fall
 					push[k] = Vector3(-part_side * .004, .002, -.003) * top * fall
 				"textured": t += (.006 + .0035 * _noise(q, 260.0)) * top
 				"afro":

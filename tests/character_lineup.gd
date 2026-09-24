@@ -1,7 +1,7 @@
 extends Node
 ## Renders the townsfolk for review, in the running game (Forward+: add --facet in the cloud):
 ##   residents-front-1/2.png   16 residents side by side at 5 m, facing the camera
-##   residents-34-1/2.png      the same 16 at three quarters
+##   residents-34-1/2.png      the same 16 at three quarters (and the first 8 from behind)
 ##   crowd-30m.png             40 residents milling at 30 m (far meshes)
 ##   crowd-60m.png             the same crowd at 60 m
 ##   style-<town>.png          8 townsfolk of each town style
@@ -42,6 +42,9 @@ func capture() -> void:
 			await _shot(group, Vector3(0, 501.45, -5.0), Vector3(0, 500.95, 0), "residents-front-%d" % (half + 1))
 			for person in group.get_children(): if person is RiderModel: person.rotation.y = deg_to_rad(-35.0)
 			await _shot(group, Vector3(0, 501.45, -5.0), Vector3(0, 500.95, 0), "residents-34-%d" % (half + 1))
+			if half == 0:
+				for person in group.get_children(): if person is RiderModel: person.rotation.y = deg_to_rad(160.0)
+				await _shot(group, Vector3(0, 501.45, -5.0), Vector3(0, 500.95, 0), "residents-back")
 			group.queue_free()
 	if _want("crowd"):
 		var crowd := Node3D.new(); stage.add_child(crowd)
