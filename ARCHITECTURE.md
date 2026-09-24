@@ -22,15 +22,17 @@ res://
 │   ├── terrain/             terrain.gd (map-driven heightfield, roads, bridges, viaducts -> Terrain3D), bridge.gd
 │   ├── outer/               the 25 km outer world (ADR 0010): outer_world.gd (OuterWorld: queries + collision),
 │   │                        outer_ground.gd (the lattice surface), outer_terrain_view.gd + .gdshader (CDLOD),
-│   │                        outer_roads.gd (network, ribbons, bridges), outer_towns.gd (towns, plots, landmarks),
-│   │                        outer_flora.gd (wilderness)
+│   │                        outer_roads.gd (network, ribbons, masonry / concrete bridges, road furniture),
+│   │                        outer_towns.gd (towns, plots, landmarks), outer_props.gd (town dressing, quay walls,
+│   │                        terrace walls), outer_flora.gd (wilderness, fields), outer_rivers.gd + river.gdshader
 │   ├── kit/                 world_kit.gd (every builder: houses, rocks, kits, arcades, sea, sky),
 │   │                        building_kit.gd (BuildingKit: plots -> buildings, per-town styles) + building/
 │   │                        (ArchStyles plans, ArchFacade walls/openings/roofs, ArchModules instanced pieces,
 │   │                        ArchSpecial towers/churches/walls/gates, ArchMaterials + arch.gdshader, ArchMesh)
 │   ├── island/              island.gd (the generator for THIS island: hubs, places, roads, biomes)
 │   └── mapgen/              extract.py (painting → 720 m map), expand.py (→ 1248 m world + new land), textures.py,
-│                            outer.py (+ outer_*.py: the outer world → data/outer), outer_textures.py,
+│                            outer.py (+ outer_*.py: the outer world → data/outer; outer_water.py rivers, wadis,
+│                            erg, oases; outer_props.py town dressing), outer_textures.py,
 │                            facades.py (the architecture kit's PBR layers → assets/buildings)
 ├── assets/terrain/          ground textures for Terrain3D
 ├── addons/terrain_3d/       the Terrain3D GDExtension (rendering + collision of the ground)
@@ -61,7 +63,7 @@ res://
 Game (core/app/game.gd)            boots, wires, holds the CLI/session state
 ├── WorldManager
 │   ├── Environment                sky, sun, sea, abyss, boundaries, Terrain — always resident
-│   │   └── OuterWorld             outer terrain (CDLOD), collision tiles, roads, bridges, town silhouettes, wilderness
+│   │   └── OuterWorld             outer terrain (CDLOD), collision tiles, roads, bridges, town silhouettes, wilderness, rivers
 │   └── WorldStreamer              Chunk_x_y nodes around the focus (7×7 of 60 m by default)
 ├── EntityManager                  bike, player body, pickups, targets, (NPCs, cars...) by id
 ├── Rider                          player controller: mode + ControlIntent routing
@@ -90,7 +92,7 @@ painting ──extract.py──▶ island_map_720.png ──expand.py──▶ d
                                                    ├─ data:     locations, hubs     → WorldDatabase
                                                    └─ recipes:  one Callable per prop, per chunk
                                                                  → WorldDatabase.records
-world/mapgen/outer.py ──▶ data/outer (height.f32, splat/aux/tint/roads PNGs, plan.json)
+world/mapgen/outer.py ──▶ data/outer (height.f32, splat/aux/tint/roads/feat PNGs, plan.json)
                                                               └─▶ OuterWorld (boot, ~0.8 s)
                                                    ├─ resident: CDLOD terrain, bridges, silhouettes, lake
                                                    ├─ data:     roads → Terrain.road_samples, towns → locations
@@ -174,9 +176,27 @@ the core) cover the whole network. Towns and hamlets are WorldDatabase locations
 - **one StaticBody3D** with a box / convex shape per building part (walkable flat roofs, portico
   galleries and gate passages left open).
 
+`ArchProps` (world/kit/building/arch_props.gd) builds the towns' street furniture, market, harbour
+and country props the same way (modules in the kit's material): fountains, planters, benches, lamps,
+stalls, cafe sets, carts, barrels, crates, washing lines, bollards, boats (their own MultiMesh with
+the shader's `bob`), jetties, portal cranes, net racks, hay, gardens, dry-stone field walls.
+`OuterProps` files a town's `props` records (world/mapgen/outer_props.py) per 60 m chunk as recipes:
+one ArchCtx group per chunk, the plaza trees through the wilderness' tree models; it also builds the
+quay walls along every `quay_edges` polyline and Valdoro's `terraces`.
+
 The plan of a building (`ArchStyles.plan`) is a pure function of the plot and its seed, so the far
 silhouette (`BuildingKit.build_lod`) always matches the detailed building. `tests/building_showcase.gd`
 builds every style x kind and renders them.
+
+## Rendering (Forward+)
+
+`WorldKit._build_environment` keeps the reference look (`Atmosphere`) and, when the renderer is
+Forward+ (`WorldKit.forward_plus()`), adds `_forward_plus_quality`: short-range SSAO, SSIL, a thin
+volumetric fog (sun shafts), and four shadow cascades (crisp contact shadows within ~23 m, stable
+far shadows to 520 m). SDFGI is off (a 25 km world displaced on the GPU; cascades scroll-leak at
+speed). The Compatibility renderer ignores all of it. `OuterWorld._follow_camera` grows the far
+plane with altitude and keeps the sea plane under the camera; the sea fogs into the sky's horizon
+colour before the far plane, so the horizon never shows the sky's lower half.
 
 ## Persistence
 
