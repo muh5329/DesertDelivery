@@ -103,6 +103,21 @@ const STYLE_DATA := {
 		"fabrics": {"cotton": 6, "denim": 2, "linen": 2}, "patterns": {"plain": 7, "plaid": 4, "checks": 3, "stripes": 1},
 		"hats_m": {"": 6, "flat_cap": 3, "straw": 3}, "hats_f": {"": 9, "straw": 2, "kerchief": 2},
 		"shoes": {"boots": 6, "shoes": 4}},
+	# the bad guys (EnemyOutfit adds their hats, bandanas, sashes and gear): not town styles
+	&"bandit": {
+		"skin": [4.4, 2.0], "dark": .7, "trousers": true, "duster": true,
+		"tops_m": {"coat": 6, "vest": 2, "jacket": 1}, "tops_f": {"coat": 6, "vest": 2},
+		"colors": {"duster": "5a4634", "dust": "6e5e4c", "charcoal": "2e2c2a", "black": "1f1d1c", "oxblood": "4a2420", "tan": "7d6a4f"},
+		"bottoms": {"black": "262422", "brown": "44362a", "grey": "4a4a48", "denim": "34445a"},
+		"fabrics": {"wool": 5, "cotton": 2}, "patterns": {"plain": 10, "pinstripe": 1},
+		"hats_m": {"": 1}, "hats_f": {"": 1}, "shoes": {"boots": 1}},
+	&"pirate": {
+		"skin": [4.6, 2.1], "dark": .7, "trousers": true,
+		"tops_m": {"shirt": 6, "vest": 1, "tshirt": 2}, "tops_f": {"shirt": 6, "vest": 1},
+		"colors": {"cream": "ece6d6", "white": "f2efe6", "bone": "e2d9c2"},
+		"bottoms": {"canvas": "b3a27f", "navy": "2c3a52", "tar": "3a3733", "sail": "c8b995"},
+		"fabrics": {"linen": 4, "cotton": 4}, "patterns": {"stripes": 8, "plain": 1},
+		"hats_m": {"": 1}, "hats_f": {"": 1}, "shoes": {"boots": 3, "sandals": 1}},
 }
 
 ## Occupation cues: garment weights, fixed colours, hats, aprons, extras.
@@ -138,6 +153,12 @@ const OCCUPATIONS := {
 	"weaver": {"tops_m": {"tunic": 2, "shirt": 2}, "tops_f": {"dress": 2, "blouse": 2}, "apron": ["waist", .4, ["c8923a", "2b3a6b"]]},
 	"vendor": {"tops_m": {"shirt": 2, "vest": 2, "tunic": 1}, "tops_f": {"blouse": 2, "dress": 2}, "apron": ["waist", .5, ["e9e2cf", "b25a37"]]},
 	"porter": {"tops_m": {"tshirt": 2, "tunic": 2}, "tops_f": {"tunic": 2}, "build": .3, "sleeves": "rolled"},
+	"woodcutter": {"tops_m": {"shirt": 3, "vest": 2, "jacket": 1}, "tops_f": {"shirt": 2, "vest": 1},
+		"colors": {"red_check": "8f2f2a", "forest": "34493a", "brown": "5b4331", "loden": "4d5e3a"}, "hats": {"felt": 2, "knit": 2, "": 3},
+		"shoes": "boots", "pattern": "plaid", "sleeves": "rolled", "build": .3},
+	"bandit": {"tops_m": {"coat": 6, "vest": 2}, "tops_f": {"coat": 6, "vest": 2}, "hats": {"": 1}, "shoes": "boots", "build": .15},
+	"pirate": {"tops_m": {"shirt": 6, "vest": 1, "tshirt": 2}, "tops_f": {"shirt": 6, "vest": 1}, "hats": {"": 1},
+		"sleeves": "rolled", "pattern": "stripes", "build": .1},
 	"cook": {"tops_m": {"tshirt": 2, "shirt": 2}, "tops_f": {"blouse": 2, "dress": 1}, "apron": ["bib", .8, ["f7f4ec"]], "hats": {"baker": 2, "": 2, "kerchief": 1}},
 }
 const OCCUPATION_ALIASES := {"produce driver": "driver", "shopkeeper": "merchant", "fisherman": "fisher", "fisherwoman": "fisher",
@@ -424,6 +445,7 @@ static func _dress(look: Dictionary, rng: RandomNumberGenerator, st: Dictionary,
 	# bottoms
 	var bottom := "trousers"
 	if top in ["dress", "robe"]: bottom = "none"
+	elif st.get("trousers", false): bottom = "trousers"
 	elif female and top in ["blouse", "sweater", "shirt", "tshirt", "vest", "jacket", "coat"]:
 		bottom = "skirt" if rng.randf() < (.6 if not style in [&"campo"] else .45) else "trousers"
 	elif top == "overalls": bottom = "trousers"
@@ -461,7 +483,7 @@ static func _dress(look: Dictionary, rng: RandomNumberGenerator, st: Dictionary,
 	elif top == "dress": hem = rng.randf_range(.12, .22) if (elder or style == &"sarmada" or rng.randf() < .3) else rng.randf_range(.36, .5)
 	elif bottom == "skirt": hem = rng.randf_range(.14, .24) if (elder or rng.randf() < .35) else rng.randf_range(.34, .46)
 	elif top == "tunic": hem = rng.randf_range(.45, .62) if rng.randf() < .6 else .9
-	elif top == "coat": hem = rng.randf_range(.44, .56)
+	elif top == "coat": hem = rng.randf_range(.18, .28) if st.get("duster", false) else rng.randf_range(.44, .56)
 	look.hem = hem
 	# feet
 	var shoes: String = occ.get("shoes", _pick(rng, st.shoes))

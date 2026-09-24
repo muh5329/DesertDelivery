@@ -126,6 +126,8 @@ func _ready() -> void:
 	health.max_health = 100.0 if kind == &"bandit" else 90.0
 	add_child(health)
 	model = RiderModel.new(); model.name = "Model"
+	# a townsfolk body in the bandit / pirate style (a pinned, usually prebuilt variant)
+	model.look = EnemyOutfit.look_for(kind, _rng.seed)
 	add_child(model)
 	EnemyOutfit.dress(model, kind, _rng.seed)
 	if EnemyWeapons.is_long(weapon):

@@ -78,6 +78,7 @@ func setup(p_world: WorldManager, p_entities: EntityManager, p_rider: Rider, p_g
 	Events.player_respawned.connect(func(_p): _lose_track())
 	_load_plan_camps()
 	_core_camps()
+	EnemyOutfit.prewarm()          # the bandits' and pirates' bodies, built in the background
 
 
 # ============================================================================== camps as data

@@ -20,11 +20,153 @@ const HAIRS := [Color("2a1d14"), Color("4a3322"), Color("1b1b1b"), Color("6b4a2c
 
 static var _stripe_shader: Shader
 
+## The townsfolk body (CharacterLook, style `bandit` / `pirate`) comes in VARIANTS looks per kind,
+## pinned in PersonBuilder's cache and built on worker threads at boot (prewarm), so a camp that
+## spawns never waits for a body. The gear below (hats, bandanas, bandoliers, sashes, earrings)
+## is per enemy (its seed), so two men of the same variant still differ.
+const VARIANTS := 8
+
+
+## The body an enemy of `kind` with `seed_value` wears.
+static func look_for(kind: StringName, seed_value: int) -> Dictionary:
+	var variant := absi(seed_value) % VARIANTS
+	var pirate := kind == &"pirate"
+	var style: StringName = &"pirate" if pirate else &"bandit"
+	var look := CharacterLook.from_seed(7717 + variant * 131 + (53 if pirate else 0), style, String(style), "f" if variant == 5 else "m")
+	var rng := RandomNumberGenerator.new(); rng.seed = hash([String(style), variant])
+	look.hat = ""
+	if pirate:
+		# a headscarf (the look's own, skinned), a striped shirt with the sleeves rolled, bare forearms
+		look.hair = "headscarf"
+		look.scarf_head_color = _pick(rng, SCARVES)
+		look.scarf_head_pattern = 0
+		look.top = "shirt" if look.top == "vest" and rng.randf() < 0.5 else look.top
+		look.top_pattern = CharacterLook._pattern("stripes")
+		look.top_color = Color("ece6d6")
+		look.top_color2 = _pick(rng, STRIPES)
+		look.sleeves = "rolled" if rng.randf() < 0.6 else "short"
+		look.scarf = false
+		look.glasses = false
+	else:
+		# short hair under the wide hat, a neckerchief the bandana is pulled up from, stubble
+		look.hair = ["crop", "buzz", "side_part", "bald", "crop", "long_straight", "buzz", "textured"][variant]
+		if look.sex == "f": look.hair = "ponytail"
+		if look.sex == "m" and look.facial_hair == "none": look.facial_hair = "stubble"
+		look.scarf = true
+		look.scarf_color = _pick(rng, BANDANAS)
+		look.glasses = false
+		look.satchel = false
+	look.apron = ""
+	look.key = "enemy|%s|%d" % [String(style), variant]
+	return look
+
+
+## Build every variant's body in the background (EncounterDirector.setup).
+static func prewarm() -> void:
+	for kind in [&"bandit", &"pirate"]:
+		for v in VARIANTS:
+			var look := look_for(kind, v)
+			PersonBuilder.pin(look)
+			PersonBuilder.request(look)
+
 
 static func dress(m: RiderModel, kind: StringName, seed_value: int) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed_value
+	if m.is_person():
+		if kind == &"pirate": _pirate_gear(m, rng)
+		else: _bandit_gear(m, rng)
+		return
 	if kind == &"pirate": _pirate(m, rng)
 	else: _bandit(m, rng)
+
+
+# ------------------------------------------------------------------------------ gear on a townsfolk body
+## Measured on the townsfolk rig (entities/people): the head pivot is at the eyes (the crown
+## ~0.13 above, the face ~0.095 in front, scaled 1.1 by the rig), the torso pivot 0.90 m up
+## (chest front ~0.12 with a coat, shoulders at +0.5), the hips' pivot 0.82 m up.
+static func _bandit_gear(m: RiderModel, rng: RandomNumberGenerator) -> void:
+	var felt := Mats.solid(_pick(rng, HATS), 0.95)
+	var band := Mats.solid(Color("1e1a17"), 0.8)
+	var bandana := Mats.solid(Color(m.look.get("scarf_color", _pick(rng, BANDANAS))), 0.92)
+	var leather := Mats.solid(Color("4a3322"), 0.85)
+	var brass := Mats.solid(Color("c29a4c"), 0.35, 0.8)
+	var crown := _node(m.head, "Outfit")
+	var y0 := 0.058
+	# the wide brim, a slight roll, and the tall pinched crown
+	var hat := MeshKit.new()
+	hat.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.2, 0.2, 2.0, 32), MeshKit.ring(-0.012, 0.0, 0.0, 0.21, 0.21, 2.0, 32)])
+	var hm := MeshInstance3D.new(); hm.mesh = hat.commit(null, felt)
+	hm.rotation_degrees = Vector3(-90 + rng.randf_range(-5, 3), 0, rng.randf_range(-4, 4)); hm.position = Vector3(0, y0, 0.004)
+	crown.add_child(hm)
+	var cr := MeshKit.new()
+	cr.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.098, 0.108, 2.2, 24), MeshKit.ring(-0.07, 0.0, 0.0, 0.092, 0.1, 2.4, 24),
+		MeshKit.ring(-0.115, 0.0, 0.0, 0.074, 0.07, 2.6, 24), MeshKit.ring(-0.13, 0.0, 0.0, 0.04, 0.03, 2.0, 24)])
+	var cm := MeshInstance3D.new(); cm.mesh = cr.commit(null, felt)
+	cm.rotation_degrees = Vector3(90, 0, 0); cm.position = Vector3(0, y0 - 0.004, 0.004)
+	crown.add_child(cm)
+	var hb := MeshKit.new()
+	hb.loft([MeshKit.ring(0.0, 0.0, 0.0, 0.101, 0.111, 2.2, 24), MeshKit.ring(-0.02, 0.0, 0.0, 0.1, 0.11, 2.2, 24)], false, false)
+	var hbm := MeshInstance3D.new(); hbm.mesh = hb.commit(null, band)
+	hbm.rotation_degrees = Vector3(90, 0, 0); hbm.position = Vector3(0, y0, 0.004)
+	crown.add_child(hbm)
+	# the bandana pulled up over nose and mouth, knotted behind, a point hanging over the chin
+	var face := _band(0.107, -0.072, 0.012, 0.075, -128.0, 128.0, bandana, 0.012)
+	crown.add_child(face)
+	crown.add_child(Mats.sphere(0.018, bandana, Vector3(0, -0.06, 0.1), Vector3(1.3, 1.0, 0.8), 8))
+	for side in [-1.0, 1.0]:
+		crown.add_child(Mats.box(Vector3(0.026, 0.08, 0.008), bandana, Vector3(side * 0.016, -0.1, 0.104), Vector3(-10, 0, side * 16.0)))
+	var tri := SurfaceTool.new(); tri.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for v in [Vector3(-0.085, -0.108, -0.1), Vector3(0.085, -0.108, -0.1), Vector3(0.0, -0.19, -0.085)]: tri.add_vertex(v)
+	for v in [Vector3(-0.085, -0.108, -0.1), Vector3(0.0, -0.19, -0.085), Vector3(0.085, -0.108, -0.1)]: tri.add_vertex(v)
+	tri.generate_normals()
+	var tm := MeshInstance3D.new(); tm.mesh = tri.commit(); tm.material_override = bandana
+	crown.add_child(tm)
+	# a bandolier across the chest, brass cartridge tips
+	var outfit := _node(m.torso, "Outfit")
+	var strap := MeshKit.new()
+	var pts := PackedVector3Array()
+	for i in range(9):
+		var t := float(i) / 8.0
+		var p := Vector3(0.12, 0.5, 0.0).lerp(Vector3(-0.15, 0.05, 0.0), t)
+		pts.append(p + Vector3(0, 0, -0.128 - sin(t * PI) * 0.012))
+	strap.tube(pts, 0.004, 8, Vector2(1.0, 5.0), true, true, Vector3(0, 0, -1))
+	var sm := MeshInstance3D.new(); sm.mesh = strap.commit(null, leather); outfit.add_child(sm)
+	for i in range(1, 8):
+		outfit.add_child(Mats.cylinder(0.006, 0.022, brass, pts[i] + Vector3(0, 0.0, -0.006), Vector3(0, 0, -58), 6))
+	# a gun belt with a holster on the right hip
+	var hips := _node(m.root, "Outfit")
+	hips.add_child(Mats.torus(0.158, 0.178, leather, Vector3(0, 0.15, 0), Vector3.ZERO, Vector3(1.0, 0.35, 0.74)))
+	hips.add_child(Mats.box(Vector3(0.05, 0.16, 0.08), leather, Vector3(0.19, 0.02, 0.0), Vector3(0, 0, -6)))
+
+
+static func _pirate_gear(m: RiderModel, rng: RandomNumberGenerator) -> void:
+	var sash := Mats.solid(_pick(rng, SASHES), 0.9)
+	var gold := Mats.solid(Color("d8b04a"), 0.3, 0.9)
+	var crown := _node(m.head, "Outfit")
+	# gold earrings, and the headscarf's knot and trailing ends at the back
+	var scarf := Mats.solid(Color(m.look.get("scarf_head_color", _pick(rng, SCARVES))), 0.92)
+	for side in ([-1.0, 1.0] if rng.randf() < 0.4 else [-1.0]):
+		crown.add_child(Mats.torus(0.008, 0.013, gold, Vector3(side * 0.086, -0.04, 0.012), Vector3(0, 0, 90)))
+	crown.add_child(Mats.sphere(0.026, scarf, Vector3(0.015, 0.03, 0.118), Vector3(1.2, 0.9, 0.8), 10))
+	for side in [-1.0, 1.0]:
+		crown.add_child(Mats.box(Vector3(0.036, 0.13, 0.01), scarf, Vector3(0.015 + side * 0.022, -0.04, 0.124), Vector3(-12, 0, side * 14.0)))
+	# a wide sash round the waist, ends hanging on the left hip
+	var hips := _node(m.root, "Outfit")
+	var band := _band(0.155, 0.19, 0.0, 0.085, -180.0, 180.0, sash, 0.0, 0.0)
+	band.scale = Vector3(1.0, 1.0, 0.74)
+	hips.add_child(band)
+	for i in range(2):
+		hips.add_child(Mats.box(Vector3(0.055, 0.22 - i * 0.05, 0.014), sash, Vector3(-0.155 - i * 0.015, 0.06 - i * 0.02, -0.05 + i * 0.03), Vector3(0, -30, 8 + i * 10)))
+	# a bag strap over one shoulder and a pouch on the right hip
+	var outfit := _node(m.torso, "Outfit")
+	var strap := MeshKit.new()
+	var pts := PackedVector3Array()
+	for i in range(7):
+		var t := float(i) / 6.0
+		pts.append(Vector3(-0.12, 0.5, 0.0).lerp(Vector3(0.15, 0.06, 0.0), t) + Vector3(0, 0, -0.122 - sin(t * PI) * 0.01))
+	strap.tube(pts, 0.003, 8, Vector2(1.0, 4.0), true, true, Vector3(0, 0, -1))
+	var sm := MeshInstance3D.new(); sm.mesh = strap.commit(null, Mats.solid(Color("5a4230"), 0.85)); outfit.add_child(sm)
+	hips.add_child(Mats.box(Vector3(0.05, 0.14, 0.08), Mats.solid(Color("4a3322"), 0.85), Vector3(0.18, 0.04, 0.0), Vector3(0, 0, -6)))
 
 
 static func _pick(rng: RandomNumberGenerator, a: Array) -> Color:
