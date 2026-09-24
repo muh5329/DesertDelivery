@@ -26,6 +26,7 @@ extends RefCounted
 const DODGE := &"dodge"
 const JUMP := &"jump"
 const FIRE := &"fire"
+const RELOAD := &"reload"
 const INTERACT := &"interact"
 const WINGS := &"wings"
 const RESET := &"reset"
@@ -39,7 +40,7 @@ const CARGO_REMOVE := &"remove_cargo"
 const ACTIONS: Array[StringName] = [
 	&"accelerate", &"brake", &"steer_left", &"steer_right", &"handbrake", &"jump", &"fire",
 	&"interact", &"transform", &"reset_bike", &"winch", &"cargo_mode", &"cargo_rotate",
-	&"cargo_remove", &"dodge",
+	&"cargo_remove", &"dodge", &"reload",
 ]
 
 
@@ -122,6 +123,7 @@ class Foot:
 		if r.just(&"dodge"): i.press(DODGE)
 		# A click with the mouse free just re-captures it (Game does that); it never fires.
 		if r.just(&"fire") and r.mouse_captured: i.press(FIRE)
+		if r.just(&"reload"): i.press(RELOAD)
 
 
 class Source:
@@ -209,9 +211,11 @@ class Scripted:
 
 ## Context-safe subset of Red Sea Baron's InputBindings. Q remains the truck
 ## winch in its own scheme; only Foot translates this action into a dodge.
+## Reload is V (free on every scheme) and D-pad left on a gamepad (X is jump, B walks back).
 static func install_foot_bindings() -> void:
 	var bindings := {"dodge": [KEY_CTRL, KEY_Q], "look_left": [KEY_J],
-		"look_right": [KEY_L], "look_up": [KEY_I], "look_down": [KEY_K]}
+		"look_right": [KEY_L], "look_up": [KEY_I], "look_down": [KEY_K], "reload": [KEY_V]}
+	var pads := {"reload": [JOY_BUTTON_DPAD_LEFT]}
 	for action: String in bindings:
 		if InputMap.has_action(action): continue
 		InputMap.add_action(action)
@@ -219,3 +223,7 @@ static func install_foot_bindings() -> void:
 			var event := InputEventKey.new()
 			event.physical_keycode = key
 			InputMap.action_add_event(action, event)
+		for button: int in pads.get(action, []):
+			var pad := InputEventJoypadButton.new()
+			pad.button_index = button
+			InputMap.action_add_event(action, pad)

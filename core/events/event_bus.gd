@@ -15,9 +15,19 @@ signal job_changed(job: JobDefinition, stage: StringName) # stage: &"pickup" | &
 signal package_collected(job_id: StringName)
 signal delivery_completed(job_id: StringName, total: int)
 
-# --- weapons
+# --- weapons and combat
 signal gun_picked_up
 signal can_hit(can_id: StringName, hit: int, total: int)
+signal shot_fired(origin: Vector3, shooter: StringName, loudness: float)   # enemies hear it inside loudness m
+signal clip_pinged                                                          # the Garand's empty en-bloc clip flew out
+signal target_damaged(entity_id: StringName, amount: float, headshot: bool, killed: bool)
+signal enemy_killed(entity_id: StringName, kind: StringName, headshot: bool)
+signal player_damaged(amount: float, from: Vector3)
+signal player_died
+signal player_respawned(position: Vector3)
+signal camp_alerted(camp_id: StringName)
+signal camp_cleared(camp_id: StringName)
+signal ambush_started(camp_id: StringName)
 
 # --- vehicles
 signal vehicle_crashed(vehicle_id: StringName)

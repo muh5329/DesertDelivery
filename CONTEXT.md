@@ -14,14 +14,29 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   one the Rider has hopped off.
 - **Package** — rides on the bike's rear rack between a **pickup ring** and a **drop-off ring**.
 - **Job** — one pickup → drop-off pair. Four chain across the map (`GameManager`).
-- **Pistol** — found on a crate at the Dunes Lookout; pops **tin cans** on the farm wall and the
-  lookout bench (`GunSystem`).
+- **Garand** — the courier's M1 Garand, his rifle from the start (`GunSystem`, `GarandModel`).
+  **Slung** on his back, **shouldered** while aiming (ADS), at the **hip** for snap shots. Fed by
+  8-round **en-bloc clips**; the empty clip leaves with a **ping**. **Reserve** = full clips in the
+  pouch (+ loose rounds from a part clip ejected by a manual reload). The **ammo cache** at the
+  Dunes Lookout (where the old pistol lay) and camp **ammo crates** refill it. **Tin cans** on the
+  farm wall and the lookout bench are practice targets.
+- **Spread** — the half-angle of the shot cone: hip vs aimed, plus movement, air and **bloom**.
+- **Bandit / Pirate** — an `Enemy`: bandits (dusters, hats, lever rifles, revolvers) hold
+  **camps** inland and **roadblocks** on the highways; pirates (headscarves, striped shirts,
+  carbines) hold **coves** on the shore. AI states: IDLE, SUSPICIOUS, COMBAT (cover, peek, flank),
+  SEARCH, FLEE (morale broke), DEAD.
+- **Camp** — an encounter: id, kind, position, facing, size; props and men spawned near the
+  courier (`EncounterDirector`, `CampKit`). **Cleared** when nobody is left standing (a bounty).
+  **Ambush** — a transient roadblock camp set ahead of a courier carrying a package on an outer
+  highway.
+- **Vitals** — the courier's `Health` (regenerating), **knocked out** at zero: fade, **respawn** on
+  the nearest road to the **last safe spot**, a small coin penalty, a moment of invulnerability.
 
 ## Control
 
 - **ControlIntent** (`Controls.Intent`) — everything the rider asks for in one physics tick:
   throttle, brake, steer, pitch, move, run, aim, look, and the edge-triggered presses (jump, fire,
-  interact, wings, reset). Physics modules consume intents; they never read `Input`.
+  reload, interact, wings, reset). Physics modules consume intents; they never read `Input`.
 - **ControlSource** (`Controls.Source`) — the seam that produces intents. Two adapters:
   **Keyboard** (`Controls.Keyboard`, the only reader of `Input.*` and the only place a key's meaning
   per mode is decided) and **Scripted** (`Controls.Scripted`, driven by the Autopilot and the tests).
@@ -99,7 +114,7 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   with its neighbour (`BuildingKit.annotate`): no windows, no eaves there.
 - **Sea lane** — a shipping route between **ports** (the core harbour, Puerto Alto, Sarmada, Isola
   Serena) through water >= 8 m deep and >= 60 m from the coast; bridges over them clear 12 m.
-- **Camp** — a bandit camp or pirate cove candidate point for the combat system.
+- **Camp** (in the plan) — a bandit camp or pirate cove point the `EncounterDirector` reads.
 
 ## Architecture (see ARCHITECTURE.md)
 

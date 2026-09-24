@@ -1,7 +1,7 @@
 class_name Player
 extends CharacterBody3D
 ## On-foot controller for the boy: camera-relative walking/running, jumping, and swimming
-## when he wades into the sea. Also carries the pistol once it has been found.
+## when he wades into the sea. His M1 Garand rides on the model (slung, or in his hands).
 
 signal entered_water
 signal left_water
@@ -60,7 +60,7 @@ var camera: Camera3D
 var swimming := false
 var aiming := false
 var _intent: Controls.Intent = Controls.Intent.new()
-var aim_pitch := 0.0          # camera pitch (rad, + down) so the pistol follows the crosshair
+var aim_pitch := 0.0          # camera pitch (rad, + down) so the rifle follows the crosshair
 var _yaw := 0.0
 var _move_dir := Vector3.ZERO
 var _speed_now := 0.0
@@ -72,7 +72,7 @@ const SWIM_DEPTH := 0.6           # how far the capsule origin sits below the su
 
 func _ready() -> void:
 	collision_layer = 4
-	collision_mask = 1 | 2 | 16
+	collision_mask = 1 | 2 | 16 | 64      # 64: bandits and pirates (Enemy.BODY_LAYER)
 	var cs := CollisionShape3D.new()
 	var sh := CapsuleShape3D.new()
 	sh.radius = 0.28

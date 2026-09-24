@@ -1,6 +1,7 @@
 extends Node
 ## Headless feature checks driven through the ControlIntent seam and the Rider interface —
-## the same paths a player's keys take: dismount/walk/mount, swimming, pistol, plane.
+## the same paths a player's keys take: dismount/walk/mount, swimming, the Garand (ammo cache,
+## tin cans, rate of fire, barrel along the view), plane.
 ## Run: godot --headless --path . -- --test=feature_tests
 
 var main
@@ -100,13 +101,14 @@ func _physics_process(delta: float) -> void:
 				_check(d > 15.0, "swims forward")
 				_check(rider.mode == Rider.Mode.ON_FOOT and pl.global_position.y > 0.3, "climbs out on the beach")
 				sc.intent.move = Vector2.ZERO
-				# --- pistol pickup
+				# --- the ammo cache at the Dunes Lookout (where the old pistol used to lie)
 				var pk = main.gun.pickup_position()
+				mark_yaw = main.gun.reserve_clips
 				pl.global_position = pk + Vector3(0, 0.1, 0)
 				_next()
 		5:
 			if pt > 0.6:
-				_check(main.gun.has_gun and main.gun.pickup_position() == null, "pistol picked up by walking over it")
+				_check(main.gun.has_gun and main.gun.pickup_position() == null and main.gun.reserve_clips > int(mark_yaw), "ammo cache picked up by walking over it")
 				# stand 7 m in front of a can
 				var t: Area3D = main.gun.targets()[0]
 				var stand: Vector3 = t.global_position + Vector3(0, 0, 7.0)
@@ -127,7 +129,7 @@ func _physics_process(delta: float) -> void:
 				print("[test] ", main.gun.debug_last)
 				_check(main.gun.targets_hit == int(mark.x) + 1, "pressing fire pops the aimed tin can")
 				_check(main.gun.ammo == main.gun.max_ammo - 1, "ammo decrements")
-				sc.press("fire")   # two presses 0.1 s apart: only the first can fire (0.22 s cooldown)
+				sc.press("fire")   # two presses 0.1 s apart: only the first can fire (0.14 s trigger reset)
 			if pt > 2.4 and pt < 2.41:
 				sc.press("fire")
 			if pt > 2.5:
@@ -138,7 +140,7 @@ func _physics_process(delta: float) -> void:
 				var ray: Dictionary = main.cam.view_ray()
 				var dot: float = main.gun.barrel_direction().dot(ray.direction)
 				print("[test] barrel·view = %.2f" % dot)
-				_check(dot > 0.7, "pistol barrel points along the view ray")
+				_check(dot > 0.7, "rifle barrel points along the view ray")
 				sc.intent.aim = false
 				# --- plane mode
 				var side: Vector3 = bike.global_transform.basis.x

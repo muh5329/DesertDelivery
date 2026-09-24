@@ -8,7 +8,7 @@ extends Node3D
 ##   Game
 ##   ├── WorldManager      terrain / sea / sky resident, everything else streamed by chunk
 ##   ├── EntityManager     registry + simulation tiers (bike, player body, pickups, targets, NPCs...)
-##   ├── GameplayManager   DeliverySystem, GunSystem, (Autopilot)
+##   ├── GameplayManager   DeliverySystem, GunSystem, PlayerVitals, EncounterDirector, (Autopilot)
 ##   ├── Rider             switches bike / truck / on-foot and routes ControlIntents
 ##   ├── ChaseCamera
 ##   ├── BikeAudio         procedural engine shared by the active vehicle
@@ -51,6 +51,10 @@ var gm: DeliverySystem:
 	get: return gameplay.delivery
 var gun: GunSystem:
 	get: return gameplay.gun
+var encounters: EncounterDirector:
+	get: return gameplay.encounters
+var vitals: PlayerVitals:
+	get: return gameplay.vitals
 var level: Island:
 	get: return world.island
 var autopilot: Autopilot:
@@ -137,6 +141,7 @@ func _boot_gameplay() -> void:
 	gameplay.setup(world, entities, bike, player, cam, GameplayManager.load_jobs())
 	gameplay.delivery.player = player
 	gameplay.delivery.rider = rider
+	gameplay.setup_combat(world, entities, rider)
 	audio = BikeAudio.new(); audio.name = "BikeAudio"; add_child(audio)
 	audio.setup(bike, truck)
 	gameplay.gun.audio = audio
@@ -148,6 +153,7 @@ func _boot_ui() -> void:
 	hud.setup(bike, gameplay.delivery, cam)
 	hud.player = player
 	hud.rider = rider
+	hud.setup_combat(gameplay.gun, gameplay.vitals)
 	panels = PanelStack.new(self)
 	catalogue = ResidentCatalogue.new(); catalogue.name = "ResidentCatalogue"; ui.add_child(catalogue)
 	catalogue.setup(life, self)
@@ -178,6 +184,7 @@ func _wire() -> void:
 	Events.delivery_completed.connect(_on_delivery)
 	Saves.register("delivery", gameplay.delivery)
 	Saves.register("gun", gameplay.gun)
+	Saves.register("combat", gameplay.encounters)
 	Saves.register("bike", bike)
 	Saves.register("truck", truck)
 	Saves.register("rider", rider)

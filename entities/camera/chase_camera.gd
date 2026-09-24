@@ -16,6 +16,7 @@ extends Camera3D
 ##   set_look(yaw, pitch)      set the orbit directly (aim assists, tests)
 ##   snap_to_target()          cut instead of blend (spawn, teleports)
 ##   shake(amount)
+##   kick(pitch, yaw)          recoil: the view jumps up (rad) and recovers on its own
 
 enum Framing { BIKE, FOOT, SWIM, PLANE, TRUCK }
 
@@ -79,6 +80,12 @@ var _rng := RandomNumberGenerator.new()
 var _orbit_pivot := Vector3.ZERO
 var _boom_distance := 3.4
 var _collision_sphere := SphereShape3D.new()
+var _recoil := Vector2.ZERO          # (yaw, pitch-up) offset in radians, decays back to zero
+## Aiming down the sights: a tight over-the-shoulder boom and a narrower view.
+@export var aim_distance := 1.7
+@export var aim_side := 0.58
+@export var aim_up := 0.16
+@export var aim_fov_drop := 22.0
 
 
 func _ready() -> void:
@@ -130,7 +137,9 @@ func control_yaw() -> float:
 
 
 func _orbit_direction() -> Vector3:
-	return Vector3(-sin(_yaw) * cos(_orbit_pitch), -sin(_orbit_pitch), -cos(_yaw) * cos(_orbit_pitch))
+	var y := _yaw - _recoil.x
+	var p := _orbit_pitch - _recoil.y
+	return Vector3(-sin(y) * cos(p), -sin(p), -cos(y) * cos(p))
 
 
 func _orient_orbit() -> void:
@@ -147,7 +156,17 @@ func set_look_back(v: bool) -> void:
 
 
 func pitch() -> float:
-	return _orbit_pitch
+	return _orbit_pitch - _recoil.y
+
+
+func kick(pitch_up: float, yaw: float = 0.0) -> void:
+	_recoil += Vector2(yaw, pitch_up)
+	_recoil.y = minf(_recoil.y, 0.2)
+	if _orbit: _orient_orbit()
+
+
+func is_aiming() -> bool:
+	return _aiming
 
 
 func set_look(yaw: float, p_pitch: float) -> void:
@@ -184,6 +203,8 @@ func shake(amount: float) -> void:
 
 # ---------------------------------------------------------------- implementation
 func _physics_process(delta: float) -> void:
+	# recoil recovers: fast at first, then settles back onto the original aim
+	_recoil = _recoil.lerp(Vector2.ZERO, 1.0 - exp(-9.0 * delta))
 	if not target: return
 	if not _initialized:
 		snap_to_target()
@@ -291,8 +312,8 @@ func _orbit_update(delta: float) -> void:
 	var pivot := _orbit_pivot
 	var distance: float = orbit_distance if framing == Framing.FOOT else float(_f.distance)
 	if _aiming:
-		distance = 1.8
-		pivot = _camera_clearance(pivot, pivot + side * .45 + Vector3.UP * .16)
+		distance = aim_distance
+		pivot = _camera_clearance(pivot, pivot + side * aim_side + Vector3.UP * aim_up)
 	var desired := pivot - dir * distance
 	if terrain:
 		desired.y = maxf(desired.y, terrain.height_at(desired.x, desired.z) + collision_radius + .08)
@@ -309,7 +330,7 @@ func _orbit_update(delta: float) -> void:
 		target.set_camera_distance(global_position.distance_to(anchor))
 	_orient_orbit()
 	_cur_look = global_position + dir * 5.0
-	fov = lerpf(fov, (_f.fov - 10.0) if _aiming else _f.fov, 1.0 - exp(-8.0 * delta))
+	fov = lerpf(fov, (_f.fov - aim_fov_drop) if _aiming else _f.fov, 1.0 - exp(-10.0 * delta))
 
 
 func _shaken(pos: Vector3, delta: float) -> Vector3:
