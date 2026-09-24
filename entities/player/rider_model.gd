@@ -179,7 +179,9 @@ func _process(_delta: float) -> void:
 		return
 	PersonBuilder.poll()
 	var meshes := PersonBuilder.cached(look)
-	if meshes.is_empty(): return
+	if meshes.is_empty():
+		PersonBuilder.request(look)     # (no-op while pending; rebuilds if evicted meanwhile)
+		return
 	_person_near.mesh = meshes.near
 	_person_far.mesh = meshes.far
 	set_process(false)

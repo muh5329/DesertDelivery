@@ -5,7 +5,8 @@ extends RefCounted
 ## the same silhouette, hair, skin and clothing colours. Both are single-surface skinned
 ## meshes on the shared 13-bone rig, drawn with one shared material.
 
-const CACHE_LIMIT := 72
+## ~1 MB per person (near + far); live models keep their meshes regardless.
+const CACHE_LIMIT := 40
 static var _cache: Dictionary = {}
 static var _order: Array = []
 static var _skin: Skin
