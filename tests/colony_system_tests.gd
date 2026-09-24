@@ -39,6 +39,10 @@ func run() -> void:
 	check(int(colony.warehouse.get("ore",0))==5 and colony.orders.is_empty(),"Disabling worker finishes cargo once after restore")
 	var invalid:=colony.save_state(); invalid.orders={a.id:{"phase":"deliver","item":"wood","amount":999}}
 	var committed:=colony.save_state(); check(not colony.load_state(invalid) and colony.save_state()==committed,"Invalid snapshot rejected without partial mutation")
+	check(int(committed.version)==ColonySystem.SAVE_VERSION and committed.has("economy"),"Colony snapshot is version 2 with the economy")
+	var v1:=committed.duplicate(true); v1.erase("economy"); v1.version=1
+	check(colony.load_state(JSON.parse_string(JSON.stringify(v1))) and int(colony.warehouse.get("ore",0))==int(committed.warehouse.get("ore",0)),"Version 1 snapshot still loads; its warehouse is the core stockpile")
+	check(colony.economy.town("core").stock==colony.warehouse,"Core colony stockpile is the colony warehouse")
 	check(colony.roads.add_stroke(PackedVector3Array([Vector3(0,2,0),Vector3(12,2,0)]),"Road"),"Road stroke snaps to connected four-metre cells")
 	check(colony.roads.preferences.get(Vector2i(1,0))==1.0 and colony.roads.erase_at(Vector3(4,2,0)),"Road preference applied and erase removes it")
 	check(colony.manual_order(a.id,Vector3(4,2.08,4)),"Manual move order accepts existing resident")

@@ -2,6 +2,10 @@ class_name ColonySystem
 extends Node3D
 ## Red Sea Baron colony rules, using DesertDelivery's existing resident population.
 ## Inventory moves only at pickup/delivery commits; active orders reserve stock.
+## `economy` (ColonyEconomy) is the colony-sim layer built on it: every town a colony, production
+## chains, needs and growth, shipping lanes. The colony warehouse is the core colony's stockpile.
+## Save format: version 2 = the v1 fields + "economy"; a v1 save loads with the economy at its
+## starting state (its warehouse becomes the core stockpile).
 signal changed
 signal message(text: String)
 var game: Game
@@ -10,8 +14,9 @@ var sites: Dictionary = {}
 var assignments: Dictionary = {}
 var statuses: Dictionary = {}
 var orders: Dictionary = {}
-const ITEM_MASS := {"wood":2.0,"ore":4.0,"stone":3.0,"olive":1.0,"berry":1.0}
+const SAVE_VERSION := 2
 var warehouse: Dictionary = {"wood":20}
+var economy: ColonyEconomy
 var warehouse_position := Vector3.ZERO
 var roads: ColonyRoads
 var next_id := 1
@@ -29,6 +34,7 @@ func setup(p_game: Game) -> void:
 	warehouse_position=game.world.database.location_pos(&"villa_square")
 	_initialize(game.life.residents)
 	_seed_resources()
+	economy.setup_world(game)
 	_initial_state=save_state()
 func _initialize(residents: Array) -> void:
 	_visuals=Node3D.new(); add_child(_visuals)
@@ -37,6 +43,9 @@ func _initialize(residents: Array) -> void:
 	for r: Resident in residents:
 		_residents[r.id]=r; assignments[r.id]={"role":"Unemployed","enabled":false}
 	_marker(_visuals,warehouse_position,Color("bd9763"),Vector3(2,1.4,2),"Colony warehouse")
+	for item in EconomyCatalog.CHARTER_STOCK: warehouse[item]=int(warehouse.get(item,0))+int(EconomyCatalog.CHARTER_STOCK[item])
+	economy=ColonyEconomy.new(); economy.name="Economy"; add_child(economy)
+	economy.setup_core(self,warehouse_position)
 func grounded(at: Vector2) -> Vector3:
 	var height:=float(_test_height.call(at)) if _test_height.is_valid() else game.world.terrain.height_at(at.x,at.y)
 	return Vector3(at.x,height+.08,at.y)
@@ -264,10 +273,11 @@ func _take(id: String,item: String,amount: int) -> void:
 	if node is ColonyResource: node.stock-=amount
 	else: node.inventory[item]=int(node.inventory.get(item,0))-amount
 func _has_capacity(id: String,item: String,amount: int) -> bool:
-	var stock: Dictionary=warehouse if id=="warehouse" else sites[id].inventory
+	if id=="warehouse": return economy.town("core").room_for(item)>=amount
+	var stock: Dictionary=sites[id].inventory
 	var mass:=0.0
-	for key in stock: mass+=float(ITEM_MASS[key])*int(stock[key])
-	return mass+float(ITEM_MASS[item])*amount<=1000.0001
+	for key in stock: mass+=EconomyCatalog.mass(key)*int(stock[key])
+	return mass+EconomyCatalog.mass(item)*amount<=1000.0001
 func _deposit(id: String,item: String,amount: int) -> void:
 	if id=="warehouse": warehouse[item]=int(warehouse.get(item,0))+amount
 	else: (sites[id] as ColonySite).receive(item,amount)
@@ -287,6 +297,8 @@ func roster() -> Array:
 func stock_summary() -> String:
 	var result:=PackedStringArray()
 	for item in ["wood","berry","stone","ore","olive"]: result.append("%s %d"%[item,int(warehouse.get(item,0))])
+	for item in warehouse:
+		if not item in EconomyCatalog.LEGACY_ITEMS and int(warehouse[item])>0: result.append("%s %d"%[item,int(warehouse[item])])
 	return " · ".join(result)
 func save_state() -> Dictionary:
 	var buildings: Array=[]; var resources: Array=[]; var workers: Dictionary={}
@@ -294,7 +306,7 @@ func save_state() -> Dictionary:
 	for source in _sources: resources.append({"id":source.source_id,"stock":source.stock,"renewal":source.renewal})
 	for id: String in _residents:
 		var r: Resident=_residents[id]; workers[id]={"position":[r.position.x,r.position.y,r.position.z],"forward":[r.forward.x,r.forward.y,r.forward.z]}
-	return {"version":1,"next_id":next_id,"paused":paused,"areas":areas.duplicate(true),"roads":roads.roads.duplicate(true),"sites":buildings,"assignments":assignments.duplicate(true),"orders":orders.duplicate(true),"warehouse":warehouse.duplicate(true),"resources":resources,"workers":workers}
+	return {"version":SAVE_VERSION,"economy":economy.save_state(),"next_id":next_id,"paused":paused,"areas":areas.duplicate(true),"roads":roads.roads.duplicate(true),"sites":buildings,"assignments":assignments.duplicate(true),"orders":orders.duplicate(true),"warehouse":warehouse.duplicate(true),"resources":resources,"workers":workers}
 func _inventory_copy(value: Dictionary) -> Dictionary:
 	var result: Dictionary={}
 	for item in value: result[item]=int(value[item])
@@ -302,7 +314,7 @@ func _inventory_copy(value: Dictionary) -> Dictionary:
 func _valid_inventory(value: Variant) -> bool:
 	if not value is Dictionary: return false
 	for item in value:
-		if item not in ["wood","berry","stone","ore","olive"] or not _whole(value[item],0,1000000): return false
+		if not EconomyCatalog.ITEMS.has(item) or not _whole(value[item],0,1000000): return false
 	return true
 func _whole(value: Variant,low: int,high: int) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value)==floorf(float(value)) and float(value)>=low and float(value)<=high
@@ -311,7 +323,8 @@ func _number(value: Variant,low: float,high: float) -> bool:
 func _vector(value: Variant) -> bool:
 	return value is Array and value.size()==3 and _number(value[0],-12500,12500) and _number(value[1],-100,2000) and _number(value[2],-12500,12500)
 func accepts(data: Dictionary) -> bool:
-	if data.get("version")!=1 or not _whole(data.get("next_id"),1,1000000) or not data.get("paused") is bool: return false
+	if not _whole(data.get("version"),1,SAVE_VERSION) or not _whole(data.get("next_id"),1,1000000) or not data.get("paused") is bool: return false
+	if int(data.version)==SAVE_VERSION and not economy.valid(data.get("economy")): return false
 	if not _valid_inventory(data.get("warehouse")): return false
 	for key in ["areas","roads","sites","resources"]:
 		if not data.get(key) is Array or data[key].size()>(32 if key=="sites" else 128 if key=="resources" else 64): return false
@@ -386,4 +399,8 @@ func load_state(data: Dictionary) -> bool:
 		if not assignments[id].enabled and not orders.has(id): continue
 		var r: Resident=_residents[id]; var p: Array=data.workers[id].position; var f: Array=data.workers[id].forward
 		r.position=Vector3(p[0],p[1],p[2]); r.forward=Vector3(f[0],f[1],f[2]); _claim(id)
-	roads.roads=data.roads.duplicate(true); roads.rebuild(); redraw_areas(); statuses.clear(); changed.emit(); return true
+	roads.roads=data.roads.duplicate(true); roads.rebuild(); redraw_areas(); statuses.clear()
+	if int(data.version)==SAVE_VERSION: economy.load_state(data.economy)
+	elif _initial_state.has("economy"): economy.load_state(_initial_state.economy) # v1 -> v2: a fresh economy round the saved warehouse
+	else: economy.town("core")
+	changed.emit(); return true
