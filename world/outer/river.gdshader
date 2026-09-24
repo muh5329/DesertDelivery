@@ -58,7 +58,10 @@ float streaks(vec2 p) {
 void fragment() {
 	float dist = length(wpos - CAMERA_POSITION_WORLD);
 	float across_m = (flow_uv.x - 0.5) * max(width_m, 1.0);
-	float sp = speed * (1.0 + drop * 2.5);
+	// one scroll speed everywhere: a speed that varies per vertex (the rapids) is interpolated across
+	// each triangle, and TIME x a varying speed shears the pattern into bands along the triangle
+	// edges after a few minutes of play; the rapids are choppier (amplitude, froth) instead
+	float sp = speed;
 	// two streak layers scrolled downstream at different speeds, their difference drives the normal
 	vec2 f1 = vec2(across_m / 2.3, flow_uv.y / 9.0 - TIME * sp * 0.21);
 	vec2 f2 = vec2(across_m / 1.1 + 0.37, flow_uv.y / 3.7 - TIME * sp * 0.47);
@@ -66,7 +69,7 @@ void fragment() {
 	float a = streaks(f1); float b = streaks(f2);
 	float ax = streaks(f1 + vec2(e, 0.0)) - a; float ay = streaks(f1 + vec2(0.0, e)) - a;
 	float bx = streaks(f2 + vec2(e, 0.0)) - b; float by = streaks(f2 + vec2(0.0, e)) - b;
-	float amp = (0.35 + drop * 1.1) * (1.0 - smoothstep(60.0, 500.0, dist) * 0.85);
+	float amp = (0.25 + drop * 1.0) * (1.0 - smoothstep(60.0, 500.0, dist) * 0.85);
 	// (across, along) -> world: the ribbon's tangent frame is not known here; the ripples are small
 	// enough for an isotropic tilt in xz
 	vec3 n = normalize(vec3((ax * 0.6 + bx * 0.4) * amp * 5.0, 1.0, (ay * 0.6 + by * 0.4) * amp * 5.0));
