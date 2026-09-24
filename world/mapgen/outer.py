@@ -752,7 +752,7 @@ def stage_extras(h, net, towns, lanes, lake_mask, gy):
         p = find_site(ctx, around, rad, hmin, hmax, 50.0, slope)
         if p is None: log("POI not found", pid); return
         pois.append({"id": pid, "kind": kind, "pos": p, "cls": cls})
-    poi("dam", "dam", (L.DAM[0], L.DAM[1] + 120), 100, 0, 2000, "road", (0.0, 0.6))
+    poi("dam", "gatehouse", (L.DAM[0], L.DAM[1] + 120), 100, 0, 2000, "road", (0.0, 0.6))
     poi("alpine_hut", "hut", (-600, -7700), 900, 780, 1000, "track")
     poi("summit_view", "viewpoint", (1200, -8600), 1200, 950, 1250, "track", (0.0, 0.35))
     poi("pass_chapel", "chapel", (4300, -6700), 900, 700, 1000, "track")
@@ -951,7 +951,46 @@ def pick_camps(h, net, towns, flat, micro, seed=17):
     return camps
 
 
-def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour):
+def lake_fill(h):
+    """The mountain lake: water fills the basin up to 1.5 m below its spill level (the dam wall
+    across the outlet gorge counts as ground). Returns (level, mask over the grid, shore polygon);
+    the polygon runs 1 m above the water so the mesh edge tucks under the banks."""
+    from skimage import measure
+    lx, lz, lr, ll = L.LAKE
+    r = 1600.0
+    i0 = int((lx - r - ORIGIN) / STEP); j0 = int((lz - r - ORIGIN) / STEP); n = int(2 * r / STEP)
+    sub = h[j0:j0 + n, i0:i0 + n].astype(np.float64).copy()
+    X = ORIGIN + (np.arange(n) + i0) * STEP; Z = ORIGIN + (np.arange(n) + j0) * STEP
+    XX, ZZ = np.meshgrid(X, Z)
+    ddx = XX - L.DAM[0]
+    sub[(np.abs(ddx) <= 145) & (np.abs(ZZ - (L.DAM[1] - ddx * ddx / 2200.0)) < 9)] = 1e4
+    ci = int((lx - X[0]) / STEP); cj = int((lz - Z[0]) / STEP)
+    dist = np.hypot(XX - lx, ZZ - lz)
+
+    def region(level):
+        lab, _ = ndimage.label(sub < level)
+        k = lab[cj, ci]
+        return (lab == k) if k else None
+    lo, hi = float(sub[cj, ci]), ll
+    for _ in range(32):
+        m = (lo + hi) * 0.5; reg = region(m)
+        if reg is None or (reg & (dist > 1300)).any(): hi = m
+        else: lo = m
+    level = round(lo - 1.5, 2)
+    reg = region(level + 1.0)
+    field = np.where(ndimage.binary_dilation(reg, iterations=2), sub, level + 50.0)
+    best = None
+    for c in measure.find_contours(field, level + 1.0):
+        if best is None or len(c) > len(best): best = c
+    pts = np.stack([X[0] + best[:, 1] * STEP, Z[0] + best[:, 0] * STEP], 1)
+    pts = R.rdp(pts, 5.0)
+    mask = np.zeros(h.shape, np.uint8)
+    mask[j0:j0 + n, i0:i0 + n] = region(level)
+    log("lake level %.1f m (spill %.1f), %.2f km2, shore %d points" % (level, lo, mask.sum() * STEP * STEP / 1e6, len(pts)))
+    return level, mask, [[round(float(p[0]), 1), round(float(p[1]), 1)] for p in pts]
+
+
+def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour, lake):
     os.makedirs(OUT, exist_ok=True)
     h.astype("<f4").tofile(os.path.join(OUT, "height.f32"))
     Image.fromarray(np.round(splat * 255).astype(np.uint8), "RGBA").save(os.path.join(OUT, "splat.png"), optimize=True)
@@ -995,10 +1034,10 @@ def export(h, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, 
         if "pos3" in q:
             landmarks.append({"id": "poi." + q["id"], "kind": q["kind"], "pos": [r2(v) for v in q["pos3"]], "yaw_deg": 0.0})
     # the dam across the lake outlet and the lake itself
-    landmarks.append({"id": "lake.dam", "kind": "dam", "pos": [r2(L.DAM[0]), r2(L.LAKE[3] + 4), r2(L.DAM[1])], "yaw_deg": 0.0})
+    landmarks.append({"id": "lake.dam", "kind": "dam", "pos": [r2(L.DAM[0]), r2(lake[0] + 3), r2(L.DAM[1])], "yaw_deg": 0.0})
     plan = {"version": 1, "grid": {"n": N, "step": STEP, "origin": ORIGIN},
             "surface": {"lattice": LATTICE, "micro_tile": MICRO_TILE, "micro_amp": MICRO_AMP},
-            "lake": {"x": L.LAKE[0], "z": L.LAKE[1], "radius": L.LAKE[2], "level": L.LAKE[3]},
+            "lake": {"x": L.LAKE[0], "z": L.LAKE[1], "radius": L.LAKE[2], "level": lake[0], "polygon": lake[2]},
             "towns": [t.to_json() for t in towns], "hamlets": [t.to_json() for t in hamlets], "roads": roads,
             "sea_lanes": [{"id": ln["id"], "from": ln["from"], "to": ln["to"], "points": [[r2(p[0]), r2(p[1])] for p in ln["points"]]} for ln in lanes],
             "ports": ports, "camps": camps, "landmarks": landmarks}
@@ -1034,11 +1073,12 @@ def main():
     finalise_heights(h2, flat, micro, net, towns + hamlets)
     camps = pick_camps(h2, net, towns + hamlets, flat, micro)
     log("camps", len(camps))
+    lake = lake_fill(h2)
     import outer_paint as PT
-    splat, aux, tint, biome = PT.paint(h2, fields, flat, towns + hamlets, lake_mask)
+    splat, aux, tint, biome = PT.paint(h2, fields, flat, towns + hamlets, lake[1], lake[0])
     rmask = PT.road_mask(net.roads)
     log("painted")
-    export(h2, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour)
+    export(h2, flat, micro, splat, aux, tint, rmask, net, towns, hamlets, lanes, camps, pois, harbour, lake)
     with open(os.path.join(CACHE, "debug.pkl"), "wb") as f:
         pickle.dump({"h": h2.astype(np.float32), "towns": towns + hamlets, "lanes": lanes, "roads": net.roads, "pois": pois}, f)
 

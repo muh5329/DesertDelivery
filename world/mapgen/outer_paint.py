@@ -23,7 +23,7 @@ def slope_of(h):
     return np.hypot(gx, gz)        # rise over run
 
 
-def paint(h, fields, flat, towns, lake_mask, field_mask_out=None):
+def paint(h, fields, flat, towns, lake_mask, lake_level, field_mask_out=None):
     x, z = L.grid()
     s = slope_of(ndimage.gaussian_filter(h, 0.7))
     wN, wS, wE, wW = fields["wN"], fields["wS"], fields["wE"], fields["wW"]
@@ -64,7 +64,7 @@ def paint(h, fields, flat, towns, lake_mask, field_mask_out=None):
     biome[arid & (sand > 0.5)] = DUNES
     biome[land & (beach > 0.5)] = BEACH
     biome[~land] = SEA
-    biome[(lake_mask > 0) & (h < L.LAKE[3] + 0.5)] = LAKE
+    biome[(lake_mask > 0) & (h < lake_level + 0.5)] = LAKE
     # towns
     tmask = np.zeros(h.shape, bool)
     for t in towns:

@@ -69,11 +69,11 @@ func _process(_delta: float) -> void:
 	if cam == null: return
 	var y := cam.global_position.y
 	var s := lerpf(0.62, 0.16, clampf((y - 30.0) / 1500.0, 0.0, 1.0))
-	s = lerpf(s, 0.05, clampf((y - 1500.0) / 6000.0, 0.0, 1.0))
+	s = lerpf(s, 0.025, clampf((y - 1500.0) / 6000.0, 0.0, 1.0))
 	if absf(s - _fog_scale) < 0.01: return
 	_fog_scale = s
 	_env.fog_density = _fog_base * s
-	_env.fog_height_density = _fog_height_base * s
+	_env.fog_height_density = _fog_height_base * s * (1.0 - clampf((y - 150.0) / 1500.0, 0.0, 1.0))
 	if _sea_mat:
 		_sea_mat.set_shader_parameter("fog_density", _fog_base * s)
 		var k := 1.0 + maxf(y, 0.0) / 350.0
@@ -219,13 +219,29 @@ func _build_tile(k: Vector2i) -> void:
 func _build_lake() -> void:
 	if not ground.plan.has("lake"): return
 	var lk: Dictionary = ground.plan.lake
-	var pm := PlaneMesh.new(); pm.size = Vector2(lk.radius * 2.0 + 700.0, lk.radius * 2.0 + 700.0)
-	pm.subdivide_width = 8; pm.subdivide_depth = 8
+	var poly := PackedVector2Array()
+	for p in lk.get("polygon", []): poly.append(Vector2(p[0], p[1]))
+	if poly.size() < 3: return
+	if poly[0].distance_to(poly[poly.size() - 1]) < 1.0: poly.remove_at(poly.size() - 1)
+	var tris := Geometry2D.triangulate_polygon(poly)
+	if tris.is_empty(): return
+	var verts := PackedVector3Array(); var normals := PackedVector3Array()
+	for p in poly:
+		verts.append(Vector3(p.x - lk.x, 0.0, p.y - lk.z)); normals.append(Vector3.UP)
+	var idx := PackedInt32Array()
+	for t in range(0, tris.size(), 3):
+		var a := verts[tris[t]]; var b := verts[tris[t + 1]]; var c := verts[tris[t + 2]]
+		# front faces up (clockwise seen from above)
+		if (b - a).cross(c - a).y < 0.0: idx.append_array(PackedInt32Array([tris[t], tris[t + 1], tris[t + 2]]))
+		else: idx.append_array(PackedInt32Array([tris[t], tris[t + 2], tris[t + 1]]))
+	var arr := []; arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = normals; arr[Mesh.ARRAY_INDEX] = idx
+	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://world/outer/lake.gdshader")
 	var water := MeshInstance3D.new()
 	water.name = "MountainLake"
-	water.mesh = pm; water.material_override = mat
+	water.mesh = mesh; water.material_override = mat
 	water.position = Vector3(lk.x, lk.level, lk.z)
 	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(water)

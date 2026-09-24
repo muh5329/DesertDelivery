@@ -374,7 +374,7 @@ func _define_landmark(lm: Dictionary) -> void:
 		"dam": reach = 170.0
 		"castle_ruin", "monastery": reach = 40.0
 		"oasis", "windmill_site": return
-	if kind in ["lighthouse", "castle_ruin", "monastery", "chapel", "viewpoint", "hut", "watchtower", "dam"]:
+	if kind in ["lighthouse", "castle_ruin", "monastery", "chapel", "viewpoint", "hut", "watchtower", "dam", "gatehouse"]:
 		var lid := StringName(String(lm.id).replace(".", "_"))
 		db.add_location(lid, pos, Vector3(0, 0, 1), _landmark_name(lm))
 		names[lm.id] = _landmark_name(lm)
@@ -388,6 +388,7 @@ func _landmark_name(lm: Dictionary) -> String:
 	match lm.kind:
 		"lighthouse": return "%s Lighthouse" % (tail if not id.begins_with("poi") else tail.replace(" Cape", " Cape"))
 		"dam": return "Lago Alto Dam"
+		"gatehouse": return "Lago Alto Gatehouse"
 		"castle_ruin": return "Castle Ruin" if id.begins_with("poi") else "Castelo de Puerto Alto"
 		"monastery": return "Monasterio de las Nieves"
 		"chapel": return "Pass Chapel"
@@ -418,6 +419,7 @@ func _build_landmark(parent: Node3D, kind: String, pos: Vector3, yaw: float) -> 
 			_landmark_building(parent, origin, pos, yaw, "church", "valdoro", 7.0, 11.0, 2)
 			kit._tower(parent, p + Vector3(0, 0, -7.5), 2.4, 9.0, Color(0.92, 0.90, 0.84))
 		"hut": _landmark_building(parent, origin, pos, yaw, "house", "valdoro", 8.0, 6.0, 1)
+		"gatehouse": _landmark_building(parent, origin, pos, yaw, "house", "campo", 9.0, 7.0, 2)
 		"monastery":
 			kit._cloister(parent, p, 18.0, Color(0.92, 0.88, 0.78))
 			kit._house(parent, p + Vector3(-16, 0, 0), 90.0, 8.0, 20.0, 2, Color(0.92, 0.88, 0.78))
