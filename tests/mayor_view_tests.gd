@@ -43,6 +43,20 @@ func run() -> void:
 	for page in ["Jobs","Areas","Build","Paths"]:
 		view.current_page=page; view.build_page()
 		check(view.content.get_child_count()>2,"actual "+page+" controls built")
+	for page in ["Colony","Build","Trade"]:
+		view.current_page=page; view.build_page()
+		check(view.content.get_child_count()>2,"colony "+page+" page built")
+	view.set_tool("place:cottage")
+	view._update_ghost(game.player.global_position+Vector3(25,0,0))
+	check(view.ghost.visible and view.ghost.mesh!=null,"placement ghost follows the pointer")
+	var esc := InputEventKey.new(); esc.keycode=KEY_ESCAPE; esc.pressed=true
+	view._input(esc)
+	check(view.active and view.tool=="Select" and not view.ghost.visible,"Esc cancels a placement tool before leaving")
+	view.select_colony("puerto_alto",true)
+	check(view.colony_id=="puerto_alto" and Vector2(view.center.x-7800,view.center.z-1600).length()<700,"colony switcher flies to Puerto Alto")
+	view.current_page="Colony"; view.build_page()
+	check(view.content.get_child_count()>2,"charter page for an unfounded town")
+	view.select_colony("core",true)
 	await get_tree().process_frame
 	view.set_tool("zone:Woodcutter")
 	var event := InputEventMouseButton.new()
