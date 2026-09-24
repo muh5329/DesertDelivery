@@ -102,6 +102,9 @@ func _setup_colony() -> void:
 	t.assign()
 	for i in range(900): econ.tick(0.25)
 	for i in range(40): econ.tick(0.25)
+	# keep the last one on its scaffold for the construction shot
+	var last: Dictionary = t.buildings[-1]
+	last.built = false; last.progress = 0.62; t.assign()
 
 
 var lane: Dictionary
@@ -169,7 +172,7 @@ func shot_mayor() -> void:
 	game.player.place(p, Vector3.FORWARD)
 	game.world.set_focus(game.player)
 	game.world.outer.refresh_collision()
-	for i in range(24): await get_tree().physics_frame
+	for i in range(90): await get_tree().physics_frame
 	game.mayor.set_active(true)
 	if not game.mayor.active:
 		push_error("mayor view did not open"); return
@@ -205,9 +208,11 @@ func shot_docked() -> void:
 	var from := at + Vector3(along.x, 0, along.y) * 34.0 + Vector3(out_dir.x, 0, out_dir.y) * 30.0 + Vector3(0, 11, 0)
 	_look(from, at + Vector3(0, 3, 0))
 	await _capture("ship_docked_puerto_alto")
-	# the other side, the schooner against the town
-	var from2 := at - Vector3(along.x, 0, along.y) * 30.0 + Vector3(out_dir.x, 0, out_dir.y) * 26.0 + Vector3(0, 8, 0)
-	_look(from2, at + Vector3(0, 5, 0))
+	# from the water: the schooner alongside the jetty, the colony behind
+	var shore: Vector2 = port.get("shore", moor)
+	var sea := (moor - shore).normalized() if moor.distance_to(shore) > 1.0 else out_dir
+	var from2 := at + Vector3(sea.x, 0, sea.y) * 42.0 + Vector3(along.x, 0, along.y) * 22.0 + Vector3(0, 7, 0)
+	_look(from2, at + Vector3(0, 3, 0) - Vector3(sea.x, 0, sea.y) * 10.0)
 	await _capture("ship_docked_puerto_alto_2")
 
 
@@ -243,6 +248,20 @@ func shot_district() -> void:
 	var from := target - dir * 34.0 + dir.cross(Vector3.UP) * 18.0 + Vector3(0, 13, 0)
 	_look(from, target + dir * 12.0)
 	await _capture("colony_district", 40)
+	# close on a porter carrying produce to the warehouse (or a worker in a yard)
+	var v := econ.views
+	var pick: Node3D = null
+	for id in v.people:
+		var e: Dictionary = v.people[id].plan
+		if e.role == "porter" and (v.people[id].crate as Node3D).visible: pick = v.people[id].node; break
+	if pick == null:
+		for id in v.people:
+			pick = v.people[id].node; break
+	if pick != null:
+		var p := pick.global_position
+		var fwd := -pick.global_basis.z
+		_look(p + fwd * 5.5 + fwd.cross(Vector3.UP) * 3.0 + Vector3(0, 2.6, 0), p + Vector3(0, 1.0, 0))
+		await _capture("colony_porter", 4)
 	var high := centre + Vector3(70, 90, 90)
 	_look(high, centre)
 	await _capture("colony_district_aerial", 30)

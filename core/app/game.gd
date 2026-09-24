@@ -293,6 +293,13 @@ func _on_mayor_active(active: bool) -> void:
 		panels.close(mayor)
 
 
+## Shutdown: townsfolk meshes build on worker threads; a quit with builds in flight must let
+## them finish (a GDScript task still running while the tree goes away hangs the exit).
+func _exit_tree() -> void:
+	PersonBuilder.wait_all()
+	if colony != null and colony.economy != null: colony.economy.shipping.wait()
+
+
 func _on_delivery(_job_id: StringName, total: int) -> void:
 	print("[game] DELIVERY COMPLETED #%d at t=%.1f (odometer %.0f m)" % [total, state.time, rider.vehicle.odometer])
 	if state.autotest and total >= state.need_deliveries:

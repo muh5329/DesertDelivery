@@ -52,7 +52,7 @@ const MAX_BUOYS := 64
 
 func setup(p_econ: ColonyEconomy) -> void:
 	econ = p_econ
-	_yard_mat = StandardMaterial3D.new(); _yard_mat.vertex_color_use_as_albedo = true; _yard_mat.roughness = 0.92
+	_yard_mat = StandardMaterial3D.new(); _yard_mat.vertex_color_use_as_albedo = true; _yard_mat.vertex_color_is_srgb = true; _yard_mat.roughness = 0.92
 	map_root = Node3D.new(); map_root.name = "ColonyMap"; add_child(map_root); map_root.visible = false
 	_lane_meshes = Node3D.new(); map_root.add_child(_lane_meshes)
 	_static_overlay = Node3D.new(); map_root.add_child(_static_overlay)
@@ -69,7 +69,7 @@ func setup(p_econ: ColonyEconomy) -> void:
 	var bm := MultiMesh.new(); bm.transform_format = MultiMesh.TRANSFORM_3D; bm.use_colors = true
 	bm.mesh = _buoy_mesh(); bm.instance_count = MAX_BUOYS; bm.visible_instance_count = 0
 	_buoys.multimesh = bm
-	var buoy_mat := StandardMaterial3D.new(); buoy_mat.vertex_color_use_as_albedo = true; buoy_mat.roughness = 0.6
+	var buoy_mat := StandardMaterial3D.new(); buoy_mat.vertex_color_use_as_albedo = true; buoy_mat.vertex_color_is_srgb = true; buoy_mat.roughness = 0.6
 	_buoys.material_override = buoy_mat
 	add_child(_buoys)
 
@@ -665,6 +665,7 @@ static func _overlay_mat(col: Color, vertex: bool) -> StandardMaterial3D:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.albedo_color = col
 	m.vertex_color_use_as_albedo = vertex
+	m.vertex_color_is_srgb = true
 	m.no_depth_test = true
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.render_priority = 2

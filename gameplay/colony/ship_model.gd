@@ -34,8 +34,8 @@ func build(p_type: String, p_seed: int = 0) -> void:
 	length = 34.0 if type == "coaster" else 30.0
 	beam = 7.0 if type == "coaster" else 6.4
 	if _hull_mat == null:
-		_hull_mat = StandardMaterial3D.new(); _hull_mat.vertex_color_use_as_albedo = true; _hull_mat.roughness = 0.72
-		_sail_mat = StandardMaterial3D.new(); _sail_mat.vertex_color_use_as_albedo = true; _sail_mat.roughness = 0.95
+		_hull_mat = StandardMaterial3D.new(); _hull_mat.vertex_color_use_as_albedo = true; _hull_mat.vertex_color_is_srgb = true; _hull_mat.roughness = 0.72
+		_sail_mat = StandardMaterial3D.new(); _sail_mat.vertex_color_use_as_albedo = true; _sail_mat.vertex_color_is_srgb = true; _sail_mat.roughness = 0.95
 		_sail_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_wake_mat = ShaderMaterial.new(); _wake_mat.shader = _wake_shader()
 	var key := "%s.%d" % [type, _seed % 3]
