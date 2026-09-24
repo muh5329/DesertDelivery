@@ -378,9 +378,7 @@ func check_site(cid: String, type: String, at: Vector3, yaw: float, founding := 
 		if n.y < 0.9: return "Too steep."
 		for p in pts:
 			if game.world.terrain.road_dist_at(p.x, p.y) < 5.5: return "On a road."
-		var road := game.world.terrain.nearest_road(Vector3(at.x, 0, at.z))
-		var rp: Vector3 = road.point
-		if Vector2(rp.x - at.x, rp.z - at.z).length() < reach + 6.0: return "Too close to a road."
+		if _road_within(Vector2(at.x, at.z), reach + 6.0): return "Too close to a road."
 	for other_id in towns:
 		for b in (towns[other_id] as ColonyTown).buildings:
 			if b.get("virtual", false): continue
@@ -405,6 +403,26 @@ func check_site_cached(cid: String, type: String, at: Vector3, yaw: float) -> St
 	var why := check_site(cid, type, at, yaw)
 	_site_cache[key] = why
 	return why
+
+
+## Is any road sample within `radius` of `p`? A bounded look at the Terrain's 8 m road grid
+## (nearest_road searches outward up to ~500 m and then the whole country: 5-30 ms far from
+## roads, which is most of a mountain or farm colony's build area).
+func _road_within(p: Vector2, radius: float) -> bool:
+	var terrain: Terrain = game.world.terrain
+	if terrain._road_grid.is_empty(): terrain.nearest_road(Vector3(p.x, 0, p.y))   # builds the grid
+	var cell := Terrain.ROAD_CELL
+	var c0 := Vector2i(floori((p.x - radius) / cell), floori((p.y - radius) / cell))
+	var c1 := Vector2i(floori((p.x + radius) / cell), floori((p.y + radius) / cell))
+	var r2 := radius * radius
+	for cj in range(c0.y, c1.y + 1):
+		for ci in range(c0.x, c1.x + 1):
+			var list: Variant = terrain._road_grid.get(Vector2i(ci, cj))
+			if list == null: continue
+			for e in list:
+				var q: Vector3 = terrain.road_samples[e[0]][e[1]]
+				if (q.x - p.x) * (q.x - p.x) + (q.z - p.y) * (q.z - p.y) < r2: return true
+	return false
 
 
 func _near_water(at: Vector3, radius: float) -> bool:
