@@ -247,7 +247,8 @@ func _create_portrait_studio() -> void:
 	env.environment.background_color=Color("91aeb0"); env.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color=Color("fff0d1"); env.environment.ambient_light_energy=.7; _portrait_view.add_child(env)
 	var light:=DirectionalLight3D.new(); light.rotation_degrees=Vector3(-35,-35,0); light.light_energy=1.6; _portrait_view.add_child(light)
-	_portrait_model=RiderModel.new(); _portrait_view.add_child(_portrait_model)
+	_portrait_model=RiderModel.new(); _portrait_model.look=CharacterLook.from_seed(0,&"island","")
+	_portrait_view.add_child(_portrait_model)
 	var camera:=Camera3D.new(); _portrait_view.add_child(camera); camera.projection=Camera3D.PROJECTION_ORTHOGONAL
 	camera.size=.93; camera.position=Vector3(-.18,1.60,-3); camera.look_at(Vector3(0,1.51,0)); camera.current=true
 
@@ -258,8 +259,7 @@ func _render_next_portrait() -> void:
 	while not _portrait_queue.is_empty():
 		var id: String=_portrait_queue.pop_front()
 		if not life.by_id.has(id) or _portraits.has(id): continue
-		var colors: Array=life.by_id[id].palette
-		_portrait_model.set_palette(Color(colors[0]),Color(colors[1]),Color(colors[2]),Color(colors[3]))
+		_portrait_model.set_look(CharacterLook.for_resident(life.by_id[id]))
 		_portrait_view.render_target_update_mode=SubViewport.UPDATE_ONCE
 		await RenderingServer.frame_post_draw
 		if not is_inside_tree(): return

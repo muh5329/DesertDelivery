@@ -22,12 +22,12 @@ func setup(record: Resident) -> void:
 	floor_snap_length=.65; floor_max_angle=deg_to_rad(48); safe_margin=.015
 	_body_shape=CollisionShape3D.new(); add_child(_body_shape)
 	_set_collision(record.driving)
-	person = RiderModel.new(); add_child(person)
-	var colors: Array = record.palette
-	person.set_palette(Color(colors[0]), Color(colors[1]), Color(colors[2]), Color(colors[3]))
-	person.set_character_identity(record.id, record.occupation, colors)
+	# Each islander is their own person (CharacterLook), built on the shared animated rig.
+	person = RiderModel.new()
+	person.look = CharacterLook.for_resident(record)
+	person.async_build = true
+	add_child(person)
 	person.enable_resident_lod()
-	person.scale = Vector3.ONE * float(record.scale)
 	car = IslandArt.instantiate("island_car"); add_child(car); car.visible = false
 	for node_name in ["WheelFL", "WheelFR", "WheelRL", "WheelRR"]:
 		var wheel := car.find_child(node_name, true, false) as Node3D
@@ -98,7 +98,7 @@ func _update_visual_pose(record: Resident, delta: float, nearby: bool) -> void:
 	else:
 		person.rotation=Vector3.ZERO
 		person.position = Vector3.ZERO
-		person.scale = Vector3.ONE * float(record.scale)
+		person.scale = Vector3.ONE * person.body_scale
 		for limb in [person.leg_l,person.leg_r,person.arm_l,person.arm_r]:
 			limb.scale = Vector3.ONE; limb.rotation.z = 0; limb.rotation.y = 0
 		person.root.position.z = 0
