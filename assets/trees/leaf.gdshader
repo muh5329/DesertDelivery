@@ -42,6 +42,13 @@ uniform vec3 card_tint : source_color = vec3(1.0);   // material tint for the te
 uniform vec3 far_tint : source_color = vec3(0.81, 0.88, 0.83); // canopy multiplier past far_end (hazed, darker, cooler)
 uniform float far_start = 100.0;
 uniform float far_end = 220.0;
+// Polish pass: seen from under the canopy the lower crown read nearly black (col_dark x the wrap's
+// shade x no sky). Leaves are thin: the sun comes THROUGH a card lit from its far side
+// (translucency, strongest low in the crown where the camera looks up into it), and the crown's
+// underside gets a little of the ground's warm bounce in the ambient floor.
+uniform float translucency : hint_range(0.0, 1.0) = 0.38;
+uniform vec3 translucent_tint : source_color = vec3(0.78, 0.92, 0.42);
+uniform float under_lift : hint_range(0.0, 1.0) = 0.45;
 
 varying float grad;
 varying float jit;
@@ -81,8 +88,9 @@ void fragment() {
 	c *= mix(vec3(1.0), far_tint, smoothstep(far_start, far_end, view_dist));
 	ALBEDO = max(c, vec3(0.0));
 	ROUGHNESS = 1.0;
-	// the flat olive ambient stands in for the sky ambient the render mode switched off
-	EMISSION = ALBEDO * ambient_floor;
+	// the flat olive ambient stands in for the sky ambient the render mode switched off; the lower
+	// crown also catches the ground's bounce
+	EMISSION = ALBEDO * ambient_floor * (1.0 + under_lift * (1.0 - grad));
 }
 
 void light() {
@@ -94,4 +102,9 @@ void light() {
 	float w = clamp((nl + wrap) / (1.0 + wrap), 0.0, 1.0);
 	vec3 shade = ALBEDO * shade_warm;
 	DIFFUSE_LIGHT += mix(shade * 0.55, ALBEDO, w) * LIGHT_COLOR * ATTENUATION;
+	// sun through the leaves: the light behind the card as seen from the camera (view and light on
+	// opposite sides), a soft forward lobe
+	float back = clamp(dot(-VIEW, LIGHT), 0.0, 1.0);
+	float through = pow(back, 2.0) * (0.35 + 0.65 * (1.0 - grad));
+	DIFFUSE_LIGHT += ALBEDO * translucent_tint * through * translucency * LIGHT_COLOR * ATTENUATION;
 }
