@@ -117,6 +117,11 @@ uniform float sky_glow_power = 4.0;
 uniform float sky_glow_wide = 0.35;
 uniform float sky_glow_wide_mul = 0.4;   // sky.gdshader glow_wide_color_mul (at the horizon the wide lobe = az^1.5 x wide x mul)
 uniform float horizon_gain = 1.0;
+// Forward+ (WorldKit.forward_plus): the sky shader's source colours are linearised on upload and
+// its output is linear, so the rendered horizon is lin(colour) x energy, not (colour x energy)
+// linearised as in Compatibility - the far sea came out ~1.5x the sky in linear light and drew a
+// bright band under the horizon from the air (the Mac's aerial view). 1 = rebuild it that way.
+uniform float sky_linear = 0.0;
 
 uniform float alpha_shallow : hint_range(0.0, 1.0) = 0.6;   // r4: 0.75 -> 0.6, a little seabed through the skirt   // r3: the pale seabed showing through 0-1.8 m lit the whole shelf cyan-grey
 uniform float alpha_deep_depth = 1.2;  // fully opaque beyond this vertical depth
@@ -386,7 +391,13 @@ void fragment() {
 		// no upper clamp: the sky shader hands values > 1 to the tonemapper (a clamp here dropped the
 		// blue channel of the far rows and drew a warm band under the sky on the sun side, r3)
 		vec3 hz_srgb = max((sky_horizon_srgb + glow) * sky_energy_mul, 0.0);
-		vec3 horizon_lin = mix(pow(hz_srgb, vec3(2.2)), fog_color_lin, fog_sky_affect) * horizon_gain;
+		vec3 hz_lin = pow(hz_srgb, vec3(2.2));
+		if (sky_linear > 0.5) {
+			vec3 glow_lin = pow(sky_glow_srgb, vec3(2.2)) * pow(gd, sky_glow_power) * sky_glow_amount
+				+ pow(sky_glow_wide_srgb, vec3(2.2)) * pow(gaz, 1.5) * sky_glow_wide * sky_glow_wide_mul;
+			hz_lin = max((pow(sky_horizon_srgb, vec3(2.2)) + glow_lin) * sky_energy_mul, 0.0);
+		}
+		vec3 horizon_lin = mix(hz_lin, fog_color_lin, fog_sky_affect) * mix(horizon_gain, 1.0, sky_linear);
 		float hz_w = max(smoothstep(horizon_fade_start, horizon_fade_end, surf_d), far_t);
 		vec3 fog_col = mix(fog_color_lin, horizon_lin, hz_w);
 		// the engine's sun-side scatter, so the near sea fogs exactly like the rock beside it; faded

@@ -396,6 +396,7 @@ func _build_sea() -> void:
 				mat.set_shader_parameter("sky_glow_wide", A.sky_glow_wide)
 				mat.set_shader_parameter("sky_glow_wide_mul", A.sky_glow_wide_color_mul)
 				mat.set_shader_parameter("horizon_gain", A.sea_horizon_gain)
+				mat.set_shader_parameter("sky_linear", 1.0 if forward_plus() else 0.0)
 	# the glints need the real sun: direction toward it (the light travels along its local -Z)
 	if sun:
 		mat.set_shader_parameter("sun_dir", sun.transform.basis.z)
