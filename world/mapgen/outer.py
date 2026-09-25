@@ -741,8 +741,11 @@ def stage_roads(h, towns, exits, lanes, lake_mask):
     # the gate is not a five-way knot of highways
     # the west spoke joins the ring north of the Isola junction instead of running beside it into
     # the junction (two highways side by side at different heights, M-6)
+    # the south spoke joins the ring 300 m short of Sarmada's gate: the two used to converge in a
+    # long V and share the last 116 m side by side, 0-2 m apart (doubled carriageways at the gate)
     spoke_join = {"north": ("ring.valdoro.campo_real", (-830.0, -4000.0)),
-                  "west": ("ring.sarmada.isola_junction", (-7298.0, 3125.0))}
+                  "west": ("ring.sarmada.isola_junction", (-7298.0, 3125.0)),
+                  "south": ("ring.sarmada.isola_junction", (2641.0, 8271.0))}
     byid = {r["id"]: r for r in net.roads}
     for name, dest in (("north", "valdoro"), ("east", "campo_real"), ("south", "sarmada"), ("west", "isola_junction")):
         ex = exits[name]
