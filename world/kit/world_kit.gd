@@ -1279,11 +1279,13 @@ static func _tier(parts: Array[PropPart], mat: Material, w: float, h: float, y: 
 
 
 # ---------------------------------------------------------------- imported trees
-## Quaternius trees (assets/trees, decimated by world/mapgen/trees.py) as PropParts, so they go
-## through the same per-chunk MultiMesh path as the card trees. Each glTF surface becomes one
-## part: the bark keeps its imported PBR material (multiplied by the instance colour), the leaves
-## get the top-lit leaf shader with the species colours. Tri counts after decimation: TwistedTree
-## ~4.6 k, Pine 1.4–2.1 k; a 60 m chunk should stay under ~150 k, so callers cap per chunk.
+## Quaternius trees (assets/trees: the pack's leaf cards, trees.py; the bark rebuilt as closed
+## procedural tubes by world/mapgen/tree_bark.py) as PropParts, so they go through the same
+## per-chunk MultiMesh path as the card trees. Each glTF surface becomes one part: the bark gets
+## bark.gdshader (the pack's bark and normal maps, multiplied by the instance colour), the leaves
+## the top-lit leaf shader with the species colours. Triangles (bark + leaves): TwistedTree
+## ~2.6-2.9 k + 2.3-2.7 k, Pine 0.35-0.8 k + 0.5-1.2 k; a 60 m chunk should stay under ~150 k, so
+## callers cap per chunk. Far away they are `tree_impostor`s.
 const TREE_DIR := "res://assets/trees/"
 static var _tree_parts_cache: Dictionary = {}
 static var _leaf_shader: Shader
@@ -1380,6 +1382,87 @@ static func _tree_parts(model: String, kind: String, scale: float) -> Array[Prop
 	root.free()
 	_tree_parts_cache[key] = parts
 	return parts
+
+
+## The far version of `_tree_parts(model, kind, scale)`: the model's impostor (baked by
+## world/mapgen/tree_impostors.py into assets/trees/impostors) as ONE mesh of three alpha-cut
+## cards - two crossed vertical ones through the trunk axis, showing the tree from along Z and
+## along X, and a flat one in the crown for the view from above - in the leaf shader's impostor
+## mode, so it takes the kind's palette and light like the near leaves. One draw call per
+## MultiMesh (the old card trees were 4-7), 6 triangles a tree. Card normals lean up and out
+## from the trunk so a crown is lit like a dome on both faces.
+const IMPOSTOR_DIR := "res://assets/trees/impostors/"
+static var _impostor_meta: Dictionary = {}
+static var _impostor_cache: Dictionary = {}
+
+
+static func tree_impostor(model: String, kind: String, scale: float) -> Array[PropPart]:
+	var key := "%s|%s|%.2f" % [model, kind, scale]
+	if _impostor_cache.has(key): return _impostor_cache[key]
+	var parts: Array[PropPart] = []
+	if _impostor_meta.is_empty():
+		var f := FileAccess.open(IMPOSTOR_DIR + "impostors.json", FileAccess.READ)
+		if f: _impostor_meta = JSON.parse_string(f.get_as_text())
+	var meta: Dictionary = _impostor_meta.get(model, {})
+	if meta.is_empty() or not ResourceLoader.exists(IMPOSTOR_DIR + model + ".png"):
+		push_warning("tree impostor missing: " + model)
+		_impostor_cache[key] = parts
+		return parts
+	if _leaf_shader == null: _leaf_shader = load(TREE_DIR + "leaf.gdshader")
+	var look: Array = TREE_LOOK[kind]
+	var lo: Array = meta.bounds[0]; var hi: Array = meta.bounds[1]
+	var mesh := _impostor_mesh(model, meta)
+	var m := ShaderMaterial.new()
+	m.shader = _leaf_shader
+	m.set_shader_parameter("impostor", 1.0)
+	m.set_shader_parameter("imp_tex", TexMips.ensure(load(IMPOSTOR_DIR + model + ".png")))
+	m.set_shader_parameter("imp_bottom", float(look[2]))
+	m.set_shader_parameter("col_dark", look[0])
+	m.set_shader_parameter("col_lit", look[1])
+	m.set_shader_parameter("y_bottom", float(lo[1]) + (float(hi[1]) - float(lo[1])) * float(look[2]))
+	m.set_shader_parameter("y_top", float(hi[1]))
+	m.set_shader_parameter("ambient_floor", Color(.40, .49, .37))
+	parts.append(PropPart.new(mesh, m, Transform3D(Basis().scaled(Vector3(scale, scale, scale)), Vector3.ZERO)))
+	_impostor_cache[key] = parts
+	return parts
+
+
+static var _impostor_meshes: Dictionary = {}
+static func _impostor_mesh(model: String, meta: Dictionary) -> ArrayMesh:
+	if _impostor_meshes.has(model): return _impostor_meshes[model]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cells: Dictionary = meta.cells
+	for axis in ["z", "x", "y"]:
+		var c: Dictionary = cells[axis]
+		var r: Array = c.rect; var uv: Array = c.uv
+		var u0 := float(r[0]); var v0 := float(r[1]); var u1 := float(r[2]); var v1 := float(r[3])
+		var mid := (u0 + u1) * 0.5; var half := maxf((u1 - u0) * 0.5, 0.01)
+		# corners in (u, v) model units and their atlas UVs (row 0 = the top / -Z edge)
+		var corners := [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]
+		var pts: Array[Vector3] = []; var uvs: Array[Vector2] = []; var nrm: Array[Vector3] = []
+		for cr in corners:
+			var u: float = cr[0]; var v: float = cr[1]
+			var tu := lerpf(float(uv[0]), float(uv[2]), (u - u0) / (u1 - u0))
+			var p: Vector3
+			var out: Vector3
+			match axis:
+				"z":
+					p = Vector3(u, v, 0.0); out = Vector3((u - mid) / half, 0.0, 0.0)
+					uvs.append(Vector2(tu, (v1 - v) / (v1 - v0)))
+				"x":
+					p = Vector3(0.0, v, u); out = Vector3(0.0, 0.0, (u - mid) / half)
+					uvs.append(Vector2(tu, (v1 - v) / (v1 - v0)))
+				_:
+					p = Vector3(u, float(c.height), v); out = Vector3.ZERO
+					uvs.append(Vector2(tu, (v - v0) / (v1 - v0)))
+			pts.append(p)
+			nrm.append((Vector3.UP + out * 0.5).normalized())
+		for i in [0, 1, 2, 0, 2, 3]:
+			st.set_normal(nrm[i]); st.set_uv(uvs[i]); st.set_color(Color.WHITE); st.add_vertex(pts[i])
+	var mesh := st.commit()
+	_impostor_meshes[model] = mesh
+	return mesh
 
 
 static var _bark_mats: Dictionary = {}

@@ -5,7 +5,7 @@ extends Node3D
 ##   - 200 m tiles (7 x 7): trees by biome and altitude (pines and firs in the range, oaks, olives,
 ##     cypresses and umbrella pines in the lowlands, palms at the oasis, maquis and scrub in the
 ##     west and the south), boulders, hedgerows and stone walls on the field edges. Near tiles use
-##     the real tree models (Quaternius GLBs via WorldKit._tree_parts), the rest cheap card trees;
+##     the real tree models (Quaternius glTFs via WorldKit._tree_parts), their baked impostors beyond;
 ##   - 64 m tiles (7 x 7) of grass and flower cards.
 ## Nothing grows on roads, pads (the flatten mask), cliffs or in the water. Far forests are the
 ## terrain shader's canopy tint. Every tile reseeds its rng from its coordinate, so a tile that is
@@ -17,7 +17,7 @@ const NEAR := 64.0
 const NEAR_RADIUS := 3
 const TREE_GRID := 7.5              # candidate spacing for trees (m)
 const MAX_TREES := 700
-const FULL_RANGE := 260.0           # real tree models within this distance, cards beyond
+const FULL_RANGE := 260.0           # real tree models within this distance, impostors (WorldKit.tree_impostor) beyond
 const CARD_RANGE := 1250.0
 
 var outer: OuterWorld
@@ -51,14 +51,11 @@ func setup(p_outer: OuterWorld, world_seed: int) -> void:
 
 
 func _make_species() -> void:
-	species.pine = {"full": [WorldKit._tree_parts("Pine_5", "pine", 1.15), WorldKit._tree_parts("Pine_4", "pine", 1.1), WorldKit._tree_parts("Pine_2", "pine", 1.2)],
-		"card": _card_tree("pine_clump", 2.6, 9.0, 0.16, true, Color(0.62, 0.72, 0.52))}
-	species.oak = {"full": [WorldKit._tree_parts("TwistedTree_1", "shade", 0.9), WorldKit._tree_parts("TwistedTree_3", "shade", 0.85)],
-		"card": _card_tree("broadleaf_clump", 6.0, 6.5, 0.22, false, Color(0.8, 0.86, 0.62))}
-	species.olive = {"full": [WorldKit._tree_parts("TwistedTree_2", "olive", 0.55), WorldKit._tree_parts("TwistedTree_3", "olive", 0.5)],
-		"card": _card_tree("olive_clump", 4.2, 3.8, 0.16, false, Color(0.85, 0.88, 0.75))}
-	species.umbrella = {"full": [WorldKit._tree_parts("TwistedTree_1", "umbrella", 1.1), WorldKit._tree_parts("TwistedTree_2", "umbrella", 1.0)],
-		"card": _card_tree("pine_clump", 7.0, 4.5, 0.2, false, Color(0.62, 0.7, 0.5), 7.0)}
+	# far: each model's own impostor (WorldKit.tree_impostor, baked by world/mapgen/tree_impostors.py)
+	species.pine = _model_species([["Pine_5", 1.15], ["Pine_4", 1.1], ["Pine_2", 1.2]], "pine")
+	species.oak = _model_species([["TwistedTree_1", 0.9], ["TwistedTree_3", 0.85]], "shade")
+	species.olive = _model_species([["TwistedTree_2", 0.55], ["TwistedTree_3", 0.5]], "olive")
+	species.umbrella = _model_species([["TwistedTree_1", 1.1], ["TwistedTree_2", 1.0]], "umbrella")
 	species.cypress = {"full": [_cypress()], "card": [_cypress()]}
 	var palm: Array = IslandArt.prop_parts("harbour_palm") if ResourceLoader.exists("res://assets/models/harbour_palm.glb") else []
 	species.palm = {"full": [palm], "card": [palm]}
@@ -98,6 +95,15 @@ func _make_species() -> void:
 		if mesh == null: mesh = _rock_mesh(31 + i)
 		rock_parts.append([WorldKit.PropPart.new(mesh, rmat, Transform3D(Basis().scaled(Vector3(0.5, 0.5, 0.5)), Vector3.ZERO))])
 		desert_rock_parts.append([WorldKit.PropPart.new(mesh, dmat, Transform3D(Basis().scaled(Vector3(0.5, 0.5, 0.5)), Vector3.ZERO))])
+
+
+## A species drawn with the imported tree models near and their impostors far, variant by variant.
+func _model_species(models: Array, kind: String) -> Dictionary:
+	var full: Array = []; var card: Array = []
+	for m in models:
+		full.append(WorldKit._tree_parts(m[0], kind, m[1]))
+		card.append(WorldKit.tree_impostor(m[0], kind, m[1]))
+	return {"full": full, "card": card}
 
 
 func _card_tree(tex: String, w: float, h: float, trunk_r: float, conifer: bool, tint: Color, trunk_h: float = -1.0) -> Array:
@@ -460,7 +466,7 @@ func _emit_tile(k: Vector2i, plan: Dictionary) -> void:
 		for v in range(variants.size()):
 			if buckets[v][0].is_empty(): continue
 			_emit(node, variants[v], buckets[v][0], buckets[v][1], 0.0, FULL_RANGE if is_tree else 420.0, is_tree)
-			if is_tree: _emit(node, set.card[0], buckets[v][0], buckets[v][1], FULL_RANGE, CARD_RANGE, false)
+			if is_tree: _emit(node, set.card[mini(v, set.card.size() - 1)], buckets[v][0], buckets[v][1], FULL_RANGE, CARD_RANGE, false)
 		instance_total += xf.size()
 	var cb: int = plan.cb
 	var rparts: Array = desert_rock_parts if (cb == Terrain.Biome.BADLANDS or cb == Terrain.Biome.DUNES) else rock_parts

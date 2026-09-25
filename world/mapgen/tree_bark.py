@@ -38,7 +38,7 @@ NC = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
 # bark texture width in metres, spiral grain (u repeats per v), flare
 STYLE = {
     "TwistedTree": {"exp": 2.3, "tip": 0.035, "taper": 0.010, "tex_w": 0.9, "twist": 0.18,
-                    "flare": 0.45, "flare_len": 0.8, "lobes": 5, "lobe_amt": 0.12, "sink": 0.35},
+                    "flare": 0.3, "flare_len": 0.7, "lobes": 5, "lobe_amt": 0.12, "sink": 0.35},
     "Pine": {"exp": 2.5, "tip": 0.018, "taper": 0.026, "tex_w": 0.55, "twist": 0.0,
              "flare": 0.3, "flare_len": 0.35, "lobes": 4, "lobe_amt": 0.08, "sink": 0.3},
 }
@@ -267,7 +267,9 @@ def clean(name, nodes, root, H):
         tap = max(rp[c] + st["taper"] * np.linalg.norm(P[c] - P[i]) for c in cs)
         rp[i] = max(pipe, tap)
     ratios = [v["rm"] / rp[i] for i, v in enumerate(out) if v["rm"] and v["n"] >= 8 and rp[i] > 3 * st["tip"]]
-    s = float(np.clip(np.median(ratios), 0.6, 1.8)) if ratios else 1.0
+    # (the decimated surface over-reads the thin limbs' girth; the cap keeps a TwistedTree's
+    # trunk inside the plaza planters, 0.85 m, at its usual scale)
+    s = float(np.clip(np.median(ratios), 0.6, 1.5)) if ratios else 1.0
     # the foot's measure is the flare's; the trunk takes the ratio of its first metres
     for i, v in enumerate(out):
         v["p"] = [round(float(x), 4) for x in P[i]]
@@ -382,7 +384,8 @@ def build(name, nodes, quality=1.0):
                     th = 2 * math.pi * j / ns
                     rad = r
                     if trunk and h < st["flare_len"] * 3:
-                        f = math.exp(-max(h, 0.0) / st["flare_len"])
+                        # (below the foot the flare keeps widening a little: no kink at the ground)
+                        f = min(math.exp(-h / st["flare_len"]), 1.4)
                         rad = r * (1 + st["flare"] * f) * (1 + st["lobe_amt"] * f * max(0.0, math.cos(st["lobes"] * th + 0.7)) ** 2 * 2.0)
                     d = a * math.cos(th) + bvec * math.sin(th)
                     row.append(c + d * rad)

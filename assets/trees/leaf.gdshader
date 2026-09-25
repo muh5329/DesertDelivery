@@ -50,6 +50,16 @@ uniform float translucency : hint_range(0.0, 1.0) = 0.38;
 uniform vec3 translucent_tint : source_color = vec3(0.78, 0.92, 0.42);
 uniform float under_lift : hint_range(0.0, 1.0) = 0.45;
 
+// Far-tree impostors (world/mapgen/tree_impostors.py, WorldKit.tree_impostor): the real model
+// seen from three sides, baked as data, not colour - R the height in the model's bounds, G bark,
+// B crown occlusion, A coverage - so the far card takes this kind's palette, gradient and light
+// exactly like the near tree's leaves. A card seen from behind keeps its own normal (Godot flips
+// it on back faces: the far forests' back-facing cards were lit from below, near black).
+uniform float impostor : hint_range(0.0, 1.0) = 0.0;
+uniform sampler2D imp_tex : filter_linear_mipmap, repeat_disable;
+uniform float imp_bottom = 0.25;        // the kind's y_bottom as a fraction of the model's height
+uniform vec3 imp_bark : source_color = vec3(0.34, 0.26, 0.20);
+
 // DayNight: the olive ambient floor stands in for the sky ambient, so it follows the hour
 global uniform vec3 dn_fill;
 
@@ -74,10 +84,11 @@ void vertex() {
 }
 
 void fragment() {
-	vec4 t = texture(leaf_tex, UV);
+	bool imp = impostor > 0.5;
+	vec4 t = imp ? texture(imp_tex, UV) : texture(leaf_tex, UV);
 	// mip-biased coverage: the alpha of a minified card averages toward the scissor threshold and
 	// the canopy dissolves into confetti; thicken it with the (derivative-estimated) mip level
-	vec2 ts = vec2(textureSize(leaf_tex, 0));
+	vec2 ts = imp ? vec2(textureSize(imp_tex, 0)) : vec2(textureSize(leaf_tex, 0));
 	vec2 ddx = dFdx(UV) * ts; vec2 ddy = dFdy(UV) * ts;
 	float mip = max(0.0, 0.5 * log2(max(dot(ddx, ddx), dot(ddy, ddy))));
 	ALPHA = t.a * (1.0 + mip * 0.2);
@@ -86,7 +97,17 @@ void fragment() {
 	// instead of a stair-stepped, crawling silhouette (m-16)
 	ALPHA_ANTIALIASING_EDGE = 0.25;
 	ALPHA_TEXTURE_COORDINATE = UV * ts;
+	float g = grad;
 	vec3 c = mix(mix(col_dark, col_lit, grad * grad), t.rgb * card_tint, use_tex);
+	if (imp) {
+		g = clamp((t.r - imp_bottom) / max(1.0 - imp_bottom, 0.01), 0.0, 1.0);
+		c = mix(mix(col_dark, col_lit, g * g) * mix(0.62, 1.0, t.b), imp_bark, step(0.5, t.g));
+	}
+	// the baked cards (grass, flowers, bushes, vines, card trees) and the impostors carry an
+	// up-leaning normal meant for both faces: undo Godot's back-face flip, which turned it to
+	// point down - every card seen from behind was lit from below, near black (the Mac's dark
+	// grass tufts, vine rows and far forests)
+	if ((imp || use_tex > 0.5) && !FRONT_FACING) { NORMAL = -NORMAL; }
 	c *= tint * (1.0 + jit * 0.25);
 	// the jitter only ever warms (r up, b down): a cool-shifted leaf would go teal under the fog
 	c.r += abs(jit) * hue_jitter; c.b -= abs(jit) * hue_jitter * 0.6;
@@ -97,7 +118,7 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	// the flat olive ambient stands in for the sky ambient the render mode switched off; the lower
 	// crown also catches the ground's bounce
-	EMISSION = ALBEDO * ambient_floor * (1.0 + under_lift * (1.0 - grad)) * dn_fill;
+	EMISSION = ALBEDO * ambient_floor * (1.0 + under_lift * (1.0 - g)) * dn_fill;
 }
 
 void light() {
