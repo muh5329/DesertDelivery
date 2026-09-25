@@ -209,6 +209,198 @@ func _run() -> void:
 	_check(sig_a == _signature(outer.flora.loaded[key]), "a rebuilt wilderness tile is identical (deterministic)")
 	outer.roads.flush()
 	_check(outer.roads.loaded.size() <= (2 * OuterRoads.RADIUS + 3) * (2 * OuterRoads.RADIUS + 3), "road ribbon tiles bounded (%d)" % outer.roads.loaded.size())
+	cam.queue_free()
+	await _review_regressions()
+
+
+# ---------------------------------------------------------------- review regressions (fixworld)
+const GRADE := {"highway": 0.07, "road": 0.10, "track": 0.14, "street": 0.16}
+const GRADE_X := {"ring.valdoro.campo_real": 0.095, "ring.isola_junction.valdoro": 0.095, "spoke.north": 0.095, "road.dam": 0.12, "road.northwest": 0.12}
+const SHOULDER := {"highway": 1.6, "road": 1.1, "track": 0.7, "street": 0.0}
+const PLOT_STREET_MARGIN := 0.25
+
+
+func _grade12(P: PackedVector3Array, k: int) -> float:
+	var k2 := mini(k + 3, P.size() - 1)
+	var d := Vector2(P[k2].x - P[k].x, P[k2].z - P[k].z).length()
+	return absf(P[k2].y - P[k].y) / d if d > 6.0 else 0.0
+
+
+func _review_regressions() -> void:
+	var plan := outer.ground.plan
+	var t: Terrain = game.world.terrain
+	outer.focus = focus              # (the town streaming check above moved it to the bike)
+	# ---- C-1 / M-6: every road's profile within its grade limit over 12 m (junction knots at the
+	# town gates may reach 1.6 x), bridge ends included, no step over 0.6 m between samples
+	var over := 0; var worst := 0.0; var worst_at := ""; var steps := 0
+	for r in plan.roads:
+		var P := PackedVector3Array()
+		for q in r.points: P.append(Vector3(q[0], q[1], q[2]))
+		var lim: float = GRADE_X.get(r.id, GRADE[r["class"]])
+		for k in range(P.size() - 1):
+			if absf(P[k + 1].y - P[k].y) > lim * 4.0 * 2.0:
+				steps += 1
+				if steps <= 5: print("    step %s k=%d %.2f m" % [r.id, k, P[k + 1].y - P[k].y])
+			var g := _grade12(P, k)
+			if g / lim > worst: worst = g / lim; worst_at = "%s k=%d" % [r.id, k]
+			if g > lim * 1.6 + 0.01: over += 1
+	_check(over == 0 and steps == 0, "C-1/M-6: every road profile within 1.6x its grade limit over 12 m, 2x between samples (%d over, %d steps; worst %.2fx at %s)" % [over, steps, worst, worst_at])
+	var ends := 0; var bad_ends := 0; var worst_end := 0.0
+	for r in plan.roads:
+		var P := PackedVector3Array()
+		for q in r.points: P.append(Vector3(q[0], q[1], q[2]))
+		var lim: float = GRADE_X.get(r.id, GRADE[r["class"]])
+		for span in r.bridges:
+			for e: int in [int(span[0]), int(span[1])]:
+				if (e == 0 or e == P.size() - 1) and String(r.id).begins_with("spoke."): continue    # the core seam (C-4 below)
+				ends += 1
+				var g := 0.0
+				for k in range(maxi(e - 8, 0), mini(e + 6, P.size() - 1)): g = maxf(g, _grade12(P, k))
+				worst_end = maxf(worst_end, g / lim)
+				if g > lim * 1.3 + 0.01: bad_ends += 1
+	_check(ends >= 40 and bad_ends == 0, "C-1: all %d bridge ends ramp within 1.3x the grade limit (%d bad, worst %.2fx)" % [ends, bad_ends, worst_end])
+	# the decks and their approaches line up with the collided world across the carriageway
+	var probed := 0; var gaps := 0; var worst_gap := 0.0; var gap_at := ""
+	for e in outer.roads.roads:
+		if e.nav < 0: continue
+		var P: PackedVector3Array = e.pts
+		var hw: float = float(e.width) * 0.5 * 0.8
+		for span in e.bridges:
+			for end: int in [int(span[0]), int(span[1])]:
+				focus.global_position = P[end]; outer.refresh_collision(); await _settle(1)
+				for k in range(maxi(end - 4, 0), mini(end + 5, P.size())):
+					var a := P[maxi(k - 1, 0)]; var b := P[mini(k + 1, P.size() - 1)]
+					var right := Vector3(-(b.z - a.z), 0.0, b.x - a.x).normalized()
+					for lat: float in [-hw, 0.0, hw]:
+						var q := P[k] + right * lat
+						var hit := _ray(q, 3.0, 6.0)
+						probed += 1
+						var dy: float = (hit.position.y - q.y) if not hit.is_empty() else INF
+						if absf(dy) > worst_gap: worst_gap = absf(dy); gap_at = "%s k=%d lat %.1f" % [e.id, k, lat]
+						if absf(dy) > 0.45: gaps += 1
+	_check(probed > 500 and gaps == 0, "C-1: bridge decks and approaches collide at the profile height across the carriageway (%d rays, %d off, worst %.2f m at %s)" % [probed, gaps, worst_gap, gap_at])
+	# ---- C-3: no plot and no dressing prop in a navigation road's ribbon (+ 1 m; town streets + 0.25 m)
+	var segs := []
+	for e in outer.roads.roads:
+		if e.nav < 0: continue
+		var P: PackedVector3Array = e.pts
+		var c: float = float(e.width) * 0.5 + (PLOT_STREET_MARGIN if e.cls == "street" else SHOULDER.get(e.cls, 0.0) + 1.0)
+		for k in range(P.size() - 1): segs.append([Vector2(P[k].x, P[k].z), Vector2(P[k + 1].x, P[k + 1].z), c, e.id])
+	var grid := {}
+	for i in range(segs.size()):
+		var bb := Rect2(segs[i][0], Vector2.ZERO).expand(segs[i][1]).grow(segs[i][2])
+		for gj in range(floori(bb.position.y / 32.0), floori(bb.end.y / 32.0) + 1):
+			for gi in range(floori(bb.position.x / 32.0), floori(bb.end.x / 32.0) + 1):
+				var gk := Vector2i(gi, gj)
+				if not grid.has(gk): grid[gk] = []
+				grid[gk].append(i)
+	var on_roads := 0; var props_on := 0; var checked := 0
+	for group in ["towns", "hamlets"]:
+		for town in plan[group]:
+			for p in town.plots:
+				var poly := _poly(p)
+				var bb := _bbox(poly)
+				var seen := {}
+				checked += 1
+				for gj in range(floori(bb.position.y / 32.0), floori(bb.end.y / 32.0) + 1):
+					for gi in range(floori(bb.position.x / 32.0), floori(bb.end.x / 32.0) + 1):
+						for i in grid.get(Vector2i(gi, gj), []):
+							if seen.has(i): continue
+							seen[i] = true
+							if _seg_poly_dist(segs[i][0], segs[i][1], poly) < float(segs[i][2]) - 0.01:
+								on_roads += 1
+								print("    plot %s (%s) in the ribbon of %s" % [p.id, p.kind, segs[i][3]])
+			for pr in town.get("props", []):
+				var kind: String = pr[0]
+				if kind == "jetty" or kind == "washing" or kind.begins_with("boat") or kind == "dinghy": continue
+				var q := Vector2(pr[1], pr[3])
+				for i in grid.get(Vector2i(floori(q.x / 32.0), floori(q.y / 32.0)), []):
+					if Geometry2D.get_closest_point_to_segment(q, segs[i][0], segs[i][1]).distance_to(q) < float(segs[i][2]) - 0.3:
+						props_on += 1
+						print("    prop %s at %s in the ribbon of %s" % [kind, q, segs[i][3]])
+						break
+	_check(checked > 1000 and on_roads == 0, "C-3: no plot stands in a navigation road's ribbon, every town and hamlet (%d plots, %d in)" % [checked, on_roads])
+	_check(props_on == 0, "C-3/m-17: no town dressing stands in a navigation road's ribbon (%d)" % props_on)
+	# ---- C-4: the core exits meet the spokes with collision all across the deck, no step
+	for r in plan.roads:
+		if not String(r.id).begins_with("spoke."): continue
+		var p0 := Vector3(r.points[0][0], r.points[0][1], r.points[0][2])
+		var p1 := Vector3(r.points[3][0], r.points[3][1], r.points[3][2])
+		var dir := Vector3(p1.x - p0.x, 0.0, p1.z - p0.z).normalized()
+		var right := Vector3(-dir.z, 0.0, dir.x)
+		focus.global_position = p0; outer.refresh_collision(); await _settle(1)
+		var holes := 0; var step := 0.0
+		for lat: float in [-4.6, -2.3, 0.0, 2.3, 4.6]:
+			var prev := INF
+			for i in range(-40, 41):
+				var q := p0 + dir * float(i) * 0.5 + right * lat
+				var hit := _ray(Vector3(q.x, p0.y + float(i) * 0.5 * (p1.y - p0.y) / maxf(p0.distance_to(p1), 1.0), q.z), 3.0, 4.0)
+				if hit.is_empty(): holes += 1; prev = INF; continue
+				if prev != INF: step = maxf(step, absf(hit.position.y - prev))
+				prev = hit.position.y
+		_check(holes == 0 and step < 0.3, "C-4: the %s seam has a deck all across (%d holes) and no step (%.2f m)" % [r.id, holes, step])
+	var seam_decks := 0
+	for e in outer.roads.roads:
+		if e.get("seam", false): seam_decks += 1
+	_check(seam_decks == 4, "C-4: four seam decks carry the highways over the core exits' bridges (%d)" % seam_decks)
+	# ---- M-5: inland water is water
+	var lk: Dictionary = plan.lake
+	var lpoly := PackedVector2Array()
+	for q in lk.polygon: lpoly.append(Vector2(q[0], q[1]))
+	var deep := Vector3.ZERO; var lo := INF
+	for gz in range(-30, 31):
+		for gx in range(-30, 31):
+			var q := Vector2(float(lk.x) + gx * float(lk.radius) / 30.0, float(lk.z) + gz * float(lk.radius) / 30.0)
+			if not Geometry2D.is_point_in_polygon(q, lpoly): continue
+			var h := outer.height_at(q.x, q.y)
+			if h < lo: lo = h; deep = Vector3(q.x, h, q.y)
+	_check(absf(t.water_level_at(deep.x, deep.z) - float(lk.level)) < 0.01 and float(lk.level) - lo > 20.0, "M-5: the lake's water level is answered over its bed (%.1f m over %.1f)" % [t.water_level_at(deep.x, deep.z), lo])
+	_check(t.water_level_at(12000.0, 0.0) == Terrain.SEA_LEVEL and t.water_level_at(900.0, 0.0) == Terrain.SEA_LEVEL, "M-5: the sea is still at sea level")
+	var deep_river := Vector3.INF; var ford := Vector3.INF
+	for rv in plan.rivers:
+		for k in range(0, rv.points.size(), 6):
+			var q: Array = rv.points[k]
+			var bed := outer.height_at(q[0], q[2])
+			var depth := float(q[1]) - bed
+			if depth > 1.4 and deep_river == Vector3.INF and float(q[1]) > 5.0: deep_river = Vector3(q[0], bed, q[2])
+			if depth > 0.1 and depth < 0.5 and ford == Vector3.INF and float(q[1]) > 5.0: ford = Vector3(q[0], bed, q[2])
+	if deep_river != Vector3.INF:
+		var wl := t.water_level_at(deep_river.x, deep_river.z)
+		_check(wl > deep_river.y + 1.0 and t.vehicle_submerged(deep_river + Vector3.UP * 0.2), "M-5: a deep river reach is water a vehicle can't drive (level %.1f over bed %.1f)" % [wl, deep_river.y])
+	if ford != Vector3.INF:
+		_check(not t.vehicle_submerged(ford + Vector3.UP * 0.1), "M-5: a shallow reach stays a ford (%.2f m deep)" % (t.water_level_at(ford.x, ford.z) - ford.y))
+	# the courier swims in the lake, the bike is fished out of it
+	game.use_scripted_controls()
+	game.vitals.health.invulnerable = 1e9
+	# park the bike, stopped, on a straight of the east spoke (earlier checks leave it anywhere)
+	var sp: PackedVector3Array = outer.roads.roads[outer.roads.by_id["spoke.east"]].pts
+	var dry := sp[400]
+	var dfw := sp[402] - sp[400]; dfw.y = 0.0
+	game.world.set_focus(game.bike); outer.focus = game.bike
+	game.bike.place(dry + Vector3.UP * 0.3, dfw.normalized())
+	outer.refresh_collision()
+	for i in 120:
+		await get_tree().physics_frame
+		game.bike.speed = 0.0
+		if i > 20 and game.rider.request_dismount(): break
+	await _settle(2)
+	game.player.place(deep + Vector3.UP * 0.4, Vector3.FORWARD)
+	game.world.set_focus(game.player); outer.focus = game.player; outer.refresh_collision()
+	for i in 200: await get_tree().physics_frame
+	_check(game.player.swimming and game.player.global_position.y > float(lk.level) - 2.0, "M-5: the courier swims in the mountain lake (swimming %s, at %.1f, surface %.1f, rider mode %d)" % [game.player.swimming, game.player.global_position.y, float(lk.level), game.rider.mode])
+	# back on the bike on dry land, then the bike (ridden) into the lake
+	game.bike.place(dry + Vector3.UP * 0.3, Vector3.FORWARD)
+	game.player.place(dry + Vector3(1.3, 0.4, 0.0), Vector3.FORWARD)
+	game.world.set_focus(game.bike); outer.focus = game.bike; outer.refresh_collision()
+	for i in 180:
+		await get_tree().physics_frame
+		if i > 10 and (game.rider.is_riding() or game.rider.request_mount()): break
+	await _settle(5)
+	var resets: int = game.bike.sea_resets
+	game.bike.place(deep + Vector3.UP * 0.5, Vector3.FORWARD)
+	outer.refresh_collision()
+	for i in 120: await get_tree().physics_frame
+	_check(game.bike.sea_resets > resets and game.bike.global_position.distance_to(deep) > 20.0, "M-5: the bike ridden into the lake is splashed back to a road (riding %s, resets %d -> %d)" % [game.rider.is_riding(), resets, game.bike.sea_resets])
 
 
 ## Overlaps between plots, plots over streets, plots whose y is not their ground.
