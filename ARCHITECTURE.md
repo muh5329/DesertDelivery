@@ -170,7 +170,13 @@ The outer roads are appended to `Terrain.road_samples` / `roads` / `bridges`, so
 the autopilot, traffic, the reset key and `nearest_road` (a coarse 256 m grid answers far from
 the core) cover the whole network. Towns and hamlets are WorldDatabase locations and recipes:
 `BuildingKit.build_group(parent, plots, origin)` builds the plots when
-`res://world/kit/building_kit.gd` exists, a placeholder otherwise. See ADR 0010.
+`res://world/kit/building_kit.gd` exists, a placeholder otherwise; OuterTowns lays a paved apron
+round every plot's foot where no street or plaza is (`OuterRoads.on_ribbon`). Water:
+`Terrain.water_level_at(x, z)` is the sea level or, out here, the mountain lake's or a river's level
+where one covers the point; swimming, the vehicles' splash rule (`Terrain.vehicle_submerged`: inland
+water deeper than a ford) and the respawn's dry check use it. The core exits' bridges, and the last
+14 m of their banks, are drawn and collided as the spokes' concrete decks (`OuterRoads._core_seams`).
+See ADR 0010.
 
 ## The architecture kit
 

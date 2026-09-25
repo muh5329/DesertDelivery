@@ -110,3 +110,37 @@ itself (a bigger world), or finer road beds than 12.5 m can carry.
   level); `Terrain.vehicle_submerged(p)` is the vehicles' splash rule (the sea as before; inland
   water deeper than `FORD_DEPTH` = 0.8 m). Swimming, the bike, the truck and the plane, and the
   respawn "dry" check use them.
+- **The core seams' bank (C-4).** The seam deck also covers the last `SEAM_BANK` = 14 m of the core
+  exit's bank, sampled every 2 m: the core's cut leaves bumps of 0.2-0.4 m at the bridgehead (the
+  north exit's 20 % ramp launched the bike there). On the bank the deck rides the upper envelope of
+  the road's profile and the ground under the carriageway's middle (+3 cm, dips filled, flush with
+  the dirt road where it starts); past a bump it comes down at most 3 %, over the water too, and
+  meets the spoke's deck at the seam.
+- **Decks (C-1).** A deck's profile is eased at runtime (three 1-2-1 passes on its interior samples,
+  `OuterRoads._ease_deck`): the road's profile limits the grade but not its change, and a deck over a
+  gully kinked 8 % at one sample. The parapets flare 1.4 m outward over the last sample at both ends
+  of a deck (not where it runs on into another), so a rider on the approach's shoulder glances off.
+  `tests/bridge_drive.gd` rides every span both ways and the four seams at speed.
+- **Landmarks beside their roads.** The twelve POI buildings stood on their road's end (the bike
+  rode into the dam's gatehouse and the castle ruin; `road.south_plateau` started inside the ruin).
+  `site_landmarks` moves each to the flattest dry spot beside the end that no road ribbon (+2 m) and
+  no plot touches, facing the road; the delivery ring stays at the road's end (landmark `ring`).
+- **Sarmada's colours (M-10).** The kit draws a house's wall from its seed; the generator picks
+  each medina house's seed for the tone (white, sand, ochre, rose) its ~70 m quarter leans to.
+  `world/mapgen/godot_rng.py` replays Godot's PCG32 and `ArchStyles.plan`'s draws
+  (`tests/fw_seed_check.gd` checks it against the kit).
+- **Streets and aprons (M-10).** The main streets carry their town's paving style (they were plan
+  roads without a `style` key, so every town drew Campo Real's). The street shader lays each town's
+  own procedural paving (setts, basket-weave brick, fans, beaten earth with a gutter, whitewashed
+  flags), with pavements and kerbs on the wider streets. `OuterTowns` drapes an apron (paving, then
+  gravel) round every plot's foot, so no building stands straight on the lawn (render only); its
+  cells on a street, a lane or a plaza are left out, and a street is not drawn across a plaza (two
+  surfaces draped a few centimetres apart on different triangulations z-fight). The town style
+  rides to the shader in a flat varying, rounded again per pixel (an interpolated 3.0 compared
+  unequal to 3.0 at some pixels and dithered Sarmada's and Valdoro's streets with Isola's flags).
+- **Sarmada's gate.** The south spoke joins the ring 300 m short of the gate (`spoke_join`): the two
+  highways used to converge in a long V and share their last 116 m side by side, 0-2 m apart.
+- **Rivers (M-11).** `river.gdshader` colours the water by the bed seen through it (absorption per
+  channel), a sky Fresnel and a sun glint, fades the ribbon out over the last centimetres of depth
+  (the waterline follows the bank), and streaks the ripples along the flow; the ribbons are five
+  vertices across and reach 2.5 m under the banks.
