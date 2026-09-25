@@ -1,10 +1,10 @@
 """Bakes the foliage card textures in assets/foliage (RGBA, alpha-cut):
 grass_card (blade tufts for the Terrain3D instancer), flower cards, and leaf clumps for the
 crossed-card tree canopies (pine needles, olive leaves, cypress scales, scrub, heather).
-Run from the project root:  python3 world/mapgen/foliage.py
+Run from the project root:  python3 world/mapgen/foliage.py   (--bleed: only re-bleed the committed cards)
 """
 from PIL import Image, ImageDraw, ImageFilter
-import numpy as np, os, math
+import numpy as np, os, math, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "assets", "foliage")
@@ -22,11 +22,43 @@ def save(name, img, base_light=0.62):
     ramp = np.linspace(1.0, base_light, S, dtype=np.float32)[:, None, None]
     rgb = np.clip(rgb * ramp, 0, 255)
     img = Image.fromarray(np.concatenate([rgb, np.asarray(img)[..., 3:4]], -1).astype(np.uint8), "RGBA")
-    blurred = np.asarray(img.filter(ImageFilter.GaussianBlur(3)))[..., :3].astype(np.float32)
-    rgb = np.where(a > 0.05, rgb, blurred)
-    out = np.concatenate([rgb, np.asarray(img)[..., 3:4]], -1).astype(np.uint8)
+    out = np.concatenate([bleed(rgb, a[..., 0]), np.asarray(img)[..., 3:4]], -1).astype(np.uint8)
     Image.fromarray(out, "RGBA").save(os.path.join(OUT, name + ".png"))
     print("baked", name)
+
+
+def bleed(rgb, a, cut=0.05):
+    """Fills the transparent texels' colour with the nearest visible colour (an alpha-weighted
+    blur at growing radii), leaving every visible texel as it is. A plain blur of the RGBA kept the
+    empty texels near black (~9/255), and the mip chain averaged that black into the card: grass
+    tufts, bushes, vine rows and card trees went dark with distance (the Mac renders)."""
+    rgb = rgb.astype(np.float32)
+    vis = (a > cut).astype(np.float32)
+    out = rgb.copy()
+    filled = vis > 0
+    for r in (1, 2, 4, 8, 16, 32, 64):
+        w = np.asarray(Image.fromarray((vis * 255).astype(np.uint8)).filter(ImageFilter.BoxBlur(r))).astype(np.float32) / 255.0
+        acc = np.stack([np.asarray(Image.fromarray((rgb[..., k] * vis).clip(0, 255).astype(np.uint8)).filter(ImageFilter.BoxBlur(r))).astype(np.float32) for k in range(3)], -1)
+        take = (~filled) & (w > 1e-3)
+        out[take] = acc[take] / w[take][:, None]
+        filled |= take
+    return np.clip(out, 0, 255)
+
+
+def rebleed():
+    """Re-bleeds the committed cards in place (the colour of the transparent texels only)."""
+    for f in sorted(os.listdir(OUT)):
+        if not f.endswith(".png"): continue
+        im = np.asarray(Image.open(os.path.join(OUT, f)).convert("RGBA"))
+        a = im[..., 3].astype(np.float32) / 255.0
+        out = np.concatenate([bleed(im[..., :3], a), im[..., 3:4]], -1).astype(np.uint8)
+        Image.fromarray(out, "RGBA").save(os.path.join(OUT, f))
+        print("bled", f)
+
+
+if "--bleed" in sys.argv:
+    rebleed()
+    sys.exit(0)
 
 
 def blade(draw, x0, y0, x1, y1, w, c0, c1, steps=18):
