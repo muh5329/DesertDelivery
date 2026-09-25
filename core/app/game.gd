@@ -9,7 +9,9 @@ extends Node3D
 ##   ├── WorldManager      terrain / sea / sky resident, everything else streamed by chunk
 ##   ├── EntityManager     registry + simulation tiers (bike, player body, pickups, targets, NPCs...)
 ##   ├── GameplayManager   DeliverySystem, GunSystem, PlayerVitals, EncounterDirector, (Autopilot)
-##   ├── Rider             switches bike / truck / on-foot and routes ControlIntents
+##   ├── Rider             switches bike / jeep / on-foot and routes ControlIntents
+##   ├── HitchSystem       the Cart and what tows it (the Rig)
+##   ├── CargoSystem       the courier's pack, loads and stores (the G panel is CargoPanel under UI)
 ##   ├── ChaseCamera
 ##   ├── BikeAudio         procedural engine shared by the active vehicle
 ##   ├── UI                HUD
@@ -31,7 +33,11 @@ var entities: EntityManager
 var gameplay: GameplayManager
 var rider: Rider
 var bike: Bike
-var truck: Truck
+var jeep: Jeep
+var cart: CargoCart
+var hitch: HitchSystem
+var cargo: CargoSystem
+var cargo_panel: CargoPanel
 var player: Player
 var cam: ChaseCamera
 var audio: BikeAudio
@@ -113,15 +119,23 @@ func _boot_entities() -> void:
 	var spawn := world.road_spawn(world.database.location_pos(&"villa_square") + Vector3(46, 0, 0), world.database.location_pos(&"villa_rosa_office"))   # the straight lane east of the villa, facing the office
 	bike.place(spawn.pos, spawn.forward)
 
-	truck = Truck.new(); truck.name = "CargoTruck"
-	truck.apply_definition(load("res://data/vehicles/truck.tres"))
-	truck.terrain = world.terrain
-	truck.set_meta("always_full", true)
-	entities.register(truck, &"vehicle.truck", &"vehicle")
+	jeep = Jeep.new(); jeep.name = "Jeep"
+	jeep.apply_definition(load("res://data/vehicles/jeep.tres"))
+	jeep.terrain = world.terrain
+	jeep.set_meta("always_full", true)
+	entities.register(jeep, &"vehicle.jeep", &"vehicle")
 	# Park it a short walk behind the starting bike, directly on the same lane.
-	var truck_spawn := world.road_spawn(spawn.pos - spawn.forward * 10.0, spawn.pos)
-	truck.place(truck_spawn.pos, truck_spawn.forward)
-	truck.set_parked(true)
+	var jeep_spawn := world.road_spawn(spawn.pos - spawn.forward * 10.0, spawn.pos)
+	jeep.place(jeep_spawn.pos, jeep_spawn.forward)
+	jeep.set_parked(true)
+
+	# The Cart waits a little further back on the lane, its drawbar toward the jeep.
+	cart = CargoCart.new(); cart.name = "Cart"
+	cart.terrain = world.terrain
+	cart.set_meta("always_full", true)
+	entities.register(cart, &"vehicle.cart", &"vehicle")
+	var cart_spawn := world.road_spawn(spawn.pos - spawn.forward * 18.5, spawn.pos)
+	cart.place(cart_spawn.pos, cart_spawn.forward)
 
 	player = Player.new(); player.name = "Player"
 	player.terrain = world.terrain
@@ -136,6 +150,11 @@ func _boot_entities() -> void:
 
 	world.set_focus(bike)
 	entities.focus = bike
+	cart.focus = bike
+	hitch = HitchSystem.new(); hitch.name = "HitchSystem"; add_child(hitch)
+	var towers: Array[Vehicle] = [bike, jeep]
+	hitch.setup(cart, rider, towers, player)
+	hitch.spawn_pos = cart_spawn.pos; hitch.spawn_forward = cart_spawn.forward
 	rider.mode_changed.connect(func(_from, to): _refocus(to))
 
 
@@ -146,7 +165,7 @@ func _boot_gameplay() -> void:
 	gameplay.delivery.rider = rider
 	gameplay.setup_combat(world, entities, rider)
 	audio = BikeAudio.new(); audio.name = "BikeAudio"; add_child(audio)
-	audio.setup(bike, truck)
+	audio.setup(bike, jeep)
 	gameplay.gun.audio = audio
 
 
@@ -172,6 +191,10 @@ func _boot_ui() -> void:
 	catalogue.setup(life, self)
 	journey = JourneySystem.new(); journey.name = "JourneySystem"; ui.add_child(journey)
 	journey.setup(self)
+	cargo = CargoSystem.new(); cargo.name = "CargoSystem"; add_child(cargo)
+	cargo.setup(self, hitch)
+	cargo_panel = CargoPanel.new(); cargo_panel.name = "CargoPanel"; ui.add_child(cargo_panel)
+	cargo_panel.setup(self, cargo)
 	mayor = MayorView.new(); mayor.name = "MayorView"; ui.add_child(mayor)
 	mayor.setup(self, colony)
 	mayor.active_changed.connect(_on_mayor_active)
@@ -190,7 +213,14 @@ func _wire() -> void:
 	bike.landed.connect(func(impact: float):
 		if impact > 6.0: cam.shake(impact * 0.08)
 		Events.vehicle_landed.emit(&"vehicle.bike", impact))
-	truck.crashed.connect(func(): cam.shake(0.8); Events.vehicle_crashed.emit(&"vehicle.truck"))
+	jeep.crashed.connect(func(): cam.shake(0.8); Events.vehicle_crashed.emit(&"vehicle.jeep"))
+	jeep.landed.connect(func(impact: float):
+		if impact > 6.0: cam.shake(impact * 0.06)
+		Events.vehicle_landed.emit(&"vehicle.jeep", impact))
+	rider.hitch_requested.connect(func(): hitch.toggle())
+	rider.cargo_requested.connect(func(): cargo_panel.toggle())
+	hitch.message.connect(func(t): Events.message.emit(t, 3.5))
+	gameplay.delivery.cart = cart
 	rider.vehicle_changed.connect(func(_from, to):
 		gameplay.delivery.set_vehicle(to)
 		_refocus(rider.mode))
@@ -201,7 +231,10 @@ func _wire() -> void:
 	Saves.register("vitals", gameplay.vitals)
 	Saves.register("combat", gameplay.encounters)
 	Saves.register("bike", bike)
-	Saves.register("truck", truck)
+	Saves.register("jeep", jeep)
+	Saves.alias("truck", "jeep")          # a save from before the Jeep: its truck block moves the jeep
+	Saves.register("cart", hitch)
+	Saves.register("cargo", cargo)
 	Saves.register("rider", rider)
 	Saves.register("island_life", life)
 	Saves.register("catalogue", catalogue)
@@ -214,7 +247,7 @@ func _start() -> void:
 	player_controls = Controls.Keyboard.new()
 	scripted_controls = Controls.Scripted.new()
 	var use_scripted := state.autotest or state.shots_dir != ""
-	rider.setup(bike, truck, player, cam, gameplay.gun, world, scripted_controls if use_scripted else player_controls)
+	rider.setup(bike, jeep, player, cam, gameplay.gun, world, scripted_controls if use_scripted else player_controls)
 	rider.pointer_blocks_actions = func(): return rider.controls == player_controls and mayor.blocks_world_input()
 	if use_scripted:
 		gameplay.enable_autopilot(bike, world.terrain, scripted_controls)
@@ -250,6 +283,7 @@ func _refocus(mode: int) -> void:
 	var f: Node3D = rider.courier()
 	world.set_focus(f)
 	entities.focus = f
+	if cart: cart.focus = f
 
 
 ## Tests and tools call this to take the controls away from the keyboard.

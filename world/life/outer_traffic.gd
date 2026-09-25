@@ -409,7 +409,7 @@ func _couriers() -> Array:
 	var out: Array = []
 	var g := Game.current
 	if g == null: return out
-	for n in [g.bike, g.truck, g.player]:
+	for n in [g.bike, g.jeep, g.cart, g.player]:
 		if n != null and is_instance_valid(n) and n.is_inside_tree(): out.append(n)
 	return out
 

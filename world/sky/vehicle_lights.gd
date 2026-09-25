@@ -2,14 +2,14 @@ class_name VehicleLights
 extends Node3D
 ## Head and tail lamps for a vehicle model (M-12): the model's lamp glass surfaces (by material
 ## name) glow while the lamps are on (`dn_lamps`), and the lamps light the road ahead:
-##   - the courier's bike and truck: a real SpotLight3D (shadows from the quality preset);
+##   - the courier's bike and jeep: a real SpotLight3D (shadows from the quality preset);
 ##   - traffic: a projected pool of light (a Decal's emission, Forward+) - no light per car.
 ## Dark by day: nothing is visible and the node does no work.
 ##
 ## VehicleLights.dress(model, spot) -> VehicleLights (added under `model`, forward = -Z).
 
-const HEAD := ["Headlamp glass", "Car headlamp ivory", "Truck lamp ivory"]
-const TAIL := ["Car tail red", "Amber signal"]
+const HEAD := ["Headlamp glass", "Car headlamp ivory", "Truck lamp ivory", "M_Lamp_White"]
+const TAIL := ["Car tail red", "Amber signal", "M_Lamp_Red"]
 const HEAD_COLOR := Color(1.0, 0.92, 0.76)
 
 ## The quality preset: shadows from the courier's headlight (GraphicsSettings).

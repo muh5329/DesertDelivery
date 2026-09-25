@@ -7,13 +7,13 @@ extends RefCounted
 ## *doing*: axes, look, and which actions were pressed this tick. A `Scheme`, owned by whatever
 ## is being controlled, turns that Reading into an Intent — what it *means* here: S is a brake
 ## on the ground, a pull-up at takeoff speed, and pitch in the air; Space is a handbrake on the
-## bike, a jump on foot, and "place this tetromino" in the truck's cargo rack.
+## bike and the jeep, and a jump on foot.
 ##
 ## That is the inversion. The Keyboard used to be handed a Context describing the vehicle
 ## (wings_out, airborne, at_takeoff_speed, driving_truck, cargo_build_mode) so it could decide
 ## those meanings itself — vehicle state flowing backwards through the seam every tick, and the
-## truck's Tetris mode reaching all the way into the key reader. Now the Bike's meanings live on
-## the Bike and the Truck's on the Truck, and a new vehicle brings its own Scheme with it.
+## old cargo truck's packing mode reaching all the way into the key reader. Now the Bike's meanings live on
+## the Bike and the Jeep's on the Jeep, and a new vehicle brings its own Scheme with it.
 ##
 ## Two adapters produce Intents, so the physics is identical for a human, the autopilot and a test:
 ##   * `Controls.Keyboard` — the real device. The only reader of `Input.*` in the game.
@@ -31,16 +31,14 @@ const INTERACT := &"interact"
 const WINGS := &"wings"
 const RESET := &"reset"
 const WINCH := &"winch"
-const CARGO_MODE := &"cargo"
-const CARGO_PLACE := &"place_cargo"
-const CARGO_ROTATE := &"rotate_cargo"
-const CARGO_REMOVE := &"remove_cargo"
+## Hitch or unhitch the Cart (H), and the load panel (G): the same on foot and at the wheel.
+const HITCH := &"hitch"
+const CARGO := &"cargo"
 
 ## Every device action a Reading carries. One list, read once per tick.
 const ACTIONS: Array[StringName] = [
 	&"accelerate", &"brake", &"steer_left", &"steer_right", &"handbrake", &"jump", &"fire",
-	&"interact", &"transform", &"reset_bike", &"winch", &"cargo_mode", &"cargo_rotate",
-	&"cargo_remove", &"dodge", &"reload",
+	&"interact", &"transform", &"reset_bike", &"winch", &"hitch", &"cargo_panel", &"dodge", &"reload",
 ]
 
 
@@ -60,7 +58,6 @@ class Intent:
 	var aim := false          # held
 	var look := Vector2.ZERO  # free-look delta this tick (radians): x yaw (+ right), y pitch (+ down)
 	var look_back := false
-	var cargo_move := Vector2i.ZERO
 	var commands: Dictionary = {}
 
 	func press(command: StringName) -> void:
@@ -71,7 +68,6 @@ class Intent:
 
 	func clear_edges() -> void:
 		commands.clear()
-		cargo_move = Vector2i.ZERO
 
 	## A field-for-field copy. Reflection rather than a hand-written list, because the list was
 	## the thing most likely to silently drop a newly added field.
@@ -162,9 +158,11 @@ class Keyboard:
 		i.aim = r.aim
 		i.look_back = r.look_back
 		i.look = r.look
-		# Two commands mean the same thing whatever you are sitting on.
+		# Four commands mean the same thing whatever you are sitting on.
 		if r.just(&"interact"): i.press(INTERACT)
 		if r.just(&"reset_bike"): i.press(RESET)
+		if r.just(&"hitch"): i.press(HITCH)
+		if r.just(&"cargo_panel"): i.press(CARGO)
 		if scheme: scheme.map(r, i)
 		return i
 
@@ -209,7 +207,7 @@ class Scripted:
 		return out
 
 
-## Context-safe subset of Red Sea Baron's InputBindings. Q remains the truck
+## Context-safe subset of Red Sea Baron's InputBindings. Q remains the jeep
 ## winch in its own scheme; only Foot translates this action into a dodge.
 ## Reload is V (free on every scheme) and D-pad left on a gamepad (X is jump, B walks back).
 static func install_foot_bindings() -> void:

@@ -235,12 +235,12 @@ func _run() -> void:
 	_check(dressed and life.actors.size()>0,"resident views wear their own look (%d views)"%life.actors.size())
 	# Exercise actual broad-phase bodies, isolated above the terrain so a floor
 	# collision cannot accidentally make these assertions pass.
-	var truck_transform: Transform3D=main.truck.global_transform
+	var jeep_transform: Transform3D=main.jeep.global_transform
 	var bike_transform: Transform3D=main.bike.global_transform
 	var player_transform: Transform3D=main.player.global_transform
-	main.truck.set_physics_process(false); main.bike.set_physics_process(false); main.player.set_physics_process(false)
+	main.jeep.set_physics_process(false); main.bike.set_physics_process(false); main.player.set_physics_process(false)
 	var car_actor:=ResidentActor.new(); main.entities.add_child(car_actor); car_actor.setup(driver)
-	main.truck.global_position=Vector3(0,100,0); main.truck.rotation=Vector3.ZERO
+	main.jeep.global_position=Vector3(0,100,0); main.jeep.rotation=Vector3.ZERO
 	main.bike.global_position=Vector3(30,100,0)
 	main.player.process_mode=Node.PROCESS_MODE_INHERIT
 	main.player.set_physics_process(false)
@@ -248,25 +248,25 @@ func _run() -> void:
 	main.player.global_position=Vector3(60,100,0)
 	car_actor.global_position=Vector3(0,100,8)
 	await get_tree().physics_frame
-	_check(car_actor.test_move(car_actor.global_transform,Vector3(0,0,-8)),"resident vehicle body collides with parked player truck")
-	_check(main.truck.test_move(main.truck.global_transform,Vector3(0,0,8)),"player truck body collides with resident vehicle")
+	_check(car_actor.test_move(car_actor.global_transform,Vector3(0,0,-8)),"resident vehicle body collides with parked player jeep")
+	_check(main.jeep.test_move(main.jeep.global_transform,Vector3(0,0,8)),"player jeep body collides with resident vehicle")
 	car_actor.global_position=Vector3(30,100,8)
 	await get_tree().physics_frame
 	_check(main.bike.test_move(main.bike.global_transform,Vector3(0,0,8)),"player bike body collides with resident vehicle")
 	car_actor.global_position=Vector3(60,100,8)
 	await get_tree().physics_frame
 	_check(main.player.test_move(main.player.global_transform,Vector3(0,0,8)),"walking player collides with resident vehicle")
-	# Restore the real truck onto its road before checking the traffic sensor.
-	main.truck.global_transform=truck_transform
-	main.truck.process_mode=Node.PROCESS_MODE_INHERIT
-	main.truck.set_physics_process(false)
+	# Restore the real jeep onto its road before checking the traffic sensor.
+	main.jeep.global_transform=jeep_transform
+	main.jeep.process_mode=Node.PROCESS_MODE_INHERIT
+	main.jeep.set_physics_process(false)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	var probe:=driver.clone()
-	probe.position=main.truck.global_position+Vector3(0,0,7)
+	probe.position=main.jeep.global_position+Vector3(0,0,7)
 	probe.driving=true
 	var obstacle_distance:=life._obstacle_distance(probe,Vector3.FORWARD,12.0)
-	_check(obstacle_distance<7,"traffic sensor brakes for parked truck independent of current player focus")
+	_check(obstacle_distance<7,"traffic sensor brakes for parked jeep independent of current player focus")
 	car_actor.queue_free()
 	main.bike.global_transform=bike_transform; main.player.global_transform=player_transform
 	life.load_state(original)

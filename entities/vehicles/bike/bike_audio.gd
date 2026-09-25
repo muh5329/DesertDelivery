@@ -5,7 +5,7 @@ extends Node
 ## that grows with speed. Cheap enough to run in GDScript at 22 kHz.
 
 var bike: Bike
-var truck: Truck
+var jeep: Jeep
 var _player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
 var _phase := 0.0
@@ -23,9 +23,9 @@ func play_shot() -> void:
 	_shot = 1.0
 
 
-func setup(p_bike: Bike, p_truck: Truck = null) -> void:
+func setup(p_bike: Bike, p_jeep: Jeep = null) -> void:
 	bike = p_bike
-	truck = p_truck
+	jeep = p_jeep
 	var ambience:=Node.new()
 	ambience.set_script(preload("res://world/life/island_ambience.gd"))
 	ambience.name="IslandAmbience"; add_child(ambience)
@@ -47,10 +47,10 @@ func setup(p_bike: Bike, p_truck: Truck = null) -> void:
 func _process(delta: float) -> void:
 	if not enabled or _playback == null or bike == null:
 		return
-	var driven: Vehicle = truck if truck and not truck.parked else bike
+	var driven: Vehicle = jeep if jeep and not jeep.parked else bike
 	var top_speed := bike.flight_max_speed if driven == bike and bike.airborne else driven.definition.max_speed
 	var sf := clampf(absf(driven.speed) / top_speed, 0.0, 1.0)
-	var driven_throttle: float = bike.throttle if driven == bike else truck.throttle
+	var driven_throttle: float = bike.throttle if driven == bike else jeep.throttle
 	var target_rpm := 0.16 + sf * 0.84 + driven_throttle * 0.10
 	if driven.parked:
 		target_rpm = 0.0

@@ -100,5 +100,31 @@ extends Definition
 @export var flight_thrust := 11.0
 @export var ceiling := 5000.0 # Metres above sea level; clears the outer island highlands.
 
+@export_group("Boost")
+## A short burst tank (seconds of boost, Shift) that refills on its own — the LegendOfJeep's.
+@export var boost_seconds := 0.0
+@export var boost_accel := 0.0          # extra m/s² while boosting
+@export var boost_top := 1.0            # top-speed multiplier while boosting
+@export var boost_refill := 0.35        # seconds of boost regained per second
+
+@export_group("Water")
+## Amphibious: floats and planes across water too deep to ford (PlaningDrive), drives back out
+## where the bed rises again.
+@export var amphibious := false
+@export var water_max_speed := 10.0     # m/s planing, flat out
+@export var water_accel := 3.0
+@export var water_turn_rate := 0.9      # rad/s at planing speed
+@export var float_depth := 0.95         # water deeper than this lifts the hull (m)
+@export var draught := 0.45             # body origin below the waterline while afloat (m)
+
+@export_group("Towing and fuel")
+## Where a towed Cart's drawbar eye sits, in body space (behind the vehicle is +z).
+@export var hitch_offset := Vector3(0, 0.55, 1.3)
+## Towed mass (kg) that halves the top speed; acceleration falls off faster.
+@export var tow_mass_half := 300.0
+## A full tank on the level with nothing aboard (m), and the load (kg) that burns a whole extra tank.
+@export var tank_range_m := 30000.0
+@export var cargo_kg_per_extra_tank := 160.0
+
 @export_group("Look")
 @export var body_colour := Color(0.80, 0.16, 0.14)

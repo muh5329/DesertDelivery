@@ -7,12 +7,39 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 
 - **Rider** — the boy. Also the name of the module (`scripts/rider.gd`) that owns what he is
   doing right now and every transition between those states.
-- **Mode** — the Rider's state: `RIDING`, `FLYING`, `ON_FOOT`, `SWIMMING`. Only the Rider changes it;
+- **Mode** — the Rider's state: `RIDING`, `DRIVING` (the Jeep), `FLYING`, `ON_FOOT`, `SWIMMING`. Only the Rider changes it;
   everyone else reads `rider.mode` or reacts to `mode_changed(from, to)`.
 - **Bike** — the red courier motorbike (`scripts/bike.gd`). Has **wings** that fold out (plane
   mode); when the wings are out and the bike is airborne the Rider is `FLYING`. A **parked** bike is
   one the Rider has hopped off.
+- **Jeep** — the courier's amphibious 4x4 (`Jeep`, from LegendOfJeep; it replaced the cargo
+  truck). Parked a short walk behind the starting bike. **Boost** (Shift) is a short burst tank
+  that refills; the **winch** on its front bumper (Q) hooks an obstacle ahead and pulls; its
+  **bed** behind the seats holds a small load. **Afloat** — in water too deep to ford it floats
+  (the **pontoons** swing down, the **propellers** fold out: the amphibious **transformation**)
+  and **planes** on its `PlaningDrive`, slower than on land, until the bed rises under its front
+  wheels again (a beach, a slipway).
+- **Cart** — the two-wheeled load bed from Red Sea Baron (`CargoCart`): a plank bed, slatted
+  sides, a canopy rolled over its front third, a drawbar. **Hitched** to the bike or the Jeep
+  (H, stopped, backed up so its drawbar eye is at the vehicle's **hitch**), otherwise parked.
+- **Rig** — a tow vehicle and the Cart hitched behind it, as one assembly (Red Sea Baron's
+  word). Recoveries, respawns and saves act on the rig. A rig cannot fly (the wings stay folded)
+  and cannot float (a cart sinks: deep water is a splash).
+- **Drawbar / tether** — the cart is always solved to sit a drawbar's length behind the hitch,
+  along the real axle-to-hitch line; the tow vehicle may not get further from the cart's axle
+  than hitch + drawbar + slack (`GroundDrive.tether_*`), so an over-stretched drawbar slows it.
+- **Hold** — somewhere goods are: the courier's **pack** (30 kg), the Jeep's bed (120 kg), the
+  Cart (240 kg) — each an `Inventory` — or a **store**: a colony's hall or warehouse (its stock,
+  free to its mayor) or a road station's / courier counter's **shop** (fuel cans and ammunition
+  crates for coins). The **load panel** (G) moves goods between the holds in reach.
+- **Item** — one kind of carried thing (`ItemDefinition`): every colony good (timber, planks,
+  stone blocks, tools, bread, fish, cloth...) plus the courier's **equipment**: an **ammunition
+  crate** (four Garand clips) and a **fuel can** (a quarter tank). **Using** one (U in the panel)
+  refills the pouch or pours the can into the vehicle.
 - **Package** — rides on the bike's rear rack between a **pickup ring** and a **drop-off ring**.
+  Or in the Cart: a heavy or urgent load collected with the cart hitched goes straight into it,
+  the panel can move it between the courier and the cart, and the cart in the drop-off ring hands
+  it over.
 - **Job** — one pickup → drop-off pair. Fifteen chain across the core and the country (`DeliverySystem`).
 - **Garand** — the courier's M1 Garand, his rifle from the start (`GunSystem`, `GarandModel`).
   **Slung** on his back, **shouldered** while aiming (ADS), at the **hip** for snap shots. Fed by
@@ -33,8 +60,8 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Vitals** — the courier's `Health` (regenerating), **knocked out** at zero: fade, **respawn** on
   the nearest road to the **last safe spot**, a small coin penalty, a moment of invulnerability.
   Saved with the game (a quick load is not a heal).
-- **Tank / fuel** — the bike's fuel (`JourneySystem`): 30 km a tank, more with cargo, 1.6x in
-  flight; **limp** at 25 km/h when empty. **Station** — a fuel stop (`RoadServices`): a **town
+- **Tank / fuel** — each vehicle's own (`JourneySystem`): the bike 30 km a tank, the Jeep 40 km (2.2x afloat); a load, a towed Cart and a flight (1.6x)
+  burn more; **limp** at walking pace when empty; a **fuel can** adds a quarter tank. **Station** — a fuel stop (`RoadServices`): a **town
   station** at each town's edge (pumps, a shop that is the **coach & ferry office**), a **service
   stop** on the highways, or a courier counter. **Coach / ferry ticket** — fast travel to a
   visited town with the bike on the roof rack, for coins and game time.
@@ -54,7 +81,7 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 
 - **ControlIntent** (`Controls.Intent`) — everything the rider asks for in one physics tick:
   throttle, brake, steer, pitch, move, run, aim, look, and the edge-triggered presses (jump, fire,
-  reload, interact, wings, reset). Physics modules consume intents; they never read `Input`.
+  reload, interact, wings, reset, winch, hitch, cargo). Physics modules consume intents; they never read `Input`.
 - **ControlSource** (`Controls.Source`) — the seam that produces intents. Two adapters:
   **Keyboard** (`Controls.Keyboard`, the only reader of `Input.*` and the only place a key's meaning
   per mode is decided) and **Scripted** (`Controls.Scripted`, driven by the Autopilot and the tests).
@@ -62,7 +89,7 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 
 ## Camera
 
-- **Framing** — how the camera looks at its target: `BIKE`, `FOOT`, `SWIM`, `PLANE`
+- **Framing** — how the camera looks at its target: `BIKE`, `FOOT`, `SWIM`, `PLANE`, `JEEP`
   (`ChaseCamera.Framing`, a data table). Chase framings ease behind the target; orbit framings
   (foot, swim) make the view direction exactly (yaw, pitch) so the crosshair and `view_ray()` agree.
 - **Aiming** — the over-the-shoulder framing while the aim button is held.
@@ -164,7 +191,7 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Traffic** — the vehicles on the outer roads round the viewer (`OuterTraffic`): car, lorry,
   bus, tractor, donkey cart. A **gate** is where a town's main street meets the country road.
 - **Fishing boat** — a boat of an outer harbour (`OuterBoats`): mooring, trip out, fishing ground.
-- **Urgent supply job** — an optional truck delivery a short colony posts (`UrgentSupply`):
+- **Urgent supply job** — an optional **cargo** delivery (the Jeep, or a rig towing the Cart) a short colony posts (`UrgentSupply`):
   "Urgent: 20 bread to Isola Serena", taken with U.
 
 ## Colonies (ADR 0011)

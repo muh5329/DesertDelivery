@@ -2,7 +2,7 @@ class_name GroundDrive
 extends RefCounted
 ## Driving a wheeled thing over the island: one ControlIntent in, one tick of kinematics out.
 ##
-## This is the whole of what the Bike and the Truck used to have in common — throttle and brake,
+## This is the whole of what the Bike and the old cargo truck used to have in common — throttle and brake,
 ## the reverse latch, drag and slope, steering and drift, wheel rays, ground contact, wall scrubs,
 ## landings, and getting back on a road after a swim. Both of them had their own copy of it, and
 ## the copies had drifted. Now there is one implementation and two `.tres` files.
@@ -17,12 +17,12 @@ extends RefCounted
 ##   recover_to_road(away_from_sea)      nearest road point, facing sensibly
 ##   speed / yaw / pitch / grounded / ground_normal / slip / air_time / odometer / steer / …
 ##
-## The owner decides what a Tick *means*: the Bike emits `landed`, the Truck turns a hard landing
+## The owner decides what a Tick *means*: the Bike emits `landed`, the Jeep turns a hard landing
 ## into `crashed`. The drive itself has no signals and knows nothing about wings, cargo or winches.
 
 
 ## Per-tick performance modifiers. The owner recomputes these from whatever it cares about —
-## the Bike from its fuel, engine level and cargo mass, the Truck from how full the rack is —
+## the Bike from its fuel, engine level and cargo mass, the Jeep from its bed, tank and boost —
 ## so the drive never learns about the economy.
 class Mods extends RefCounted:
 	var top_speed := 27.0          ## forward ceiling this tick (m/s), before `overspeed`
@@ -66,12 +66,16 @@ var intent: Controls.Intent = Controls.Intent.new()
 var mods := Mods.new()
 var terrain: Terrain
 
-## Set by the owner before step() for one tick of external help — the Truck's winch cable.
+## Set by the owner before step() for one tick of external help — the Jeep's winch cable.
 var extra_velocity := Vector3.ZERO
 ## While true, a wall hit pushes the body up instead of scrubbing speed (winching up a face).
 var climbing := false
 ## Floor under this tick's vertical velocity, so a high winch anchor can lift the body.
 var min_vertical := -INF
+## A towed Cart's axle, and the drawbar's reach from the body origin: the body may not move
+## further away than this (Red Sea Baron's rule). INF while nothing is towed.
+var tether_anchor := Vector3.ZERO
+var tether_length := INF
 
 var _body: CharacterBody3D
 var _def: VehicleDefinition
@@ -261,7 +265,7 @@ func step(delta: float) -> Tick:
 			vel.y = vertical_vel
 		vel += extra_velocity
 		if min_vertical > -INF: vel.y = maxf(vel.y, min_vertical)
-		_body.velocity = vel
+		_body.velocity = apply_tether(vel, delta)
 		_body.move_and_slide()
 
 		_was_grounded = grounded
@@ -310,6 +314,23 @@ func step(delta: float) -> Tick:
 	extra_velocity = Vector3.ZERO
 	min_vertical = -INF
 	return tick
+
+
+## The drawbar never stretches: whatever part of this tick's velocity would carry the body beyond
+## the tether is taken away, and `speed` follows, so an over-stretched drawbar slows the rig.
+func apply_tether(vel: Vector3, delta: float) -> Vector3:
+	if tether_length == INF: return vel
+	var away := _body.global_position - tether_anchor
+	away.y = 0.0
+	var d := away.length()
+	if d < 0.01: return vel
+	var n := away / d
+	var radial := vel.x * n.x + vel.z * n.z
+	var allowed := maxf(0.0, (tether_length - d) / maxf(delta, 1e-4))
+	if radial > allowed:
+		vel -= n * (radial - allowed)
+		speed = signf(speed) * minf(absf(speed), Vector2(vel.x, vel.z).length())
+	return vel
 
 
 ## Average wheel-ray contact height, or NAN when no wheel is touching anything.
@@ -401,6 +422,7 @@ func _move_suspended(delta: float, fwd: Vector3, tick: Tick) -> void:
 	var before_contact := vertical_vel
 	_body.velocity = _planar_velocity + Vector3.UP * vertical_vel + extra_velocity
 	if min_vertical > -INF: _body.velocity.y = maxf(_body.velocity.y, min_vertical)
+	_body.velocity = apply_tether(_body.velocity, delta)
 	_body.move_and_slide()
 	grounded = supported or _body.is_on_floor()
 	if grounded:

@@ -1,7 +1,7 @@
 class_name Rider
 extends Node
 ## The Rider (the player's controller): the one owner of "what is the boy doing right now" and of every transition
-## between bike riding, truck driving, flying, walking and swimming. Everything else — vehicles, player, camera, HUD,
+## between bike riding, jeep driving, flying, walking and swimming. Everything else — vehicles, player, camera, HUD,
 ## audio, delivery loop — either receives a ControlIntent from here or reacts to `mode_changed`.
 ##
 ## Interface:
@@ -26,11 +26,14 @@ enum Mode { RIDING, FLYING, ON_FOOT, SWIMMING, DRIVING }
 signal mode_changed(from: int, to: int)
 signal message(text: String, duration: float)
 signal vehicle_changed(from: Vehicle, to: Vehicle)
+## H and G: the HitchSystem and the CargoSystem answer them (the Rider only routes the press).
+signal hitch_requested
+signal cargo_requested
 
 var mode: int = Mode.RIDING
 var controls: Controls.Source
 var bike: Bike
-var truck: Truck
+var jeep: Jeep
 var vehicle: Vehicle
 var player: Player
 var cam: ChaseCamera
@@ -48,8 +51,8 @@ func _init() -> void:
 	process_physics_priority = -40
 
 
-func setup(p_bike: Bike, p_truck: Truck, p_player: Player, p_cam: ChaseCamera, p_gun: GunSystem, p_world: WorldManager, p_controls: Controls.Source) -> void:
-	bike = p_bike; truck = p_truck; vehicle = bike
+func setup(p_bike: Bike, p_jeep: Jeep, p_player: Player, p_cam: ChaseCamera, p_gun: GunSystem, p_world: WorldManager, p_controls: Controls.Source) -> void:
+	bike = p_bike; jeep = p_jeep; vehicle = bike
 	player = p_player; cam = p_cam; gun = p_gun; world = p_world
 	message.connect(func(t, d): Events.message.emit(t, d))
 	mode_changed.connect(func(a, b): Events.rider_mode_changed.emit(a, b))
@@ -57,9 +60,11 @@ func setup(p_bike: Bike, p_truck: Truck, p_player: Player, p_cam: ChaseCamera, p
 	bike.took_off.connect(func(): _set_mode(Mode.FLYING))
 	bike.landed_plane.connect(func(): if mode == Mode.FLYING: _set_mode(Mode.RIDING))
 	bike.fell_in_sea.connect(func(): if mode == Mode.FLYING: _set_mode(Mode.RIDING))
-	truck.fell_in_sea.connect(func(): message.emit("Splash! The truck is back on the road.", 3.0))
-	truck.denied.connect(func(t): message.emit(t, 3.0))
-	truck.winch_changed.connect(func(attached, distance):
+	jeep.fell_in_sea.connect(func(): cam.snap_to_target(); message.emit("Splash! A cart can't float: the rig is back on the road.", 3.5))
+	jeep.denied.connect(func(t): message.emit(t, 3.0))
+	jeep.water_entered.connect(func(): message.emit("Afloat! The pontoons are down: W/S throttle, A/D rudder. Drive up a beach to climb out.", 4.5))
+	jeep.water_exited.connect(func(): message.emit("Wheels on the ground again.", 2.0))
+	jeep.winch_changed.connect(func(attached, distance):
 		if attached: message.emit("Winch anchored %.0f m ahead — pulling now. Q detaches." % distance, 3.0)
 		else: message.emit("Winch released.", 1.5))
 	player.entered_water.connect(func(): if mode == Mode.ON_FOOT: _set_mode(Mode.SWIMMING))
@@ -135,6 +140,8 @@ func _physics_process(delta: float) -> void:
 	if i.pressed(Controls.RESET):
 		request_reset()
 		return
+	if i.pressed(Controls.HITCH): hitch_requested.emit()
+	if i.pressed(Controls.CARGO): cargo_requested.emit()
 	if is_riding():
 		_aiming = false
 		if i.pressed(Controls.WINGS) and vehicle == bike:
@@ -162,6 +169,10 @@ func _physics_process(delta: float) -> void:
 # ---------------------------------------------------------------- transitions
 func request_dismount() -> bool:
 	if not is_riding(): return false
+	var blocked := vehicle.exit_block()
+	if blocked != "":
+		message.emit(blocked, 2.5)
+		return false
 	if (vehicle == bike and bike.airborne) or not vehicle.grounded:
 		message.emit("Not while airborne!", 1.5)
 		return false
@@ -174,7 +185,7 @@ func request_dismount() -> bool:
 		return false
 	player.place(spot, vehicle.flat_forward())
 	_set_mode(Mode.ON_FOOT)
-	message.emit("On foot. Press E beside the bike or truck to drive it.", 3.5)
+	message.emit("On foot. Press E beside the bike or the jeep to drive it; G by a cart or a store moves goods.", 3.5)
 	return true
 
 
@@ -182,10 +193,10 @@ func request_mount() -> bool:
 	if mode != Mode.ON_FOOT:
 		return false
 	var bike_distance := player.global_position.distance_to(bike.global_position)
-	var truck_distance := player.global_position.distance_to(truck.global_position)
-	var chosen: Vehicle = bike if bike_distance <= truck_distance else truck
+	var jeep_distance := player.global_position.distance_to(jeep.global_position)
+	var chosen: Vehicle = bike if bike_distance <= jeep_distance else jeep
 	if player.global_position.distance_to(chosen.global_position) > 2.9:
-		message.emit("Walk up to the bike or truck and press E.", 2.0)
+		message.emit("Walk up to the bike or the jeep and press E.", 2.0)
 		return false
 	if not chosen.grounded or absf(chosen.speed) > 2.5:
 		message.emit("Wait until the vehicle is safely stopped.", 2.0)
@@ -198,8 +209,8 @@ func request_mount() -> bool:
 		return false
 	_set_vehicle(chosen)
 	_set_mode(Mode.RIDING if chosen == bike else Mode.DRIVING)
-	if chosen == truck:
-		message.emit("Truck ready. Q fires the winch; stop and press G to pack the cargo bed.", 5.0)
+	if chosen == jeep:
+		message.emit("Jeep ready. Shift boosts, Q fires the winch, H hitches the cart; it floats: drive into the sea.", 5.0)
 	return true
 
 
@@ -269,16 +280,16 @@ func _apply_mode_effects(to: int) -> void:
 	cam.set_look_back(false)
 	var riding := to == Mode.RIDING or to == Mode.FLYING or to == Mode.DRIVING
 	bike.set_parked(not riding or vehicle != bike)
-	truck.set_parked(not riding or vehicle != truck)
+	jeep.set_parked(not riding or vehicle != jeep)
 	bike.set_rider_visible(riding and vehicle == bike)
-	truck.set_rider_visible(riding and vehicle == truck)
+	jeep.set_rider_visible(riding and vehicle == jeep)
 	player.visible = not riding
 	player.process_mode = Node.PROCESS_MODE_DISABLED if riding else Node.PROCESS_MODE_INHERIT
 	gun.set_visible_on_player(not riding)
 	match to:
 		Mode.RIDING:   cam.follow(bike, ChaseCamera.Framing.PLANE if bike.wings_out else ChaseCamera.Framing.BIKE)
 		Mode.FLYING:   cam.follow(bike, ChaseCamera.Framing.PLANE)
-		Mode.DRIVING:  cam.follow(truck, ChaseCamera.Framing.TRUCK)
+		Mode.DRIVING:  cam.follow(jeep, ChaseCamera.Framing.JEEP)
 		Mode.ON_FOOT:  cam.follow(player, ChaseCamera.Framing.FOOT)
 		Mode.SWIMMING: cam.follow(player, ChaseCamera.Framing.SWIM); message.emit("Swimming — head back to the shore to climb out.", 3.0)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if not riding else Input.MOUSE_MODE_VISIBLE
@@ -307,7 +318,7 @@ func _dismount_spot() -> Variant:
 
 # ---------------------------------------------------------------- persistence
 func save_state() -> Dictionary:
-	return {"mode": mode, "vehicle": "truck" if vehicle == truck else "bike", "player_pos": player.global_position, "player_forward": player.flat_forward(),
+	return {"mode": mode, "vehicle": "jeep" if vehicle == jeep else "bike", "player_pos": player.global_position, "player_forward": player.flat_forward(),
 		"stamina": player.stamina, "sprint_exhausted": player.sprint_exhausted, "regen_delay": player.regen_delay}
 
 
@@ -319,10 +330,10 @@ func load_state(d: Dictionary) -> void:
 	player.regen_delay = clampf(saved_delay, 0.0, .65) if is_finite(saved_delay) else 0.0
 	var m: int = int(d.get("mode", Mode.RIDING))
 	if m == Mode.FLYING: m = Mode.RIDING
-	_set_vehicle(truck if d.get("vehicle", "bike") == "truck" else bike)
+	_set_vehicle(jeep if String(d.get("vehicle", "bike")) in ["jeep", "truck"] else bike)
 	if m == Mode.ON_FOOT or m == Mode.SWIMMING:
 		player.place(d.get("player_pos", bike.global_position + Vector3(1.2, 0, 0)), d.get("player_forward", bike.flat_forward()))
 		_set_mode(Mode.ON_FOOT)
 	else:
-		_set_mode(Mode.DRIVING if vehicle == truck else Mode.RIDING)
+		_set_mode(Mode.DRIVING if vehicle == jeep else Mode.RIDING)
 	cam.snap_to_target()

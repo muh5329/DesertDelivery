@@ -105,10 +105,9 @@ func _check_intent_seam() -> void:
 	var i := source.intent
 	i.throttle = 0.3; i.brake = 0.4; i.steer = -0.5; i.pitch = 0.6
 	i.boost = true; i.handbrake = true; i.run = true; i.aim = true; i.look_back = true
-	i.move = Vector2(0.1, 0.2); i.look = Vector2(0.3, 0.4); i.cargo_move = Vector2i(1, -1)
+	i.move = Vector2(0.1, 0.2); i.look = Vector2(0.3, 0.4)
 	for c in [Controls.JUMP, Controls.FIRE, Controls.INTERACT, Controls.WINGS, Controls.RESET,
-			Controls.WINCH, Controls.CARGO_MODE, Controls.CARGO_PLACE, Controls.CARGO_ROTATE,
-			Controls.CARGO_REMOVE]:
+			Controls.WINCH, Controls.HITCH, Controls.CARGO]:
 		i.press(c)
 	var expected := {}
 	for p in i.get_property_list():
@@ -121,13 +120,12 @@ func _check_intent_seam() -> void:
 	_check(missed.is_empty(), "every Intent field survives the scripted seam%s" % ("" if missed.is_empty() else " (dropped: %s)" % ", ".join(missed)))
 	var carried := true
 	for c in [Controls.JUMP, Controls.FIRE, Controls.INTERACT, Controls.WINGS, Controls.RESET,
-			Controls.WINCH, Controls.CARGO_MODE, Controls.CARGO_PLACE, Controls.CARGO_ROTATE,
-			Controls.CARGO_REMOVE]:
+			Controls.WINCH, Controls.HITCH, Controls.CARGO]:
 		carried = carried and out.pressed(c)
 	_check(carried, "every named command survives the scripted seam")
-	_check(not i.pressed(Controls.FIRE) and i.cargo_move == Vector2i.ZERO, "reading clears the edges behind it")
+	_check(not i.pressed(Controls.FIRE) and not i.pressed(Controls.HITCH), "reading clears the edges behind it")
 	# The schemes belong to the things being controlled, not to the keyboard.
-	_check(main.bike.control_scheme() is Bike.BikeScheme and main.truck.control_scheme() is Truck.TruckScheme,
+	_check(main.bike.control_scheme() is Bike.BikeScheme and main.jeep.control_scheme() is Jeep.JeepScheme,
 		"each vehicle brings its own control Scheme")
 
 

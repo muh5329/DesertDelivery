@@ -77,16 +77,16 @@ func _run() -> void:
 	check(gm.stage==DeliverySystem.Stage.DONE and gm.target_location()==&"" and gm.coins==expected_coins,"completed job set reloads without a phantom target")
 	gm._complete_stage()
 	check(gm.deliveries==gm.jobs.size() and gm.coins==expected_coins,"completed job cannot pay twice")
-	# Truck must be the active courier vehicle, including after swapping while carrying.
+	# The jeep must be the active courier vehicle, including after swapping while carrying.
 	gm.load_state(saved)
 	game.bike.place(gm.target_position()+Vector3(20,0,0),Vector3.FORWARD)
 	await get_tree().physics_frame
 	game.rider.request_dismount()
-	game.truck.place(game.player.global_position+Vector3(1,0,0),Vector3.FORWARD)
+	game.jeep.place(game.player.global_position+Vector3(1,0,0),Vector3.FORWARD)
 	game.rider.request_mount()
-	check(gm.vehicle==game.truck and gm.carrying,"carried job follows a switch to the truck")
-	game.truck.place(gm.target_position(),Vector3.FORWARD)
+	check(gm.vehicle==game.jeep and gm.carrying,"carried job follows a switch to the jeep")
+	game.jeep.place(gm.target_position(),Vector3.FORWARD)
 	await settle(1.2)
-	check(gm.deliveries==1 and gm.coins==40,"truck handoff completes through real overlap and stop")
+	check(gm.deliveries==1 and gm.coins==40,"jeep handoff completes through real overlap and stop")
 	print("DELIVERY TESTS: %s (%d failures)" % ["PASS" if failures==0 else "FAIL",failures])
 	get_tree().quit(0 if failures==0 else 1)

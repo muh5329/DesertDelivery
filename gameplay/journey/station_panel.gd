@@ -95,7 +95,7 @@ func _refresh() -> void:
 	_title.text = String(s.name)
 	_subtitle.text = ("FUEL  ·  SHOP  ·  COACH & FERRY" if s.kind != "counter" else "COURIER COUNTER  ·  TICKETS") + "  /  " + game.life.clock_text().get_slice("  ·  ", 0).to_upper()
 	var price := journey.refill_price()
-	_fuel_text.text = "Tank %d%%  ·  about %.0f km left  ·  %d coins in your wallet" % [roundi(journey.fuel_ratio * 100.0), journey.fuel_range_m() / 1000.0, game.gm.coins]
+	_fuel_text.text = "Tank %d%%  ·  about %.0f km left  ·  %d coins in your wallet" % [roundi(journey.current_tank() * 100.0), journey.fuel_range_m() / 1000.0, game.gm.coins]
 	_fuel_button.text = "Fill tank · %d coins" % price if price > 0 else "Tank full"
 	_fuel_button.disabled = price == 0 or game.gm.coins < price or not journey.bike_at_station(s)
 	for c in _rows.get_children(): c.queue_free()

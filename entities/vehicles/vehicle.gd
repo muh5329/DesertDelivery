@@ -15,7 +15,7 @@ extends CharacterBody3D
 ## rest read straight through to it, so a visual, the HUD or a test still says `bike.speed`.
 ##
 ## A concrete vehicle adds only what is genuinely its own — the Bike adds wings and flight, the
-## Truck adds a cargo rack and a winch — and overrides `_drive_mods()` if its load, fuel or
+## Jeep adds the water, a boost, a winch and a load bed — and overrides `_drive_mods()` if its load, fuel or
 ## upgrades change how it drives this tick.
 
 var definition: VehicleDefinition
@@ -31,6 +31,12 @@ var terrain: Terrain:
 var _terrain: Terrain
 var parked := false
 var entity_id: StringName = &""
+## The Cart hitched behind, or null. With it the vehicle is a Rig (CONTEXT.md): the HitchSystem
+## sets it, the drive is tethered to the cart's axle, and its mass slows the vehicle.
+var towing: CargoCart
+
+## The vehicle was put somewhere (place, a road recovery): a hitched cart follows it there.
+signal relocated
 
 
 func apply_definition(d: VehicleDefinition) -> void:
@@ -138,10 +144,64 @@ func set_parked(v: bool) -> void:
 
 func place(pos: Vector3, forward: Vector3) -> void:
 	if drive != null: drive.place(pos, forward)
+	relocated.emit()
 
 
 func reset_to_road(away_from_sea: bool = false) -> void:
 	if drive != null: drive.recover_to_road(away_from_sea)
+	relocated.emit()
+
+
+## Why the courier may not climb out right now ("" when he may). Afloat, say.
+func exit_block() -> String:
+	return ""
+
+
+# --- towing (the Rig) -------------------------------------------------------------------------
+
+## Where the Cart's drawbar eye meets this vehicle, in world space.
+func hitch_point() -> Vector3:
+	var off: Vector3 = definition.hitch_offset if definition else Vector3(0, 0.55, 1.3)
+	return global_transform * off
+
+
+## Hitched or unhitched by the HitchSystem. While towing the vehicle also collides with the
+## vehicles layer, so it can never swing through its own cart in a tight turn.
+func set_towing(cart: CargoCart) -> void:
+	towing = cart
+	if cart != null: collision_mask |= 2
+	else: collision_mask &= ~2
+	if drive != null and cart == null: drive.tether_length = INF
+
+
+func is_towing() -> bool:
+	return towing != null and is_instance_valid(towing)
+
+
+## The cart and its load, kg (0 without one).
+func towed_mass() -> float:
+	return towing.total_mass() if is_towing() else 0.0
+
+
+## Top-speed and acceleration scales for what is towed: the definition's `tow_mass_half` halves
+## the top speed, acceleration falls off twice as fast.
+func tow_scales() -> Vector2:
+	var m := towed_mass()
+	if m <= 0.0: return Vector2.ONE
+	var half: float = definition.tow_mass_half if definition else 300.0
+	return Vector2(1.0 / (1.0 + m / half), 1.0 / (1.0 + 2.0 * m / half))
+
+
+## Keep the drawbar from stretching: the drive may not carry the body further from the cart's
+## axle than the hitch, the drawbar and a little slack. Call before each drive step.
+func update_tether() -> void:
+	if drive == null: return
+	if not is_towing():
+		drive.tether_length = INF
+		return
+	var off: Vector3 = definition.hitch_offset if definition else Vector3(0, 0.55, 1.3)
+	drive.tether_anchor = towing.global_position
+	drive.tether_length = Vector2(off.x, off.z).length() + CargoCart.DRAWBAR + CargoCart.SLACK
 
 
 func flat_forward() -> Vector3:
@@ -160,8 +220,9 @@ func speed_kmh() -> float:
 ## never in the drive.
 func _drive_mods() -> GroundDrive.Mods:
 	var m := GroundDrive.Mods.new()
-	m.top_speed = definition.max_speed
-	m.motor_accel = definition.accel
+	var tow := tow_scales()
+	m.top_speed = definition.max_speed * tow.x
+	m.motor_accel = definition.accel * tow.y
 	m.reverse_limit = definition.reverse_speed
 	return m
 

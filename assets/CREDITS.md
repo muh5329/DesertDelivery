@@ -55,3 +55,21 @@ received material/vertex-paint treatment; Quaternius tree meshes retain their CC
 ## Character reference revision
 
 The courier was rebuilt in Blender from the user-supplied character turnaround (`Codex Image Sep 1, 2026, 09_52_41 PM.png`). Source: `assets/source/courier_reference.blend`; reproducible generator: `tools/blender/character.py`. The original supplied turnaround is preserved under `assets/source/courier_turnaround.png` (excluded from game import). Its front facial detail is projected and blended in Blender into the courier’s packed 1K facial albedo; the remaining geometry and materials are authored by the generator. The original full turnaround is not loaded by gameplay.
+
+## The Jeep and the Cart (September 2026)
+
+Both come from the user's own projects, used here by their author:
+
+- `assets/models/vehicles/realistic_amphibious_jeep_v1.glb` and its three small maps
+  (`*_T_Jeep_MicroNormal.png`, `*_T_Jeep_Paint_Roughness.png`, `*_T_Jeep_Rubber_Roughness.png`)
+  are copied unchanged from **LegendOfJeep** (`assets/models/vehicles/`), authored in Blender for
+  that game. Its node contract (BodyPivot, Wheel0-3 with Spin pivots, PontoonL/R, PropellerL/R
+  with PropSpin, ModeGlowL/R, Headlight_L/R, BrakeLight_L/R) and the amphibious transformation are
+  LegendOfJeep's `scripts/vehicle/jeep_mesh.gd`; the handling is its `scripts/vehicle/jeep.gd`,
+  retuned onto this game's GroundDrive (`data/vehicles/jeep.tres`) and a new PlaningDrive.
+- The Cart, its canopy, the hitch rules, VehicleClearance, GroundPose and the Inventory come from
+  **Red Sea Baron** (`scripts/vehicles/cargo_cart.gd`, `cart_visual.gd`, `cart_canopy.gd`,
+  `hitch_system.gd`, `vehicle_clearance.gd`, `ground_pose.gd`, `scripts/resources/inventory.gd`,
+  `item_definition.gd`), ported to this game (entities/vehicles/cart, gameplay/cargo). The cart
+  is procedural geometry; nothing else was imported.
+- The old `courier_truck.glb` stays: the outer traffic's lorries still use it.

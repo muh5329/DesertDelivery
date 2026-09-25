@@ -5,6 +5,7 @@ extends Node
 ## Files live in user://saves/<slot>.json.
 
 var _providers: Dictionary = {}   # key -> Object with save_state/load_state
+var _aliases: Dictionary = {}     # an old key -> the key whose provider now reads its block
 ## What the last load could not use or had to repair ("system: what"); empty after a clean load.
 var last_report: Array[String] = []
 
@@ -15,6 +16,12 @@ func register(key: String, provider: Object) -> void:
 
 func unregister(key: String) -> void:
 	_providers.erase(key)
+
+
+## A system renamed: an old save's `old` block is read by the provider registered as `to` when
+## the save has no `to` block of its own (the cargo truck's block moves the Jeep).
+func alias(old: String, to: String) -> void:
+	_aliases[old] = to
 
 
 func path_for(slot: String) -> String:
@@ -55,6 +62,10 @@ func load_game(slot: String = "quick") -> bool:
 	f.close()
 	if not (parsed is Dictionary): return false
 	var systems: Dictionary = parsed.get("systems", {}) if parsed.get("systems") is Dictionary else {}
+	for old in _aliases:
+		if systems.has(old) and not systems.has(_aliases[old]):
+			systems[_aliases[old]] = systems[old]
+		systems.erase(old)
 	last_report.clear()
 	for key in systems.keys():
 		var p: Object = _providers.get(key)

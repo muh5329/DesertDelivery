@@ -119,6 +119,7 @@ func place_on_road(pos: Vector3, forward: Vector3) -> void:
 	flight_pitch = 0.0
 	flight_roll = 0.0
 	lean = 0.0
+	relocated.emit()
 
 
 func forward_dir() -> Vector3:
@@ -175,11 +176,12 @@ func at_takeoff_speed() -> bool:
 func _drive_mods() -> GroundDrive.Mods:
 	var p := performance_profile()
 	var m := GroundDrive.Mods.new()
-	m.top_speed = max_speed
-	m.motor_accel = LIMP_ACCEL if p.fuel_ratio <= .001 else definition.accel * float(p.acceleration_factor)
+	var tow := tow_scales()
+	m.top_speed = max_speed * tow.x
+	m.motor_accel = LIMP_ACCEL if p.fuel_ratio <= .001 else definition.accel * float(p.acceleration_factor) * tow.y
 	m.brake_scale = float(p.braking_factor)
 	m.handling = float(p.handling_factor)
-	m.soft_limit = float(p.ground_speed_limit)
+	m.soft_limit = float(p.ground_speed_limit) * (tow.x if is_towing() else 1.0)
 	m.reverse_limit = minf(definition.reverse_speed, float(p.ground_speed_limit))
 	return m
 
@@ -210,6 +212,9 @@ func toggle_wings() -> void:
 	if airborne:
 		denied.emit("Land first — the wings can't fold in the air.")
 		return
+	if not wings_out and is_towing():
+		denied.emit("Unhitch the cart before unfolding the wings (H, stopped).")
+		return
 	wings_out = not wings_out
 	transformed.emit(wings_out)
 
@@ -238,6 +243,7 @@ func _physics_process(delta: float) -> void:
 		_flight(delta)
 		return
 
+	update_tether()
 	var tick := drive.step(delta)
 	if tick.landed_impact >= 0.0: landed.emit(tick.landed_impact)
 	if tick.crashed: crashed.emit()
