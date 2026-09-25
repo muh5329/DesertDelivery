@@ -326,6 +326,7 @@ func _process(delta: float) -> void:
 		var done := built and _smooth >= SMOOTH_FRAMES and _wait_t > 0.25
 		if (built and _wait_t - _built_t > SETTLE_MAX) or _wait_t > WAIT_MAX: done = true
 		if done:
+			print("[loading] lifted %d ms after the wait began (world built at %d ms, %d smooth frames)" % [roundi(_wait_t * 1000.0), roundi(maxf(_built_t, 0.0) * 1000.0), _smooth])
 			_waiting = false
 			progress = 1.0
 			_percent.text = "100 %"

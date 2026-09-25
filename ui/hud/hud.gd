@@ -418,7 +418,7 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	_stamina_bar.visible = on_foot
 	_stamina_label.visible = on_foot
 	_prompt_bg.position.y = -260 if on_foot else -174
-	_controls.text = "WASD move · Shift sprint · Space jump\nRMB aim · LMB / F fire · V reload\nCtrl / Q dodge · Mouse / JLIK look\nE mount · H hitch · G load / unload\nB counter / fuel · N journal · F5 / F9" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB counter / fuel · N journal\nJeep: Shift boost · Q winch · H hitch\nG load / unload · F5 save · F9 load"
+	_controls.text = "WASD move · Shift sprint · Space jump\nRMB aim · LMB / F fire · V reload\nCtrl / Q dodge · Mouse / JLIK look\nE mount · H hitch · G load / unload\nB counter / fuel · N journal · M map" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB counter / fuel · N journal · M map\nJeep: Shift boost · Q winch · H hitch\nG load / unload · F5 save · F9 load"
 	_stamina_bar.max_value = pl.stamina_max
 	_stamina_bar.value = pl.stamina
 	_stamina_label.text = "Catch your breath — release Shift" if pl.sprint_exhausted else "Stamina  %d%%  ·  Ctrl / Q dodge" % roundi(pl.stamina / pl.stamina_max * 100.0)
