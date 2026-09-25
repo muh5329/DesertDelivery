@@ -51,12 +51,17 @@ res://
 │   ├── people/              townsfolk bodies: person_builder.gd (near/far meshes, cache, worker-thread builds),
 │   │                        character_mesh.gd (skinned grid/loft emitter, 13-bone rig), person_body.gd (body,
 │   │                        clothing), person_head.gd (face, eyes, hair, beards, hats), person.gdshader, skin.gdshader
-│   ├── vehicles/            vehicle.gd (base), vehicle_definition.gd, bike/ (bike.gd, bike_visual.gd, bike_audio.gd)
+│   ├── vehicles/            vehicle.gd (base), vehicle_definition.gd, ground_drive.gd, bike/ (bike.gd, bike_visual.gd,
+│   │                        bike_audio.gd), jeep/ (jeep.gd, jeep_visual.gd, planing_drive.gd: the amphibious Jeep),
+│   │                        cart/ (cargo_cart.gd, cart_visual.gd, cart_canopy.gd, cargo_load_view.gd, hitch_system.gd,
+│   │                        vehicle_clearance.gd, ground_pose.gd: the Cart and the Rig, ADR 0014)
 │   └── camera/              chase_camera.gd
 ├── gameplay/
 │   ├── gameplay_manager.gd  owns the systems below
 │   ├── controls/            controls.gd — the ControlIntent seam (Keyboard / Scripted sources)
 │   ├── delivery/            delivery_system.gd, job_definition.gd
+│   ├── cargo/               inventory.gd (Inventory), item_definition.gd (goods + equipment), cargo_system.gd
+│   │                        (CargoSystem: the pack, holds in reach, stores, moves, use), cargo_panel.gd (the G panel)
 │   ├── journey/             journey_system.gd (courier counters, the fuel tank, engine upgrades),
 │   │                        road_services.gd (RoadServices: fuel stations, highway service stops,
 │   │                        coach & ferry travel), station_panel.gd (a town station's window)
@@ -85,8 +90,9 @@ Game (core/app/game.gd)            boots, wires, holds the CLI/session state
 │   ├── Environment                sky, sun, sea, abyss, boundaries, Terrain — always resident
 │   │   └── OuterWorld             outer terrain (CDLOD), collision tiles, roads, bridges, town silhouettes, wilderness, rivers
 │   └── WorldStreamer              Chunk_x_y nodes around the focus (7×7 of 60 m by default)
-├── EntityManager                  bike, player body, pickups, targets, (NPCs, cars...) by id
+├── EntityManager                  bike, jeep, cart, player body, pickups, targets, (NPCs, cars...) by id
 ├── Rider                          player controller: mode + ControlIntent routing
+├── HitchSystem                    the Cart and what tows it (the Rig); the cart's save provider
 ├── ChaseCamera
 ├── GameplayManager
 │   ├── DeliverySystem
@@ -94,8 +100,9 @@ Game (core/app/game.gd)            boots, wires, holds the CLI/session state
 │   ├── PlayerVitals               the courier's Health (a node on the Player), knock-out + respawn
 │   ├── EncounterDirector          camps (props + Enemies spawned by distance), road ambushes
 │   └── Autopilot                  only with --autotest / --shots
+├── CargoSystem                    the courier's pack, the holds in reach, the stores
 ├── BikeAudio
-├── UI / HUD
+├── UI / HUD, CargoPanel (G)
 └── Debug / DebugOverlay           F3
 ```
 
@@ -244,7 +251,9 @@ defaults give them no mipmaps); the arch kit's and the terrain's texture arrays 
 
 `Saves.register(key, provider)`; a provider implements `save_state() -> Dictionary` and
 `load_state(d)`. Registered: `delivery`, `gun` (clip, reserve, cache, cans), `combat` (cleared camps,
-dead enemies by camp slot, looted crates, kill stats), `bike`, `rider`, ... Files: `user://saves/<slot>.json`,
+dead enemies by camp slot, looted crates, kill stats), `bike`, `jeep` (its bed, afloat; an old save's `truck` block
+is read by it through `Saves.alias`), `cart` (the HitchSystem: where, its load, what it is hitched to), `cargo`
+(the pack), `rider`, ... Files: `user://saves/<slot>.json`,
 diffs from the default world keyed by id (e.g. popped cans as `can.dunes_lookout.1`).
 
 ## Tests and tools
@@ -288,9 +297,11 @@ cost nothing far from the viewer (the camera, or the courier):
 
 ## Fuel, stations and travel
 
-`JourneySystem` owns the tank: a full tank rides `TANK_RANGE_M` (30 km) on the level, cargo adds
-a third for heavy freight, flight burns 1.6x per metre, an empty tank limps at `Bike.LIMP_SPEED`
-(25 km/h). It warns at a quarter, at 10 % and when empty, naming the nearest pump. `RoadServices`
+`JourneySystem` owns the tanks, one per vehicle: the bike's rides `tank_range_m` (30 km) on the level,
+the Jeep's 40 km; a load burns more (a whole tank more per `cargo_kg_per_extra_tank`: 160 kg on the
+bike, 600 kg on the Jeep; a towed Cart counts with its load), flight burns 1.6x per metre and
+planing on water 2.2x; an empty tank limps (`Bike.LIMP_SPEED`, `Jeep.LIMP_SPEED`). The pumps and
+the counter serve the vehicle the courier drives or last drove. It warns at a quarter, at 10 % and when empty, naming the nearest pump. `RoadServices`
 places the fuel stations at boot from the world as loaded (the outer roads' samples, plots, props
 and rivers — nothing in the generator's plan): one at the edge of each town on the highway into its
 gate, highway service stops so no pump-to-pump stretch is longer than `MAX_GAP` (5.2 km), and the
@@ -313,7 +324,7 @@ hall keeps a kitchen garden (its staple food, two workers, filled last) and ever
 food buildings, so a charter left alone feeds itself. Loading is per record: a damaged town or
 lane is mended or dropped on its own and reported (`ColonySystem.load_report`,
 `Saves.last_report`, a message); saves are written to a temp file and renamed.
-`UrgentSupply` (in the economy) posts an optional truck job when a founded town colony runs short
+`UrgentSupply` (in the economy) posts an optional cargo job (the Jeep, or a rig towing the Cart) when a founded town colony runs short
 of food or goods; `DeliverySystem.start_extra_job` runs it on top of the route and resumes the
 route after. See ADR 0011.
 
@@ -352,3 +363,31 @@ Enemies are townsfolk bodies: `EnemyOutfit.look_for(kind, seed)` (CharacterLook 
 - NPC: a body under `entities/npc/`, registered with a stable id, implementing
   `set_simulation_tier()` so far NPCs become schedule-only records; spawn/despawn on
   `Events.chunk_loaded/unloaded` of their home chunk, with their state in the save file.
+
+## The Jeep, the Cart and the Rig (ADR 0014)
+
+`Jeep` is a `Vehicle` like the bike: the GroundDrive on land (`data/vehicles/jeep.tres`, its
+LegendOfJeep feel as data: torque, steering fall-off, handbrake drift, a boost tank), and its own
+`PlaningDrive` afloat — deep water under the body lifts the hull to its draught, the propellers
+push it to `water_max_speed`, a rudder turns it, a shallow bed under the front wheels hands it back
+to the GroundDrive. `JeepVisual` animates LegendOfJeep's GLB (steering, spin, per-wheel travel from
+the wheel rays, body lean and squash, the pontoons and propellers of the amphibious transformation,
+the winch cable, the load on its bed).
+
+A `CargoCart` hitched to a vehicle makes a **Rig**. The `HitchSystem` owns the coupling (the
+source's rules: stopped, on the ground, backed up so the drawbar eye is within reach of the hitch,
+a clear line; wings folded, not afloat), moves the cart with its tow vehicle on every `relocated`
+(road recovery, respawn, save loaded) and saves the cart. Each tick the cart solves its drawbar
+from the real axle-to-hitch direction and turns only where it is clear (`VehicleClearance`); the
+tow vehicle's GroundDrive is tethered to the cart's axle (`tether_anchor` / `tether_length`) and,
+while towing, collides with the vehicles layer — the cart can never swing through it. Mass slows
+(`Vehicle.tow_scales`) and burns fuel (`JourneySystem.load_of`). A cart does not float: the Jeep
+towing one splashes in deep water and the rig recovers together.
+
+Goods are `Inventory`s of `ItemDefinition`s (the colony goods plus ammunition crates and fuel
+cans): the courier's pack, the Jeep's bed, the Cart. `CargoSystem` lists the **holds** in reach
+(those three, a founded colony's hall or warehouse, a station's or counter's shop), moves goods
+between them (a colony's stock is its mayor's, free; a shop takes coins through
+`Inventory.commit`), and uses equipment. `CargoPanel` (G) is its parchment window. The courier's
+parcel can ride in the cart (`DeliverySystem.parcel_in_cart`): the cart in the drop-off ring
+delivers it.

@@ -20,3 +20,4 @@ reopening. If the friction it names has changed, reopen it.
 | [0009](0009-ground-and-map-contract.md) | Two named ground queries, and a checked map contract |
 | [0010](0010-outer-world.md) | The outer world is generated offline and answered by one lattice |
 | [0013](0013-day-night-and-quality.md) | One clock lights the world; lamps glow everywhere but light only near the camera; quality is a preset |
+| [0014](0014-jeep-and-cart.md) | The Jeep replaces the cargo truck (its own drive afloat); the Cart makes a Rig; one Inventory for all goods |

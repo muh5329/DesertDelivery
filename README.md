@@ -4,7 +4,7 @@ A third-person courier game on a **25 km × 25 km** country: a detailed 1.248 km
 
 The September 2026 overhaul adds a hand-painted, Ghibli-inspired summer palette, an ImageGen gouache surface used by terrain and object materials, a newly authored Blender delivery truck, regraded existing GLBs, and individually generated townsfolk for all 64 residents (see Island life). The courier's model and most existing topology remain. Godot **4.7 Forward+ (Vulkan)** is the current renderer on macOS; Terrain3D draws and collides the detailed core.
 
-The gameplay pass adds explicit player/resident states, responsive bike and truck handling, buffered/coyote jumps, safe mounting, blocked-route recovery, spatial traffic lookup, and atomic delivery payouts with saved receipts. Implementation, real screenshots, adversarial findings and remaining quality gaps are in [the overhaul review](artifacts/overhaul-2026-09-19/README.md). AAA quality has not been demonstrated.
+The gameplay pass adds explicit player/resident states, responsive bike and truck handling (the truck is now the Jeep), buffered/coyote jumps, safe mounting, blocked-route recovery, spatial traffic lookup, and atomic delivery payouts with saved receipts. Implementation, real screenshots, adversarial findings and remaining quality gaps are in [the overhaul review](artifacts/overhaul-2026-09-19/README.md). AAA quality has not been demonstrated.
 
 ## Run it
 
@@ -29,8 +29,11 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 | Aim the Garand (hold, on foot) | Right mouse | LB |
 | Fire the Garand (on foot) | Left mouse / F | RB |
 | Reload (a part-empty clip pings out first) | V | D-pad left |
-| Fire / release truck winch (driving the truck) | Q | RB |
-| Toggle truck cargo packing (while stopped) | G | — |
+| Boost (driving the jeep; a short tank that refills) | Shift | — |
+| Fire / release the jeep's winch (driving the jeep) | Q | RB |
+| Hitch / unhitch the cart (stopped; driving, or on foot beside the cart) | H | — |
+| Load / unload: the pack, the jeep's bed, the cart and a warehouse or shop in reach (stopped) | G | — |
+| In the load panel: column / line · destination · move 1 / 10 / all · empty the column · use · close | A D / ← → · W S / ↑ ↓ · Tab · Space / Shift+Space / Enter · X · U · G / Esc | — |
 | Courier counter / fuel station (stopped on its apron) | B | B |
 | Island journal | N | — |
 | Take an urgent colony supply job | U | — |
@@ -40,8 +43,10 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 
 - **E** exits the current vehicle (when stopped) — walk with WASD, Shift to run, Space to jump, mouse / right stick to look. E beside either vehicle mounts it. R brings the active vehicle and rider back to the nearest road.
 - Hold Space for a higher on-foot jump; tap for a short hop. Movement follows the camera, and manual orbit keeps your chosen direction. The camera retracts around obstacles and hides the character when pushed too close.
-- **Cargo truck** — a compact red truck is parked a short walk behind the starting bike. It is slower but has a 4×6 rear packing rack for larger loads. Stop and press G, move the translucent tetromino with WASD, rotate with Z, place with Space, undo with X, and press G again to secure the load. Unsupported or overlapping pieces cannot be placed; a fuller rack adds weight and trims the truck's top speed.
-- **Winch** — while driving the truck, Q fires the front cable at a tree, rock, building, or other solid obstacle up to 38 m ahead. It reels in automatically and can pull the truck up steep walls when the anchor is high; press Q again to release it.
+- **The Jeep** — an amphibious 4x4 (from the LegendOfJeep project: its realistic Blender model and its handling) is parked a short walk behind the starting bike; it took over the old cargo truck's jobs. E beside it to drive: a strong pull from low speed, a handbrake drift (Space) and a short **boost** tank (Shift) that refills on its own. Drive it down a beach into the sea, the lagoon, the estuary or a lake: the side pontoons swing down, the propellers fold out and it **planes** across the water (slower than on the road, and thirstier); drive up any beach or slipway and the wheels take over again. Behind the seats its bed carries up to 120 kg of goods.
+- **Winch** — while driving the jeep, Q fires the front cable at a tree, rock, building, or other solid obstacle up to 38 m ahead. It reels in automatically and can pull the jeep up steep walls when the anchor is high; press Q again to release it.
+- **The Cart** (from the Red Sea Baron project) — a wooden two-wheeled cart waits on the lane behind the jeep. Back the bike or the jeep up to its drawbar, stop, and press **H** to hitch it (or walk up to it and press H with a vehicle backed up to it); H again, stopped, unhitches it. It follows on its drawbar round bends, over hills and bridges, and its tyres roll with it; the tow vehicle slows with the weight (240 kg of load at most) and burns more fuel. The bike cannot unfold its wings with the cart on, and the jeep cannot float with it (a cart sinks: deep water puts the rig back on the road). A cart that falls or sinks comes back to the road with its load.
+- **Loading** — stopped, press **G** by the cart, the jeep, a colony's hall or warehouse, or a road station's or courier counter's shop: a parchment panel shows your pack (30 kg), the jeep's bed, the cart and the store side by side. Colony goods (timber, planks, stone blocks, tools, bread, fish, cloth...) come out of and go into your colonies' stock free — load at one colony, unload at another: land trade by cart. Shops sell **fuel cans** (a quarter tank; U uses one) and **ammunition crates** (four Garand clips). A heavy consignment or an urgent colony supply run collected with the cart hitched rides in the cart, and the cart in the drop-off ring delivers it.
 - **Swim** — wade into the sea and the boy swims (slower, can't shoot); the bike auto-resets if it ends up in the water.
 - **M1 Garand** — the courier's rifle from the first minute: slung across his back on foot (and on the bike), shouldered when you hold RMB / LB (a tight over-the-shoulder view with a narrower field of view and a much smaller shot cone), fired from the hip otherwise (bigger spread). Semi-automatic, 8-round en-bloc clips: the 8th shot throws the empty clip out with the famous *ping*, then a fresh clip goes in and the bolt slams home (V reloads early; the part clip pings out and its rounds are pocketed). Reserve clips show in the Garand panel; enemies drop clips, camps keep an ammo crate, and the crate at the Dunes Lookout where the old pistol used to lie is now a cache of clips. Tin cans still line the farm's stone wall and the lookout bench (9 total) for practice.
 - **Bandits and pirates** — bandits (dusters, bandanas, wide hats, lever rifles and revolvers) hold camps in the badlands and out along the highways; pirates (headscarves, striped shirts, sashes, carbines) hold coves on the shore. A bandit camp sits in the badlands east of the Dunes Lookout and a pirate cove in the dunes of the south-west shore, a short ride from the start; ten more bandit camps and four coves are out in the country. They notice you in their sight cone or hear your shots, shout to each other, take cover, peek and shoot (worse at range and against a moving or covered target), reload, flank, and run when their nerve breaks. Carrying a package on an outer highway, you may find a bandit roadblock ahead. Clearing a camp pays a 20-coin bounty; cleared camps stay cleared (saved).
@@ -55,7 +60,7 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 
 Ride to the glowing ring at the pickup, slow to a stop inside it to load the package onto the rear
 rack, then follow the compass (top-left) to the destination ring and stop again to hand it over.
-Walking and the cargo truck also support handoffs. Stay grounded and below 2.5 m/s in the
+Walking, the jeep and a parcel in the cart also support handoffs. Stay grounded and below 2.5 m/s in the
 ring for half a second. Coins are awarded once on delivery, and F5/F9 preserves the current
 package, job and wallet. Fifteen jobs chain round the island and out into the country: Villa Rosa Office (SW vineyards) → Hilltop Farm (NW massif) → Harbour Cafe
 (NE town, over the strait aqueduct) → Dunes Lookout (badlands, over the gorge viaduct) → Lakeside Camp →
@@ -105,7 +110,7 @@ headscarves, striped shirts, sashes, earrings). All of it only exists near you (
 
 When a colony you founded runs short of food (or goods), it posts an **urgent supply job** on
 the HUD — "URGENT · 20 bread → Isola Serena · +64 coins · U to take it". Press **U** to take it:
-collect the load with the cargo truck where it is sold, deliver it for the bonus, and your route
+collect the load with the jeep (or any rig towing the cart) where it is sold, deliver it for the bonus, and your route
 resumes where it was.
 
 ## Colonies and shipping lanes
@@ -207,7 +212,7 @@ with a production economy.
 The assets were authored through Blender MCP. Editable sources are in `assets/source/`, with
 `.gdignore` preventing automatic Blender conversion during game import. Runtime files are
 in `assets/models/`. Reproduction scripts are in `tools/blender/`: `common.py`, `bike.py`,
-`character.py`, `island_kit.py`, `town_revision.py` and `hero_finish.py`. The new truck is generated by `storybook_truck.py`; `storybook_assets.py` applies a reproducible paint/roughness pass to the other GLBs using archived originals. The palm revision uses `town_revision.py` with broader sage fronds. The generated surface and exact ImageGen prompt are in `assets/storybook/README.md`. They use the project
+`character.py`, `island_kit.py`, `town_revision.py` and `hero_finish.py`. The old courier truck (now only a traffic lorry) is generated by `storybook_truck.py`; `storybook_assets.py` applies a reproducible paint/roughness pass to the other GLBs using archived originals. The palm revision uses `town_revision.py` with broader sage fronds. The generated surface and exact ImageGen prompt are in `assets/storybook/README.md`. They use the project
 path at the top of `common.py`; update it when moving the repository. Run the generators
 through Blender in that order, with `hero_finish.py` last, then let Godot import the GLBs.
 
@@ -228,8 +233,10 @@ godot --headless --path . -- --test=feature_tests               # dismount, swim
 godot --headless --path . -- --test=combat_tests                # clip/ping/reload, spread, damage, headshots, enemies, death, camps, save
 xvfb-run -a godot --path . --rendering-driver vulkan -s tests/garand_view.gd -- --out=/tmp/garand    # rifle close-ups + poses (studio)
 xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=combat_view --out=/tmp/combat  # aiming, camp fight, cove, lineup, ambush
-godot --headless --path . -- --test=truck_tests                 # mount, Tetris rack, winch pull / wall climb
-godot --headless --path . -- --test=delivery_tests              # all handoffs, wallet, loaded stage, on-foot / truck
+godot --headless --path . -- --test=jeep_tests                  # the jeep: mount, drive, boost, ramp, winch, fuel, into the sea and out, bed, saves (truck_tests is an alias)
+godot --headless --path . -- --test=cart_tests                  # the cart: hitch bike / jeep, tow, bends, bridge, recovery, loads, parcel, colony goods, saves
+xvfb-run -a -s "-screen 0 1600x900x24" godot --path . --rendering-driver vulkan -- --facet --test=vehicle_shots --out=/tmp/vehicles   # jeep, rig, water, panel
+godot --headless --path . -- --test=delivery_tests              # all handoffs, wallet, loaded stage, on-foot / jeep
 godot --headless --path . -- --test=life_tests                  # routines, navigation, grounding and collisions
 godot --headless --path . -- --test=colony_system_tests         # core colony jobs, orders, roads, save v2 / v1 migration
 godot --headless --path . -- --test=colony_economy_tests        # chains, needs/growth, placement, charters, views, tick budget, saves
@@ -279,9 +286,17 @@ See `ARCHITECTURE.md` for the full picture; `CONTEXT.md` for the domain vocabula
 - `reference/` – reference screenshots, brief, camera spots, `compare.py`, per-round critiques and changelogs
 - `assets/foliage/` – grass / flower / leaf-clump cards (baked by `world/mapgen/foliage.py`) for the tree canopies and Terrain3D's instancer grass
 - `addons/terrain_3d/` – the Terrain3D plugin
-- `entities/` – `EntityManager` (ids + simulation tiers), player (`Player`, `Rider`, `RiderModel`), vehicles (`Vehicle` base, `Bike`, `Truck`, `TruckCargo`), camera, enemies (`Enemy`, `EnemyOutfit`, `EnemyWeapons`)
-- `gameplay/` – `GameplayManager`, `Controls` seam, `DeliverySystem` + `JobDefinition`, weapons (`GunSystem`, `GarandModel`, `MeshKit`, `WeaponAudio`), combat (`EncounterDirector`, `CampKit`, `PlayerVitals`, `Health`, `CombatFx`)
+- `entities/` – `EntityManager` (ids + simulation tiers), player (`Player`, `Rider`, `RiderModel`), vehicles (`Vehicle` base, `GroundDrive`, `Bike`, `Jeep` + `PlaningDrive`, the `CargoCart` + `HitchSystem`), camera, enemies (`Enemy`, `EnemyOutfit`, `EnemyWeapons`)
+- `gameplay/` – `GameplayManager`, `Controls` seam, `DeliverySystem` + `JobDefinition`, cargo (`Inventory`, `ItemDefinition`, `CargoSystem`, `CargoPanel`), weapons (`GunSystem`, `GarandModel`, `MeshKit`, `WeaponAudio`), combat (`EncounterDirector`, `CampKit`, `PlayerVitals`, `Health`, `CombatFx`)
 - `ai/` – `Autopilot`
 - `ui/` – `HUD`, `DebugOverlay`
-- `data/` – island maps, `outer/` (outer world heights, maps and plan), `config/world.tres`, vehicle definitions (`bike.tres`, `truck.tres`), `jobs/*.tres`
+- `data/` – island maps, `outer/` (outer world heights, maps and plan), `config/world.tres`, vehicle definitions (`bike.tres`, `jeep.tres`), `jobs/*.tres`
 - `tests/` – test nodes and render tools
+
+## Credits: the Jeep and the Cart
+
+The Jeep is from the author's own **LegendOfJeep** project (its realistic amphibious GLB, the
+JeepMesh node contract and transformation, the Jeep controller's handling, ported onto this
+game's GroundDrive and a new PlaningDrive). The Cart is from the author's own **Red Sea Baron**
+project (CargoCart, CartVisual, CartCanopy, HitchSystem, VehicleClearance, GroundPose, the
+Inventory and its item catalogue). See `assets/CREDITS.md` and ADR 0014.
