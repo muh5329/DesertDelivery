@@ -111,12 +111,14 @@ func needs() -> void:
 	check(t.needs.food > 0.95 and t.needs.variety > 0.9 and t.needs.goods > 0.9, "Food, variety and goods needs met from the stockpile")
 	check(t.happiness > 80.0, "Happiness follows the needs (%.0f)" % t.happiness)
 	check(t.colonists.size() > pop, "Happy, housed colonies grow (%d -> %d)" % [pop, t.colonists.size()])
-	check(t.count("bread") < 200 and t.count("fish") < 200 and t.count("wine") < 40, "Colonists eat and use goods")
+	check(t.count("bread") < 200 and t.count("preserved_fish") < 100 and t.count("wine") < 40, "Colonists eat and use goods")
 	var grown: Dictionary = t.colonists[t.colonists.size() - 1]
 	check(CharacterLook.from_seed(int(grown.seed), t.style, "porter").style == &"isola", "New colonists are townsfolk in the town's style")
 	# no food, no houses: unhappy, and people leave
 	var s := _town("sarmada", 8)
 	s.stock = {}
+	s.building_of_type("colony_hall").paused = true     # no kitchen garden either
+	s.assign()
 	var pop_s := s.colonists.size()
 	for i in range(2400): s.tick(0.25)
 	print("  starving: happiness %.0f pop %d -> %d" % [s.happiness, pop_s, s.colonists.size()])
@@ -299,10 +301,12 @@ func persistence() -> void:
 	t = econ.town("puerto_alto")
 	check(t.founded and t.colonists.size() == pop and t.buildings.size() == nb and JSON.stringify(t.stock) == JSON.stringify(stock), "Colonies, buildings, stocks and colonists survive save/load")
 	check(JSON.stringify(colony.save_state().economy) == JSON.stringify(before.economy), "Economy round trip is exact")
-	# a broken economy is refused without touching the running one
+	# a broken record is mended, not the whole economy thrown away (review M-4): the bad
+	# building goes, the colony keeps its hall, every other colony loads, and the load says so
 	var bad: Dictionary = json.duplicate(true)
 	bad.economy.towns.core.buildings[0].type = "castle"
-	check(not colony.load_state(bad) and econ.town("puerto_alto").founded, "Invalid economy rejected without partial mutation")
+	check(colony.load_state(bad) and econ.town("puerto_alto").founded and not econ.town("core").building_of_type("colony_hall").is_empty() and not colony.load_report().is_empty(),
+		"A damaged economy record is mended and reported; the rest loads (%s)" % [colony.load_report()])
 	# v1 -> v2: an old save loads, the economy starts fresh round its warehouse
 	var v1: Dictionary = json.duplicate(true)
 	v1.erase("economy"); v1.version = 1

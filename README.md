@@ -31,6 +31,7 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 | Reload (a part-empty clip pings out first) | V | D-pad left |
 | Fire / release truck winch (driving the truck) | Q | RB |
 | Toggle truck cargo packing (while stopped) | G | — |
+| Courier counter / fuel station (stopped on its apron) | B | B |
 | Island journal | N | — |
 | Take an urgent colony supply job | U | — |
 | Close journal / quit | Esc | B closes journal |
@@ -47,6 +48,7 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 - **Health** — 100, regenerating after 5 s without a hit; red arcs show where shots come from and the screen edges redden when you are hurt (a heartbeat below 30 %). Riding or driving you take 60 % (and moving fast makes you hard to hit). Knocked out, you wake on the nearest road to your last safe spot, a few coins lighter (10 %, at most 25), with a moment of invulnerability.
 - **Plane** — T / D-pad-up folds the wings out. Throttle (W) past 54 km/h, then pull back (S / ↓) to lift off. In the air the engine cruises on its own: S/↓ raises the nose, W/↑ lowers it, A/D bank, Shift boosts. To land, nose down gently and pull up just before touchdown; T folds the wings again.
 - Flight can climb to **5,000 m above sea level**, well above the outer island mountains.
+- **Fuel** — a full tank rides about 30 km on the level (heavy freight burns a third more, flying 1.6x per metre); the HUD shows the range and, below a quarter tank, the nearest pump. Run dry and the bike limps on at 25 km/h. Red **FUEL** signs mark the stations: one at the edge of every town, highway service stops every ~5 km, and the courier counters. Stop on the apron and press **B**: a service stop fills the tank for coins, a town station opens its window (fuel and **coach & ferry** tickets: fast travel with the bike to any town you have already ridden to, for coins and game time).
 - Esc twice within 3 s quits (the first press also frees the mouse; click to re-capture).
 
 ## The loop

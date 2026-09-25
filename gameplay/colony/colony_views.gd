@@ -102,6 +102,7 @@ func _process(delta: float) -> void:
 	if _t >= 0.25:
 		_t = 0.0
 		_sync_buildings(v)
+		_sync_far()
 		_plan_people(v)
 		_sync_ships(v)
 	_sync_buoys(v)
@@ -137,6 +138,55 @@ func _sync_buildings(v: Vector3) -> void:
 				_free_building(b.id)
 	for bid in buildings.keys():
 		if not alive.has(bid): _free_building(bid)
+
+
+## Far colonies: one BuildingKit silhouette mesh per colony (the same plan as the detailed
+## buildings), drawn from where the detailed ones are freed out to the horizon, rebuilt when a
+## building is completed or removed.
+const FAR_BEGIN := BUILDING_RADIUS + 150.0
+const FAR_END := 9000.0
+var _far: Dictionary = {}          # colony id -> {node, sig}
+
+
+func _sync_far() -> void:
+	for cid in econ.towns:
+		var t: ColonyTown = econ.towns[cid]
+		var plots: Array = []
+		var sig := ""
+		if t.founded:
+			for b in t.buildings:
+				if b.get("virtual", false) or not b.built: continue
+				sig += String(b.id) + ";"
+				plots.append(far_plot(t, b))
+		var have: Dictionary = _far.get(cid, {})
+		if have.get("sig", "") == sig: continue
+		if have.has("node") and is_instance_valid(have.node): (have.node as Node).queue_free()
+		_far.erase(cid)
+		if plots.is_empty(): continue
+		var mi := MeshInstance3D.new()
+		mi.name = "ColonyFar_" + cid
+		mi.mesh = BuildingKit.build_lod(plots)
+		mi.visibility_range_begin = FAR_BEGIN
+		mi.visibility_range_begin_margin = 60.0
+		mi.visibility_range_end = FAR_END
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		add_child(mi)
+		mi.global_position = t.hall
+		_far[cid] = {"node": mi, "sig": sig}
+
+
+## The silhouette plot of a built colony building, relative to its colony's hall.
+func far_plot(t: ColonyTown, b: Dictionary) -> Dictionary:
+	var def := EconomyCatalog.building(b.type)
+	var yard := ColonyProps.yard_width(String(def.get("prop", "")))
+	var at := Vector3(float(b.x), float(b.y), float(b.z)) + Basis(Vector3.UP, float(b.yaw)) * Vector3(-yard * 0.5, 0, 0) - t.hall
+	return {"id": b.id, "style": KIT_STYLE.get(String(t.style), "core"), "kind": def.kind, "x": at.x, "y": at.y, "z": at.z,
+		"yaw": rad_to_deg(float(b.yaw)), "w": float(def.w), "d": float(def.d), "floors": int(def.floors),
+		"seed": absi(String(b.id).hash()), "tags": [], "ground_min": float(b.get("ground", b.y)) - t.hall.y, "party": [false, false]}
+
+
+func has_far(cid: String) -> bool:
+	return _far.has(cid)
 
 
 func _free_building(bid: String) -> void:
@@ -619,6 +669,8 @@ func _rebuild_static_overlay() -> void:
 		label.text = "%s\n%s" % [t.display_name, state]
 		label.font_size = 28; label.outline_size = 10
 		label.no_depth_test = true; label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		# drawn after the sea and every other transparent surface, so water never cuts the text
+		label.render_priority = 100; label.outline_render_priority = 99
 		label.modulate = Color("f6ce75") if cid == map_colony else (Color("f1e5ca") if t.founded else Color("c9c0a8"))
 		label.outline_modulate = Color("203d39")
 		label.position = t.hall; label.set_meta("y", t.hall.y)
@@ -644,9 +696,10 @@ func _rebuild_static_overlay() -> void:
 			var threat := false
 			for l in econ.shipping.lanes:
 				if camp.id in econ.shipping.lane_threats(l): threat = true
-			var label := Label3D.new(); label.text = "Pirate cove" + (" - raids the lanes" if threat else "")
+			var label := Label3D.new(); label.text = "Pirate cove: %s%s" % [ShippingNetwork.cove_name(String(camp.id)), "\nraids the lanes" if threat else ""]
 			label.font_size = 24; label.outline_size = 8
 			label.no_depth_test = true; label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			label.render_priority = 100; label.outline_render_priority = 99
 			label.modulate = Color("e0735f") if threat else Color("c9a08a")
 			label.position = camp.pos; label.set_meta("y", camp.pos.y)
 			_labels.add_child(label)

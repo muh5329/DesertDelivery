@@ -141,6 +141,13 @@ func status_line() -> String:
 	return "Plane" if wings_out else "Bike"
 
 
+## Out of fuel the engine limps on the last of the float bowl and the reserve line: 25 km/h,
+## slow to pick up, so the nearest pump (never more than ~2.6 km along a highway) is a few
+## minutes away rather than an hour's push.
+const LIMP_SPEED := 7.0
+const LIMP_ACCEL := 2.0
+
+
 ## Journey owns persisted cargo, upgrades and fuel. Reading metadata keeps vehicle tuning
 ## independent of the delivery UI and economy manager.
 func performance_profile() -> Dictionary:
@@ -152,7 +159,7 @@ func performance_profile() -> Dictionary:
 		"power_factor": power, "acceleration_factor": power / (1.0 + mass / 140.0),
 		"handling_factor": 1.0 / (1.0 + mass / 200.0), "braking_factor": 1.0 / sqrt(1.0 + mass / 200.0),
 		"takeoff_speed": takeoff_speed * sqrt(1.0 + mass / 200.0),
-		"ground_speed_limit": 2.2 if fuel <= .001 else max_speed * (1.0 + float(engine) * .025)}
+		"ground_speed_limit": LIMP_SPEED if fuel <= .001 else max_speed * (1.0 + float(engine) * .025)}
 
 
 ## In the air the bike runs to flight speeds, so the camera's speed factor scales to those.
@@ -169,7 +176,7 @@ func _drive_mods() -> GroundDrive.Mods:
 	var p := performance_profile()
 	var m := GroundDrive.Mods.new()
 	m.top_speed = max_speed
-	m.motor_accel = 1.5 if p.fuel_ratio <= .001 else definition.accel * float(p.acceleration_factor)
+	m.motor_accel = LIMP_ACCEL if p.fuel_ratio <= .001 else definition.accel * float(p.acceleration_factor)
 	m.brake_scale = float(p.braking_factor)
 	m.handling = float(p.handling_factor)
 	m.soft_limit = float(p.ground_speed_limit)

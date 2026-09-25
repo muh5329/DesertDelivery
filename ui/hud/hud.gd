@@ -46,6 +46,8 @@ var _stamina_label: Label
 const PANEL := Color(0.94, 0.89, 0.76, 0.95)
 const INK := Color(0.16, 0.13, 0.10)
 const GREEN := Color(0.36, 0.62, 0.30)
+## The smallest HUD font at the 1600x900 base (>= 13.6 px with Game.UI_MIN_SCALE).
+const MIN_FONT := 16
 
 
 func setup(p_bike: Bike, p_gm: DeliverySystem, p_cam: Camera3D) -> void:
@@ -80,7 +82,7 @@ func _label(text: String, size: int, col: Color = INK) -> Label:
 	var l := Label.new()
 	l.text = text
 	if _font: l.add_theme_font_override("font", _font)
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", maxi(size, MIN_FONT))
 	l.add_theme_color_override("font_color", col)
 	return l
 
@@ -106,14 +108,14 @@ func _build() -> void:
 	_distance.size = Vector2(112, 26)
 	_distance.add_theme_color_override("font_color",Color("f4e9cf"))
 	_distance.add_theme_color_override("font_outline_color",INK)
-	_distance.add_theme_constant_override("outline_size",3)
+	_distance.add_theme_constant_override("outline_size",5)
 	_distance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(_distance)
 
 	# Live calendar and resident catalogue are provided by ResidentCatalogue.
 	_deliveries = _label("", 16, Color("f4e9cf"))
 	_deliveries.add_theme_color_override("font_outline_color",INK)
-	_deliveries.add_theme_constant_override("outline_size",3)
+	_deliveries.add_theme_constant_override("outline_size",5)
 	_deliveries.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_deliveries.position = Vector2(-390, 76)
 	root.add_child(_deliveries)
@@ -132,7 +134,14 @@ func _build() -> void:
 	_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_objective.add_theme_color_override("font_color", Color(0.98, 0.96, 0.9))
 	_objective.add_theme_color_override("font_outline_color", INK)
-	_objective.add_theme_constant_override("outline_size", 3)
+	_objective.add_theme_constant_override("outline_size", 4)
+	# a soft dark backing: the line stays readable against a bright sky
+	var backing := StyleBoxFlat.new(); backing.bg_color = Color(0.08, 0.07, 0.05, 0.38)
+	backing.set_corner_radius_all(8); backing.content_margin_left = 14; backing.content_margin_right = 14
+	backing.content_margin_top = 3; backing.content_margin_bottom = 3
+	_objective.add_theme_stylebox_override("normal", backing)
+	_objective.offset_bottom = 70
+	_objective.grow_vertical = Control.GROW_DIRECTION_END
 	root.add_child(_objective)
 	_urgent = _label("", 15)
 	_urgent.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -146,9 +155,11 @@ func _build() -> void:
 
 	# --- message toast (centre)
 	_message = _label("", 26)
+	# in the lower third: never across the crosshair or the aim point
 	_message.set_anchors_preset(Control.PRESET_CENTER)
-	_message.position = Vector2(-400, 120)
-	_message.size = Vector2(800, 50)
+	_message.position = Vector2(-450, 170)
+	_message.size = Vector2(900, 50)
+	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.add_theme_color_override("font_color", Color(1.0, 0.95, 0.8))
 	_message.add_theme_color_override("font_outline_color", INK)
@@ -206,11 +217,14 @@ func _build() -> void:
 	_cargo_label=_label("",14,Color("f4e9cf"))
 	_cargo_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); _cargo_label.position=Vector2(-230,-24)
 	_cargo_label.size=Vector2(460,20); _cargo_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	_cargo_label.add_theme_color_override("font_outline_color",INK); _cargo_label.add_theme_constant_override("outline_size",3)
+	_cargo_label.add_theme_color_override("font_outline_color",INK); _cargo_label.add_theme_constant_override("outline_size",5)
 	root.add_child(_cargo_label); _speed_group.append(_cargo_label)
 	_service_hint=_label("",18,Color("f4e9cf")); root.add_child(_service_hint)
-	_service_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM); _service_hint.position=Vector2(-380,-152)
-	_service_hint.size=Vector2(760,28); _service_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	# offsets from the bottom centre (it is already in the tree here, where `position` would be
+	# absolute and put it off screen)
+	_service_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_service_hint.offset_left=-420; _service_hint.offset_right=420; _service_hint.offset_top=-156; _service_hint.offset_bottom=-126
+	_service_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	_service_hint.add_theme_color_override("font_outline_color",INK); _service_hint.add_theme_constant_override("outline_size",4)
 
 	_gun_label = _label("", 18, Color(0.98, 0.96, 0.9))
@@ -222,9 +236,12 @@ func _build() -> void:
 	_gun_label.add_theme_constant_override("outline_size", 6)
 	root.add_child(_gun_label)
 	_mode_label = _label("", 16, Color(0.98, 0.96, 0.9))
-	_mode_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_mode_label.position = Vector2(-330, -80)
-	_mode_label.size = Vector2(300, 50)
+	# anchored to the bottom-right corner with a margin; long lines wrap instead of running off
+	_mode_label.anchor_left = 1.0; _mode_label.anchor_right = 1.0; _mode_label.anchor_top = 1.0; _mode_label.anchor_bottom = 1.0
+	_mode_label.offset_left = -560; _mode_label.offset_right = -28; _mode_label.offset_top = -96; _mode_label.offset_bottom = -24
+	_mode_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_mode_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_mode_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_mode_label.add_theme_color_override("font_outline_color", INK)
 	_mode_label.add_theme_constant_override("outline_size", 6)
@@ -233,7 +250,7 @@ func _build() -> void:
 	_stamina_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_stamina_label.position = Vector2(26, -96)
 	_stamina_label.add_theme_color_override("font_outline_color", INK)
-	_stamina_label.add_theme_constant_override("outline_size", 3)
+	_stamina_label.add_theme_constant_override("outline_size", 6)
 	root.add_child(_stamina_label)
 	_stamina_bar = ProgressBar.new()
 	_stamina_bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -268,7 +285,7 @@ func _build() -> void:
 	_prompt_bg.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_prompt_bg.position = Vector2(28, -174)
 	root.add_child(_prompt_bg)
-	_controls = _label("W/S ride  ·  A/D steer  ·  Space brake\nE hop off  ·  T unfold wings  ·  R recover\nB courier counter  ·  N island journal\nTruck: Q winch  ·  G packing (while stopped)\nF5 save  ·  F9 load", 15)
+	_controls = _label("W/S ride  ·  A/D steer  ·  Space brake\nE hop off  ·  T unfold wings  ·  R recover\nB counter / fuel  ·  N island journal\nTruck: Q winch  ·  G packing (while stopped)\nF5 save  ·  F9 load", 15)
 	_controls.position = Vector2(14, 10)
 	_prompt_bg.add_child(_controls)
 
@@ -285,6 +302,19 @@ func _draw_compass() -> void:
 	var r := dir.rotated(-2.6) * 22
 	var col := Color(0.86, 0.25, 0.18)
 	c.draw_colored_polygon(PackedVector2Array([tip, l, Vector2.ZERO, r]), col)
+	# low fuel: a pump marker on the rim toward the nearest station
+	var game := Game.current
+	if game and game.journey and game.journey.services and game.journey.fuel_ratio < JourneySystem.LOW_FUEL[0]:
+		var n: Dictionary = game.journey.services.nearest_fuel(_actor_pos())
+		if not n.is_empty():
+			var cam_f := -camera.global_transform.basis.z
+			var a: float = float(n.bearing) - atan2(cam_f.x, -cam_f.z)
+			var at := Vector2(sin(a), -cos(a)) * 44.0
+			var pulse := 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.008)
+			c.draw_circle(at, 11.0, Color(0.1, 0.08, 0.06))
+			c.draw_circle(at, 9.0, Color(0.95, 0.55, 0.12, pulse))
+			c.draw_rect(Rect2(at + Vector2(-3.5, -5), Vector2(6, 10)), INK)
+			c.draw_line(at + Vector2(2.5, -3), at + Vector2(5, 1), INK, 1.5)
 	# package glyph in the centre
 	c.draw_rect(Rect2(-11, -8, 22, 16), Color(0.55, 0.36, 0.22))
 	c.draw_line(Vector2(0, -8), Vector2(0, 8), Color(0.85, 0.72, 0.4), 2.0)
@@ -313,9 +343,17 @@ func _draw_needle() -> void:
 
 func _draw_fuel() -> void:
 	var value:=clampf(float(bike.get_meta("fuel_ratio",1.0)),0,1)
+	var low:=value<JourneySystem.LOW_FUEL[0]
+	if value<JourneySystem.LOW_FUEL[1]:
+		# reserve: the whole gauge blinks
+		var on:=int(Time.get_ticks_msec()/350)%2==0
+		_fuel_gauge.draw_circle(Vector2.ZERO,24,Color(0.75,0.18,0.1,0.55 if on else 0.15))
 	_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*2.25,40,Color("b3a483"),4,true)
+	# the quarter-tank tick
+	var q:=PI*.75+PI*1.5*JourneySystem.LOW_FUEL[0]
+	_fuel_gauge.draw_line(Vector2(cos(q),sin(q))*14,Vector2(cos(q),sin(q))*23,INK,1.5)
 	if value>.001:
-		_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*.75+PI*1.5*value,40,Color("a3442f") if value<.2 else GREEN,4,true)
+		_fuel_gauge.draw_arc(Vector2.ZERO,19,PI*.75,PI*.75+PI*1.5*value,40,Color("a3442f") if low else GREEN,4,true)
 	_fuel_gauge.draw_string(_font,Vector2(-5,5),"F",HORIZONTAL_ALIGNMENT_LEFT,-1,15,INK)
 
 
@@ -361,7 +399,7 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	_stamina_bar.visible = on_foot
 	_stamina_label.visible = on_foot
 	_prompt_bg.position.y = -260 if on_foot else -174
-	_controls.text = "WASD move · Shift sprint · Space jump\nRMB aim · LMB / F fire · V reload\nCtrl / Q dodge · Mouse / JLIK look\nE mount · B counter · N journal\nF5 save · F9 load" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB courier counter · N journal\nTruck: Q winch · G packing\nF5 save · F9 load"
+	_controls.text = "WASD move · Shift sprint · Space jump\nRMB aim · LMB / F fire · V reload\nCtrl / Q dodge · Mouse / JLIK look\nE mount · B counter / fuel · N journal\nF5 save · F9 load" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB counter / fuel · N journal\nTruck: Q winch · G packing\nF5 save · F9 load"
 	_stamina_bar.max_value = pl.stamina_max
 	_stamina_bar.value = pl.stamina
 	_stamina_label.text = "Catch your breath — release Shift" if pl.sprint_exhausted else "Stamina  %d%%  ·  Ctrl / Q dodge" % roundi(pl.stamina / pl.stamina_max * 100.0)
@@ -370,7 +408,7 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	# the Garand's clip and the crosshair live in CombatHud; the tin cans are a practice score
 	_gun_label.text = "Tin cans %d/%d" % [gn.targets_hit, gn.targets_total] if on_foot and gn.targets_hit > 0 else ""
 	if on_foot:
-		_mode_label.text = "Swimming" if pl.swimming else "On foot  —  E near the bike or truck to drive"
+		_mode_label.text = "Swimming" if pl.swimming else "On foot  ·  E by the bike or truck to drive"
 	elif rider and vehicle == rider.truck:
 		var truck: Truck = rider.truck
 		if truck.cargo_build_mode:
@@ -388,7 +426,9 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 
 
 func show_message(text: String, duration: float) -> void:
-	if _msg_timer > 0.8 and _message.text != "":
+	# a mode tip is noise in a fight: drop it while aiming or under fire
+	if text.begins_with("On foot.") and rider and (rider.is_aiming() or (combat and combat.in_fight())): return
+	if _msg_timer > 0.8 and _message.text != "" and not _message.text.begins_with("On foot."):
 		_msg_queue.append([text, duration])
 		return
 	_message.text = text
@@ -410,13 +450,20 @@ func _on_job_changed(job: JobDefinition, st: StringName) -> void:
 
 func _process(delta: float) -> void:
 	if not bike: return
+	# a modal panel (journal, counter, station) owns the screen: the HUD steps back
+	var g0 := Game.current
+	var covered: bool = g0 != null and g0.panels != null and g0.panels.any_open()
+	get_child(0).visible = not covered
+	if g0 and g0.mayor and g0.mayor.entry and not g0.mayor.active: g0.mayor.entry.visible = not covered
 	var vehicle := _active_vehicle()
 	_needle.queue_redraw()
 	_compass.queue_redraw()
 	_speed_label.text = "%d km/h" % int(vehicle.speed_kmh())
 	_deliveries.text="%d delivered   ·   %d coins" % [gm.deliveries,gm.coins]
 	_fuel_gauge.queue_redraw(); _engine_gauge.queue_redraw()
-	_cargo_label.text="%.0f kg cargo   ·   Engine +%d   ·   Fuel %d%%" % [float(bike.get_meta("cargo_mass_kg",0.0)),int(bike.get_meta("engine_level",0)),int(float(bike.get_meta("fuel_ratio",1.0))*100)]
+	var game_ref:=Game.current
+	var range_km:=game_ref.journey.fuel_range_m()/1000.0 if game_ref and game_ref.get("journey") else 0.0
+	_cargo_label.text="%.0f kg cargo   ·   Engine +%d   ·   Fuel %d%% (~%.0f km)" % [float(bike.get_meta("cargo_mass_kg",0.0)),int(bike.get_meta("engine_level",0)),int(float(bike.get_meta("fuel_ratio",1.0))*100),range_km]
 	if gm.carrying and gm.current_job() and gm.current_job().cargo_kind=="fragile":
 		_cargo_label.text+="   ·   Intact %d%%" % roundi(gm.parcel_condition*100)
 	if rider and vehicle==rider.truck: _cargo_label.text="Cargo truck  ·  Stop to arrange your load"
@@ -432,6 +479,9 @@ func _process(delta: float) -> void:
 	else:
 		_distance.text = ""
 	_timer_label.text = DeliverySystem.format_time(gm.elapsed) if gm else ""
+	# a mode tip on screen gives way as soon as the rifle comes up
+	if _msg_timer > 0.0 and _message.text.begins_with("On foot.") and rider and rider.is_aiming():
+		_msg_timer = minf(_msg_timer, 0.25)
 	if _msg_timer > 0.0:
 		_msg_timer -= delta
 		_message.modulate.a = clampf(_msg_timer * 2.0, 0.0, 1.0)

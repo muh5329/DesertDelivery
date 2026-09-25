@@ -18,6 +18,10 @@ const ITEMS := {
 	"cotton": ["Cotton", 0.5, "raw", Color("f4f1e8")],
 	"dates": ["Dates", 1.0, "food", Color("8c5a2b")],
 	"berry": ["Berries", 1.0, "food", Color("b983a5")],
+	"cheese": ["Cheese", 1.0, "food", Color("e8d27a")],
+	"potatoes": ["Potatoes", 1.0, "food", Color("b89a5e")],
+	"game": ["Game", 1.0, "food", Color("8a4f3a")],
+	"vegetables": ["Vegetables", 1.0, "food", Color("6f9a3e")],
 	"planks": ["Planks", 2.0, "material", Color("c79a5f")],
 	"blocks": ["Stone blocks", 3.0, "material", Color("cfc6b2")],
 	"tools": ["Tools", 2.0, "goods", Color("5f6b73")],
@@ -28,7 +32,7 @@ const ITEMS := {
 	"cloth": ["Cloth", 0.5, "goods", Color("5a7fa8")],
 	"preserved_fish": ["Preserved fish", 1.0, "food", Color("b07a4c")],
 }
-const FOODS := ["bread", "fish", "preserved_fish", "dates", "olive", "berry"]
+const FOODS := ["bread", "fish", "preserved_fish", "dates", "olive", "berry", "cheese", "potatoes", "game", "vegetables"]
 const GOODS := ["cloth", "tools", "oil", "wine"]
 const LEGACY_ITEMS := ["wood", "berry", "stone", "ore", "olive"]
 
@@ -51,6 +55,10 @@ const BUILDINGS := {
 	"salt_pans": {"name": "Salt pans", "cat": "raw", "kind": "shop", "w": 6.0, "d": 6.0, "floors": 1, "cost": {"planks": 4}, "coins": 20, "workers": 2, "cycle": 40.0, "inputs": {}, "outputs": {"salt": 3}, "storage": 18, "raw": "salt", "coast": true, "build": 18.0, "prop": "salt", "occupation": "porter"},
 	"cotton_field": {"name": "Cotton field", "cat": "raw", "kind": "barn", "w": 9.0, "d": 7.0, "floors": 1, "cost": {"planks": 5}, "coins": 25, "workers": 2, "cycle": 40.0, "inputs": {}, "outputs": {"cotton": 3}, "storage": 18, "raw": "cotton", "build": 20.0, "prop": "cotton", "occupation": "farmer"},
 	"date_grove": {"name": "Date palm grove", "cat": "raw", "kind": "house", "w": 7.0, "d": 6.0, "floors": 1, "cost": {"planks": 4}, "coins": 20, "workers": 2, "cycle": 40.0, "inputs": {}, "outputs": {"dates": 3}, "storage": 18, "raw": "dates", "build": 18.0, "prop": "palms", "occupation": "gardener"},
+	"dairy": {"name": "Dairy", "cat": "raw", "kind": "barn", "w": 9.0, "d": 7.0, "floors": 1, "cost": {"planks": 5}, "coins": 25, "workers": 2, "cycle": 40.0, "inputs": {}, "outputs": {"cheese": 3}, "storage": 18, "raw": "cheese", "build": 20.0, "prop": "barrels", "occupation": "farmer"},
+	"potato_field": {"name": "Potato field", "cat": "raw", "kind": "barn", "w": 9.0, "d": 7.0, "floors": 1, "cost": {"planks": 4}, "coins": 20, "workers": 2, "cycle": 40.0, "inputs": {}, "outputs": {"potatoes": 4}, "storage": 24, "raw": "potatoes", "build": 18.0, "prop": "wheat", "occupation": "farmer"},
+	"hunting_lodge": {"name": "Hunting lodge", "cat": "raw", "kind": "house", "w": 7.0, "d": 6.0, "floors": 1, "cost": {"planks": 4}, "coins": 20, "workers": 2, "cycle": 45.0, "inputs": {}, "outputs": {"game": 3}, "storage": 18, "raw": "game", "build": 18.0, "prop": "logs", "occupation": "ranger"},
+	"market_garden": {"name": "Market garden", "cat": "raw", "kind": "house", "w": 7.0, "d": 6.0, "floors": 1, "cost": {"planks": 4}, "coins": 20, "workers": 2, "cycle": 40.0, "inputs": {}, "outputs": {"vegetables": 4}, "storage": 24, "raw": "vegetables", "build": 18.0, "prop": "garden", "occupation": "gardener"},
 	"sawmill": {"name": "Sawmill", "cat": "processing", "kind": "warehouse", "w": 10.0, "d": 8.0, "floors": 1, "cost": {"planks": 6, "blocks": 2}, "coins": 40, "workers": 2, "cycle": 30.0, "inputs": {"wood": 2}, "outputs": {"planks": 2}, "storage": 20, "build": 26.0, "prop": "sawmill", "occupation": "porter"},
 	"flour_mill": {"name": "Flour mill", "cat": "processing", "kind": "windmill", "w": 7.0, "d": 7.0, "floors": 2, "cost": {"planks": 8, "blocks": 4}, "coins": 45, "workers": 1, "cycle": 30.0, "inputs": {"grain": 3}, "outputs": {"flour": 2}, "storage": 20, "build": 30.0, "prop": "sacks", "occupation": "baker"},
 	"bakery": {"name": "Bakery", "cat": "processing", "kind": "shop", "w": 8.0, "d": 7.0, "floors": 2, "cost": {"planks": 6, "blocks": 4}, "coins": 40, "workers": 2, "cycle": 30.0, "inputs": {"flour": 2}, "outputs": {"bread": 4}, "storage": 24, "build": 26.0, "prop": "oven", "occupation": "baker"},
@@ -76,16 +84,22 @@ const SHIP_NAMES := ["Santa Rosa", "Gaviota", "Estrella", "Brisa", "Marinera", "
 
 ## The colonies: the core villa colony and the five towns. raw: what the land around each gives.
 ## Hamlets are too small for a charter; they stay delivery stops.
+## staple: what the settlers grow, catch or hunt round the colony hall from the first day (the
+## hall's kitchen garden: 2 workers), so a charter left alone feeds itself; every town also has
+## local food buildings (its `raw` foods) to grow on.
 const COLONIES := {
-	"core": {"name": "Villa Rosa (core island)", "style": "island", "raw": ["olive", "grapes", "stone", "fish", "salt", "wood", "berry"], "charter": 0, "radius": 720.0},
-	"puerto_alto": {"name": "Puerto Alto", "style": "puerto", "raw": ["fish", "stone", "salt"], "charter": 120},
-	"valdoro": {"name": "Valdoro", "style": "valdoro", "raw": ["wood", "stone", "ore"], "charter": 120},
-	"sarmada": {"name": "Sarmada", "style": "sarmada", "raw": ["salt", "cotton", "dates", "fish"], "charter": 120},
-	"isola_serena": {"name": "Isola Serena", "style": "isola", "raw": ["fish", "grapes", "olive"], "charter": 120},
-	"campo_real": {"name": "Campo Real", "style": "campo", "raw": ["grain", "olive", "wood"], "charter": 120},
+	"core": {"name": "Villa Rosa (core island)", "style": "island", "raw": ["olive", "grapes", "stone", "fish", "salt", "wood", "berry", "vegetables"], "charter": 0, "radius": 720.0},
+	"puerto_alto": {"name": "Puerto Alto", "style": "puerto", "raw": ["fish", "stone", "salt", "potatoes", "vegetables"], "charter": 120, "staple": "fish"},
+	"valdoro": {"name": "Valdoro", "style": "valdoro", "raw": ["wood", "stone", "ore", "cheese", "potatoes", "game"], "charter": 120, "staple": "potatoes"},
+	"sarmada": {"name": "Sarmada", "style": "sarmada", "raw": ["salt", "cotton", "dates", "fish", "vegetables"], "charter": 120, "staple": "dates"},
+	"isola_serena": {"name": "Isola Serena", "style": "isola", "raw": ["fish", "grapes", "olive", "cheese", "vegetables"], "charter": 120, "staple": "fish"},
+	"campo_real": {"name": "Campo Real", "style": "campo", "raw": ["grain", "olive", "wood", "cheese", "vegetables", "game"], "charter": 120, "staple": "vegetables"},
 }
-## What a founding charter brings: the hall, settlers and a starter stock.
-const CHARTER_STOCK := {"planks": 30, "blocks": 12, "tools": 4, "bread": 12, "fish": 6}
+## What a founding charter brings: the hall, settlers and a starter stock (plus STAPLE_STOCK of
+## the colony's staple): ~20 minutes of food for the settlers with no production at all.
+const CHARTER_STOCK := {"planks": 30, "blocks": 12, "tools": 4, "bread": 16}
+const STAPLE_STOCK := 16
+const HALL_GARDEN := {"workers": 2, "cycle": 40.0, "amount": 3, "storage": 18}
 const CHARTER_SETTLERS := 5
 const BUILD_RADIUS := 320.0
 const MALE_NAMES := ["Tomas", "Mateo", "Luca", "Pau", "Hugo", "Iker", "Marco", "Nico", "Rafa", "Emilio", "Bruno",
@@ -112,6 +126,27 @@ static func item_color(id: String) -> Color:
 
 static func building(id: String) -> Dictionary:
 	return BUILDINGS.get(id, {})
+
+
+## A building as it works in this colony: the colony hall keeps the settlers' kitchen garden
+## (the colony's staple food) in a town colony.
+static func def_for(colony_id: String, id: String) -> Dictionary:
+	var def: Dictionary = BUILDINGS.get(id, {})
+	if id != "colony_hall": return def
+	var staple := String(COLONIES.get(colony_id, {}).get("staple", ""))
+	if staple == "": return def
+	var d := def.duplicate()
+	d.workers = HALL_GARDEN.workers; d.cycle = HALL_GARDEN.cycle; d.inputs = {}
+	d.outputs = {staple: HALL_GARDEN.amount}; d.storage = HALL_GARDEN.storage; d.occupation = "farmer"
+	return d
+
+
+## The foods a colony can grow itself.
+static func local_foods(colony_id: String) -> Array:
+	var out: Array = []
+	for f in COLONIES.get(colony_id, {}).get("raw", []):
+		if f in FOODS: out.append(f)
+	return out
 
 
 static func buildable_in(colony_id: String, id: String) -> bool:

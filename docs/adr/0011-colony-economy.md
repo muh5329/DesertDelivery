@@ -55,7 +55,16 @@ berry are the economy's own).
 - Townsfolk meshes build on worker threads, so the game waits for in-flight builds when it
   quits (`Game._exit_tree`).
 
+## Update (September 2026, review M-3/M-4)
+
+Goods now move by road too: `RoadHaulage` wagons between any two chartered colonies (a distance
+along the road by the clock, like a ship; one wagon a route, 30 units). Colonies eat a unit every
+2.5 minutes; a charter brings ~20 minutes of food and the hall's kitchen garden grows the town's
+staple, so a colony left alone stabilises; every town has local food buildings. A save loads per
+record: a damaged town is mended (numbers clamped, a broken building or colonist dropped) or reset
+on its own, lanes and ships are dropped one by one, and the load is reported.
+
 ## Reopen if
 
-Goods should move by road (carts or the courier's truck as a logistics layer), ships should
-avoid each other, or the colonies need to share workers across towns.
+Ships should avoid each other, wagons should be drawn on the roads (they are records only), or
+the colonies need to share workers across towns.

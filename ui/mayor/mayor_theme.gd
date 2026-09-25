@@ -15,6 +15,9 @@ const BAND_TEXT := Color("f1e5ca")
 const GOOD := Color("5d8a4a")
 const BAD := Color("a8452f")
 const ACCENT := Color("496f84")
+## The smallest font the Mayor view draws, at the 1600x900 base: with the UI never scaled below
+## Game.UI_MIN_SCALE (0.85) that is at least 13.6 px on screen, 1280x720 included.
+const MIN_FONT := 16
 
 static var _theme: Theme
 static var _font: SystemFont
@@ -23,7 +26,7 @@ static var _font: SystemFont
 static func theme() -> Theme:
 	if _theme != null: return _theme
 	_font = SystemFont.new(); _font.font_names = PackedStringArray(["Georgia", "Noto Serif", "DejaVu Serif"])
-	_theme = Theme.new(); _theme.default_font = _font; _theme.default_font_size = 15
+	_theme = Theme.new(); _theme.default_font = _font; _theme.default_font_size = MIN_FONT
 	for type in ["Button", "OptionButton", "CheckButton", "Label", "SpinBox", "LineEdit", "MenuButton"]:
 		_theme.set_color("font_color", type, INK)
 		_theme.set_color("font_hover_color", type, INK)
@@ -73,7 +76,7 @@ static func band() -> StyleBoxFlat:
 static func label(parent: Node, text: String, size := 15, color := INK) -> Label:
 	var node := Label.new()
 	node.text = text
-	node.add_theme_font_size_override("font_size", size)
+	node.add_theme_font_size_override("font_size", maxi(size, MIN_FONT))
 	node.add_theme_color_override("font_color", color)
 	node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -92,8 +95,8 @@ static func heading(parent: Node, text: String) -> Label:
 static func button(parent: Node, text: String, action: Callable, size := 14, clip := false) -> Button:
 	var node := Button.new()
 	node.text = text
-	node.custom_minimum_size.y = 30
-	node.add_theme_font_size_override("font_size", size)
+	node.custom_minimum_size.y = 32
+	node.add_theme_font_size_override("font_size", maxi(size, MIN_FONT))
 	node.pressed.connect(action)
 	node.focus_mode = Control.FOCUS_NONE
 	if clip:
@@ -111,7 +114,8 @@ static func bar(parent: Node, caption: String, value: float, color := GOOD) -> P
 	pb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pb.custom_minimum_size.y = 16
 	pb.show_percentage = true
-	pb.add_theme_font_size_override("font_size", 11)
+	pb.custom_minimum_size.y = 20
+	pb.add_theme_font_size_override("font_size", MIN_FONT - 2)
 	pb.add_theme_stylebox_override("fill", box(color, color.darkened(0.2), 1, 4, 0))
 	row.add_child(pb)
 	return pb

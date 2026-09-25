@@ -5,6 +5,8 @@ extends Node
 ## Files live in user://saves/<slot>.json.
 
 var _providers: Dictionary = {}   # key -> Object with save_state/load_state
+## What the last load could not use or had to repair ("system: what"); empty after a clean load.
+var last_report: Array[String] = []
 
 
 func register(key: String, provider: Object) -> void:
@@ -26,12 +28,18 @@ func save_game(slot: String = "quick") -> bool:
 		var p: Object = _providers[key]
 		if is_instance_valid(p) and p.has_method("save_state"):
 			data.systems[key] = _encode(p.save_state())
-	var f := FileAccess.open(path_for(slot), FileAccess.WRITE)
+	# atomically: a crash mid-write leaves the previous save, never half a file
+	var tmp := path_for(slot) + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
-		push_error("SaveManager: cannot write %s" % path_for(slot))
+		push_error("SaveManager: cannot write %s" % tmp)
 		return false
 	f.store_string(JSON.stringify(data, "  "))
 	f.close()
+	var err := DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(path_for(slot)))
+	if err != OK:
+		push_error("SaveManager: cannot replace %s (%d)" % [path_for(slot), err])
+		return false
 	Events.game_saved.emit(slot)
 	return true
 
@@ -46,11 +54,22 @@ func load_game(slot: String = "quick") -> bool:
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
 	f.close()
 	if not (parsed is Dictionary): return false
-	var systems: Dictionary = parsed.get("systems", {})
+	var systems: Dictionary = parsed.get("systems", {}) if parsed.get("systems") is Dictionary else {}
+	last_report.clear()
 	for key in systems.keys():
 		var p: Object = _providers.get(key)
 		if p and is_instance_valid(p) and p.has_method("load_state"):
-			p.load_state(_decode(systems[key]))
+			var data: Variant = _decode(systems[key])
+			if not data is Dictionary:
+				last_report.append("%s: unreadable, kept as it was" % key)
+				continue
+			var ok: Variant = p.load_state(data)
+			if ok is bool and not ok: last_report.append("%s: could not be loaded, kept as it was" % key)
+			if p.has_method("load_report"):
+				for w in p.load_report(): last_report.append("%s: %s" % [key, w])
+	if not last_report.is_empty():
+		for w in last_report: push_warning("SaveManager: " + w)
+		Events.message.emit("Loaded with problems: %s%s" % [last_report[0], (" (+%d more)" % (last_report.size() - 1)) if last_report.size() > 1 else ""], 6.0)
 	# New optional systems can explicitly reset when loading a pre-feature save.
 	for key in _providers:
 		var p: Object = _providers[key]

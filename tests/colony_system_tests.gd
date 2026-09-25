@@ -38,7 +38,7 @@ func run() -> void:
 	for i in range(400): colony.tick(.05)
 	check(int(colony.warehouse.get("ore",0))==5 and colony.orders.is_empty(),"Disabling worker finishes cargo once after restore")
 	var invalid:=colony.save_state(); invalid.orders={a.id:{"phase":"deliver","item":"wood","amount":999}}
-	var committed:=colony.save_state(); check(not colony.load_state(invalid) and colony.save_state()==committed,"Invalid snapshot rejected without partial mutation")
+	var committed:=colony.save_state(); check(colony.load_state(invalid) and not colony.load_report().is_empty() and colony.save_state()==committed,"Invalid core snapshot is reported and not applied; the rest still loads")
 	check(int(committed.version)==ColonySystem.SAVE_VERSION and committed.has("economy"),"Colony snapshot is version 2 with the economy")
 	var v1:=committed.duplicate(true); v1.erase("economy"); v1.version=1
 	check(colony.load_state(JSON.parse_string(JSON.stringify(v1))) and int(colony.warehouse.get("ore",0))==int(committed.warehouse.get("ore",0)),"Version 1 snapshot still loads; its warehouse is the core stockpile")

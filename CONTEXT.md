@@ -13,7 +13,7 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   mode); when the wings are out and the bike is airborne the Rider is `FLYING`. A **parked** bike is
   one the Rider has hopped off.
 - **Package** — rides on the bike's rear rack between a **pickup ring** and a **drop-off ring**.
-- **Job** — one pickup → drop-off pair. Four chain across the map (`GameManager`).
+- **Job** — one pickup → drop-off pair. Fifteen chain across the core and the country (`DeliverySystem`).
 - **Garand** — the courier's M1 Garand, his rifle from the start (`GunSystem`, `GarandModel`).
   **Slung** on his back, **shouldered** while aiming (ADS), at the **hip** for snap shots. Fed by
   8-round **en-bloc clips**; the empty clip leaves with a **ping**. **Reserve** = full clips in the
@@ -32,6 +32,12 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   highway.
 - **Vitals** — the courier's `Health` (regenerating), **knocked out** at zero: fade, **respawn** on
   the nearest road to the **last safe spot**, a small coin penalty, a moment of invulnerability.
+  Saved with the game (a quick load is not a heal).
+- **Tank / fuel** — the bike's fuel (`JourneySystem`): 30 km a tank, more with cargo, 1.6x in
+  flight; **limp** at 25 km/h when empty. **Station** — a fuel stop (`RoadServices`): a **town
+  station** at each town's edge (pumps, a shop that is the **coach & ferry office**), a **service
+  stop** on the highways, or a courier counter. **Coach / ferry ticket** — fast travel to a
+  visited town with the bike on the roof rack, for coins and game time.
 
 - **Resident** — one of the 64 named islanders (`data/life/residents.json`); a **ResidentActor** is
   the body drawn near the player.
@@ -181,7 +187,11 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
 - **Lane** — two port colonies, an outbound and a return **cargo rule**, the ships assigned.
   **Ship** — coaster or schooner, built at a **shipyard**; far ships are a distance along a route.
 - **Raid risk** — the chance per leg that pirates from an uncleared **pirate cove** near the route
-  take part of the cargo.
+  take part of the cargo. Coves have names (`ShippingNetwork.cove_name`) and the Trade page shows them.
+- **Staple / kitchen garden** — the food a town colony's hall grows from the first day (fish,
+  potatoes, dates, vegetables); **local foods** are the foods its land gives (cheese, potatoes,
+  game, vegetables, fish, dates, olives...).
+- **Carter / road route** — a wagon carrying goods by road between two colonies (`RoadHaulage`).
 
 ## Architecture (see ARCHITECTURE.md)
 

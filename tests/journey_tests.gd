@@ -60,7 +60,7 @@ func _run() -> void:
 	check(gm.carrying and game.life.residents[0].completed_tasks==work_total,"rest preserves the parcel and does not invent completed resident work")
 	journey.fuel_ratio=1.0; journey._odometer=game.bike.odometer
 	game.bike.odometer+=1000.0; journey._process(1.0)
-	check(is_equal_approx(journey.fuel_ratio,.83125),"fuel uses actual travel distance and cargo weight")
+	check(is_equal_approx(journey.fuel_ratio,1.0-1000.0/JourneySystem.TANK_RANGE_M*(1.0+55.0/JourneySystem.CARGO_KG_PER_EXTRA_TANK)),"fuel uses actual travel distance and cargo weight")
 	var stopped_fuel:=journey.fuel_ratio; journey._process(3600.0)
 	check(is_equal_approx(journey.fuel_ratio,stopped_fuel),"waiting at a counter does not consume fuel")
 	game.bike.place(gm.target_position(),Vector3.FORWARD)
@@ -70,11 +70,12 @@ func _run() -> void:
 	check(journey.open_counter(),"next village offers workshop services")
 	check(not journey.rest_until_morning(),"rest is only available at the courier's home")
 	gm.coins=500; journey.fuel_ratio=.1
-	check(journey.refuel() and gm.coins==483 and journey.fuel_ratio==1.0,"full refill charges exact missing fuel cost")
-	check(not journey.refuel() and gm.coins==483,"a full tank cannot charge coins again")
-	check(journey.upgrade_engine() and journey.engine_level==1 and gm.coins==363,"first engine upgrade spends earned coins and updates level")
-	check(journey.upgrade_engine() and journey.engine_level==2 and gm.coins==123,"second engine upgrade uses its own price")
-	check(not journey.upgrade_engine() and journey.engine_level==2 and gm.coins==123,"unaffordable upgrade is an atomic no-op")
+	var fill:=ceili(.9*JourneySystem.FULL_TANK_PRICE)
+	check(journey.refuel() and gm.coins==500-fill and journey.fuel_ratio==1.0,"full refill charges exact missing fuel cost")
+	check(not journey.refuel() and gm.coins==500-fill,"a full tank cannot charge coins again")
+	check(journey.upgrade_engine() and journey.engine_level==1 and gm.coins==380-fill,"first engine upgrade spends earned coins and updates level")
+	check(journey.upgrade_engine() and journey.engine_level==2 and gm.coins==140-fill,"second engine upgrade uses its own price")
+	check(not journey.upgrade_engine() and journey.engine_level==2 and gm.coins==140-fill,"unaffordable upgrade is an atomic no-op")
 	gm.coins=500; check(journey.upgrade_engine() and journey.engine_level==3 and gm.coins==140,"third engine upgrade applies once")
 	check(not journey.upgrade_engine() and gm.coins==140,"maximum engine level cannot charge again")
 	journey.fuel_ratio=0.0; gm.coins=0
