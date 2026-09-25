@@ -235,7 +235,7 @@ xvfb-run -a godot --path . --rendering-driver vulkan -s tests/garand_view.gd -- 
 xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=combat_view --out=/tmp/combat  # aiming, camp fight, cove, lineup, ambush
 godot --headless --path . -- --test=jeep_tests                  # the jeep: mount, drive, boost, ramp, winch, fuel, into the sea and out, bed, saves (truck_tests is an alias)
 godot --headless --path . -- --test=cart_tests                  # the cart: hitch bike / jeep, tow, bends, bridge, recovery, loads, parcel, colony goods, saves
-xvfb-run -a -s "-screen 0 1600x900x24" godot --path . --rendering-driver vulkan -- --facet --test=vehicle_shots --out=/tmp/vehicles   # jeep, rig, water, panel
+xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver vulkan --resolution 1280x720 -- --facet --quality=low --no-outer-life --test=vehicle_shots --out=/tmp/vehicles   # jeep, rig, water, panel (see the script for memory)
 godot --headless --path . -- --test=delivery_tests              # all handoffs, wallet, loaded stage, on-foot / jeep
 godot --headless --path . -- --test=life_tests                  # routines, navigation, grounding and collisions
 godot --headless --path . -- --test=colony_system_tests         # core colony jobs, orders, roads, save v2 / v1 migration

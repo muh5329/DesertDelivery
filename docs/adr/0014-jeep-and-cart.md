@@ -75,6 +75,17 @@ Jeep, and an urgent run saved with `vehicle = "truck"` is a `cargo` run. The car
 - The old truck's files are gone; `courier_truck.glb` stays for the traffic lorries, and
   `tests/truck_tests.gd` is a one-line alias of `tests/jeep_tests.gd` for suite lists.
 
+## Known limits
+
+- Planing is kinematic: a synthetic swell and bow lift, no buoyancy points or waves under the hull.
+- Many of the island's beaches drop a metre or two at the waterline; out of the water the Jeep
+  claws up such a bank for a few seconds (a lift like the winch's) rather than climbing it on
+  springs.
+- A vehicle that is not towing still passes through a parked cart (and the bike through the
+  jeep), as the bike and the truck always did: only a tow vehicle collides with the vehicles layer.
+- The coach refuses a cart; a parked cart far from the courier holds still (its ground may not be
+  collided out there) and is recovered to a road if it ever falls.
+
 ## Reopen if
 
 A second towable appears (a trailer for the Jeep only, a boat trailer): make the Cart's drawbar

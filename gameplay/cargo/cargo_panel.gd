@@ -197,7 +197,7 @@ func _refresh(force: bool) -> void:
 		_columns.add_child(_column(i))
 	var dest := String(_holds[target].title) if _holds.size() > 1 else "—"
 	_target_label.text = "From  %s   →   to  %s   (Tab changes where it goes)" % [String(_holds[source].title), dest]
-	_status.text = feedback if feedback != "" else "Colony warehouses give and take their goods free; shops sell fuel cans and ammunition crates. Mass slows the tow vehicle and burns fuel."
+	_status.text = feedback if feedback != "" else "Your colonies' warehouses give and take goods free; shops sell fuel cans and ammunition crates."
 	var item := selected_item()
 	var def := ItemDefinition.get_item(item) if item != "" and item != "parcel" else null
 	(_buttons.use as Button).disabled = def == null or def.use == "" or not _holds[source].has("inv")
@@ -253,7 +253,7 @@ func _column(i: int) -> Control:
 func _row(col: int, r: int, row: Dictionary, h: Dictionary) -> Control:
 	var b := Button.new()
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(COL_W - 30, 30)
+	b.custom_minimum_size = Vector2(COL_W - 26, 30)
 	b.clip_text = true
 	b.add_theme_font_size_override("font_size", 16)
 	var count := "×%d" % int(row.count) if String(h.kind) != "shop" else "%d coins" % int(row.get("price", 0))

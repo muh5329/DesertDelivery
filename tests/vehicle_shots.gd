@@ -1,14 +1,17 @@
 extends Node
 ## Renders of the Jeep, the Cart and the load panel (Forward+, --facet):
 ##   start        the jeep parked at the start beside the bike, the cart behind it
-##   jeep         the jeep close up (3/4 front)
-##   hitch        the jeep's tow hitch and the cart's drawbar, from the side
-##   highway      the jeep towing a loaded cart along an outer highway
+##   jeep         the jeep close up (3/4 front; jeep_rear from behind)
+##   hitch        the jeep's tow hitch and the cart's drawbar, from the side (cart_load: the load)
+##   highway      the jeep towing a loaded cart along an outer highway (highway_front)
 ##   town         the bike towing the cart through a town street
-##   water        the jeep afloat in the lagoon, pontoons down
-##   panel        the load panel at the villa's warehouse (1600x900)
-## Usage: xvfb-run -a -s "-screen 0 1600x900x24" godot --path . --audio-driver Dummy --rendering-driver vulkan
-##          -- --facet --test=vehicle_shots --out=DIR [--only=start,water] [--settle=40]
+##   water        the jeep afloat off the island, pontoons down (water_rear: driving back out)
+##   panel        the load panel at the villa's warehouse (render it at 1600x900)
+## Usage (a Forward+ frame of the whole world is ~5 GB under llvmpipe; the session's memory cap
+## is ~6 GB, so keep the load down and split the scenes over runs):
+##   xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --audio-driver Dummy --rendering-driver vulkan
+##     --resolution 1280x720 -- --facet --quality=low --no-outer-life --test=vehicle_shots --out=DIR
+##     [--only=start,jeep,hitch,highway,town] [--settle=10]
 
 var game: Game
 var sc: Controls.Scripted
@@ -214,11 +217,12 @@ func _highway() -> void:
 	await _pursue(jeep, path, 12.0, 7.0)
 	var road: Dictionary = game.world.terrain.nearest_road(jeep.global_position)
 	print("[shots] highway: %.1f m off the road centre at %.1f m/s" % [(road.point as Vector3).distance_to(jeep.global_position), jeep.speed])
+	# the stills: the rig rolls to a stop on the lane while the frames draw
+	sc.intent = Controls.Intent.new(); sc.intent.brake = 0.35
 	_stream(jeep.global_position)
 	await _shoot("highway")
 	follow = jeep
-	follow_offset = Vector3(-9.0, 4.5, -6.0); follow_look = Vector3(0, 0.6, 2.8)
-	await _pursue(jeep, path, 12.0, 1.5)
+	follow_offset = Vector3(-7.5, 3.6, -7.0); follow_look = Vector3(0, 0.6, 2.8)
 	await _shoot("highway_front")
 	sc.intent = Controls.Intent.new(); sc.intent.brake = 1.0
 	await frames(90)
@@ -249,6 +253,7 @@ func _town() -> void:
 	follow = bike
 	follow_offset = Vector3(-4.6, 3.4, 6.8); follow_look = Vector3(0, 0.7, 2.0)
 	await _pursue(bike, path, 7.0, 6.0)
+	sc.intent = Controls.Intent.new(); sc.intent.brake = 0.35
 	_stream(bike.global_position)
 	await _shoot("town")
 	sc.intent = Controls.Intent.new(); sc.intent.brake = 1.0
