@@ -479,6 +479,29 @@ func on_ribbon(x: float, z: float, margin := 0.0) -> bool:
 	return false
 
 
+## The ribbon segments ([a, b, half width]) of the SEG_CELL cells covering `rect`, by cell: a
+## private snapshot a worker thread may read while this thread keeps indexing (OuterFlora keeps
+## its grass and trees off the paving with it). Main thread only.
+func segments_near(rect: Rect2) -> Dictionary:
+	for tj in range(floori(rect.position.y / TILE) - 1, floori(rect.end.y / TILE) + 2):
+		for ti in range(floori(rect.position.x / TILE) - 1, floori(rect.end.x / TILE) + 2):
+			_index_tile(Vector2i(ti, tj))
+	var out: Dictionary = {}
+	for cj in range(floori(rect.position.y / SEG_CELL), floori(rect.end.y / SEG_CELL) + 1):
+		for ci in range(floori(rect.position.x / SEG_CELL), floori(rect.end.x / SEG_CELL) + 1):
+			var c := Vector2i(ci, cj)
+			if _seg_cells.has(c): out[c] = (_seg_cells[c] as Array).duplicate()
+	return out
+
+
+## Is (x, z) on a ribbon of a `segments_near` snapshot, `margin` inside its edge (negative: outside)?
+static func on_snapshot(snap: Dictionary, x: float, z: float, margin := 0.0) -> bool:
+	var q := Vector2(x, z)
+	for sg in snap.get(Vector2i(floori(x / SEG_CELL), floori(z / SEG_CELL)), []):
+		if Geometry2D.get_closest_point_to_segment(q, sg[0], sg[1]).distance_to(q) < float(sg[2]) - margin: return true
+	return false
+
+
 func _index_tile(t: Vector2i) -> void:
 	if _seg_tiles.has(t): return
 	_seg_tiles[t] = true
@@ -488,7 +511,7 @@ func _index_tile(t: Vector2i) -> void:
 		var hw: float = float(e.width) * 0.5
 		for k in range(int(run[1]), mini(int(run[2]), pts.size() - 1)):
 			var a := Vector2(pts[k].x, pts[k].z); var b := Vector2(pts[k + 1].x, pts[k + 1].z)
-			var bb := Rect2(a, Vector2.ZERO).expand(b).grow(hw)
+			var bb := Rect2(a, Vector2.ZERO).expand(b).grow(hw + 1.0)
 			for cj in range(floori(bb.position.y / SEG_CELL), floori(bb.end.y / SEG_CELL) + 1):
 				for ci in range(floori(bb.position.x / SEG_CELL), floori(bb.end.x / SEG_CELL) + 1):
 					var c := Vector2i(ci, cj)

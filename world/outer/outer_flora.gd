@@ -47,6 +47,7 @@ func setup(p_outer: OuterWorld, world_seed: int) -> void:
 	_clump.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	_clump.frequency = 1.0 / 90.0
 	_clump.fractal_octaves = 2
+	_index_plots()
 	_make_species()
 
 
@@ -272,7 +273,8 @@ var last_build_ms := 0.0
 
 func _start(k: Vector2i, near: bool) -> void:
 	_job_key = k; _job_near = near
-	_job = WorkerThreadPool.add_task(func(): _job_out = _plan_near(k) if near else _plan_tile(k), false, "flora tile")
+	var pave := _paving(k, NEAR if near else TILE)
+	_job = WorkerThreadPool.add_task(func(): _job_out = _plan_near(k, pave) if near else _plan_tile(k, pave), false, "flora tile")
 
 
 static func _in_range(k: Vector2i, c: Vector2i, r: int) -> bool:
@@ -319,10 +321,57 @@ func _rng_for(k: Vector2i, salt: int) -> RandomNumberGenerator:
 	return r
 
 
+# ---------------------------------------------------------------- paving
+## Nothing grows on the towns' paving (the Mac's Puerto plaza had grass tufts through its
+## setts): not on a plot or its apron (the plot grid, read-only after setup, so the workers may
+## read it) and not on a street, plaza, lane or quay ribbon (a snapshot of OuterRoads' segment
+## index round the tile, taken on the main thread before the tile's worker starts).
+const PLOT_CELL := 32.0
+const PLOT_APRON := 2.4             # OuterTowns.APRON + APRON_EDGE and a little
+var _plots: Dictionary = {}         # Vector2i -> Array of [centre, forward, right, half w, half d]
+
+
+func _index_plots() -> void:
+	for group in ["towns", "hamlets"]:
+		for t: Dictionary in ground.plan.get(group, []):
+			for p: Dictionary in t.get("plots", []):
+				var yaw := deg_to_rad(float(p.get("yaw", 0.0)))
+				var c := Vector2(float(p.x), float(p.z))
+				var hw := float(p.get("w", 8.0)) * 0.5 + PLOT_APRON; var hd := float(p.get("d", 8.0)) * 0.5 + PLOT_APRON
+				var rec := [c, Vector2(sin(yaw), cos(yaw)), Vector2(cos(yaw), -sin(yaw)), hw, hd]
+				var r := sqrt(hw * hw + hd * hd)
+				for cj in range(floori((c.y - r) / PLOT_CELL), floori((c.y + r) / PLOT_CELL) + 1):
+					for ci in range(floori((c.x - r) / PLOT_CELL), floori((c.x + r) / PLOT_CELL) + 1):
+						var key := Vector2i(ci, cj)
+						if not _plots.has(key): _plots[key] = []
+						_plots[key].append(rec)
+
+
+func _on_plot(x: float, z: float, grow := 0.0) -> bool:
+	var q := Vector2(x, z)
+	for rec in _plots.get(Vector2i(floori(x / PLOT_CELL), floori(z / PLOT_CELL)), []):
+		var d: Vector2 = q - rec[0]
+		if absf(d.dot(rec[1])) < float(rec[4]) + grow and absf(d.dot(rec[2])) < float(rec[3]) + grow: return true
+	return false
+
+
+## The ribbon snapshot round a tile (main thread).
+func _paving(k: Vector2i, size: float) -> Dictionary:
+	if outer == null or outer.roads == null: return {}
+	return outer.roads.segments_near(Rect2(k.x * size - 8.0, k.y * size - 8.0, size + 16.0, size + 16.0))
+
+
+## On the paving, or within `clear` metres of it?
+func _paved(x: float, z: float, pave: Dictionary, clear: float) -> bool:
+	if _on_plot(x, z, clear): return true
+	return not pave.is_empty() and OuterRoads.on_snapshot(pave, x, z, -clear)
+
+
 ## Can something grow at (x, z)? Returns the ground height, or NAN.
 func _site(x: float, z: float, max_slope: float) -> float:
 	if maxf(absf(x), absf(z)) < 1200.0: return NAN
 	if ground.flatten_at(x, z) > 0.2: return NAN
+	if _on_plot(x, z): return NAN
 	if outer.rivers != null and outer.rivers.in_channel(x, z): return NAN
 	var h := ground.data_height(x, z)
 	if h < 1.6: return NAN
@@ -367,11 +416,11 @@ func build_tile(k: Vector2i) -> void:
 
 
 func _build_tile_impl(k: Vector2i) -> void:
-	_emit_tile(k, _plan_tile(k))
+	_emit_tile(k, _plan_tile(k, _paving(k, TILE)))
 
 
 ## Where everything on a wilderness tile goes (pure: no nodes, safe on a worker thread).
-func _plan_tile(k: Vector2i) -> Dictionary:
+func _plan_tile(k: Vector2i, pave: Dictionary = {}) -> Dictionary:
 	var origin := Vector3(k.x * TILE, 0, k.y * TILE)
 	var rng := _rng_for(k, 1)
 	var groups: Dictionary = {}          # species -> [xforms, colors]
@@ -392,7 +441,7 @@ func _plan_tile(k: Vector2i) -> Dictionary:
 			# the understory and the forest floor: shrubs and ferns under the trees, fallen trunks
 			if dens > 0.45 and extras < 520 and r3 < (dens - 0.35) * 0.9:
 				var hu := _site(x + 2.5, z - 1.5, 0.8)
-				if not is_nan(hu):
+				if not is_nan(hu) and not _paved(x + 2.5, z - 1.5, pave, 1.0):
 					var usp := "fern" if int(x - z) % 3 == 0 and hu > 250.0 else "understory"
 					if r4 < 0.03 * dens and ground.biome_at(x, z) == Terrain.Biome.FOREST: usp = "log"
 					if not groups.has(usp): groups[usp] = [[] as Array[Transform3D], [] as Array[Color]]
@@ -408,7 +457,7 @@ func _plan_tile(k: Vector2i) -> Dictionary:
 			elif b0 == Terrain.Biome.MOOR: base_chance = 0.03
 			if roll > dens * 0.55 + base_chance: continue
 			var h := _site(x, z, 0.75)
-			if is_nan(h): continue
+			if is_nan(h) or _paved(x, z, pave, 1.5): continue
 			var biome := ground.biome_at(x, z)
 			if biome == Terrain.Biome.TOWN or biome == Terrain.Biome.SEA or biome == Terrain.Biome.LAKE: continue
 			var sp := _pick_species(x, z, h, biome, ground.dryness_at(x, z), r2)
@@ -428,7 +477,7 @@ func _plan_tile(k: Vector2i) -> Dictionary:
 		var s := rng.randf_range(0.4, 2.2)
 		if rng.randf() > 0.15 + sp.r * 0.8: continue
 		var h := _site(x, z, 1.4)
-		if is_nan(h): continue
+		if is_nan(h) or _paved(x, z, pave, s): continue
 		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).rotated(Vector3.RIGHT, rng.randf_range(-0.3, 0.3)).scaled(Vector3(s, s * rng.randf_range(0.5, 1.0), s)), Vector3(x, h - s * 0.3, z) - origin))
 		rocks[1].append(Color(1, 1, 1))
 	# scree and boulders under the cliffs and in the forests
@@ -438,7 +487,7 @@ func _plan_tile(k: Vector2i) -> Dictionary:
 		var s := rng.randf_range(0.3, 1.4)
 		if rng.randf() > f * 0.35: continue
 		var h := _site(x, z, 1.1)
-		if is_nan(h): continue
+		if is_nan(h) or _paved(x, z, pave, s): continue
 		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.45, 0.8), s)), Vector3(x, h - s * 0.35, z) - origin))
 		rocks[1].append(Color(1, 1, 1))
 	_hedges(k, origin, groups, rng)
@@ -638,10 +687,10 @@ static func _hash21(p: Vector2) -> float:
 
 
 func _build_near(k: Vector2i) -> void:
-	_emit_near(k, _plan_near(k))
+	_emit_near(k, _plan_near(k, _paving(k, NEAR)))
 
 
-func _plan_near(k: Vector2i) -> Dictionary:
+func _plan_near(k: Vector2i, pave: Dictionary = {}) -> Dictionary:
 	var origin := Vector3(k.x * NEAR, 0, k.y * NEAR)
 	var rng := _rng_for(k, 2)
 	var groups: Dictionary = {}
@@ -663,7 +712,7 @@ func _plan_near(k: Vector2i) -> Dictionary:
 		dens *= (1.0 - sp.r) * (1.0 - sp.a)
 		if r > dens: continue
 		var h := _site(x, z, 0.8)
-		if is_nan(h): continue
+		if is_nan(h) or _paved(x, z, pave, 0.7): continue
 		# flowers: a sprinkle in the lowland grass, whole drifts on the alpine meadows (clumped by
 		# the same glade noise the forests use)
 		var fl := 0.07
