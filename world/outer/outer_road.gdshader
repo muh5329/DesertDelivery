@@ -26,13 +26,16 @@ uniform vec3 tint = vec3(1.0);
 varying vec3 wpos;
 varying float shoulder;
 varying float plaza_len;              // plaza ribbons: the plaza's length (COLOR.r x 200; its centre is at along = len / 2)
-varying float style;                  // town style (COLOR.g x 8): 0 campo, 1 puerto, 2 valdoro, 3 sarmada, 4 isola
+// town style (COLOR.g x 8): 0 campo, 1 puerto, 2 valdoro, 3 sarmada, 4 isola. Flat, and rounded again
+// in fragment(): an interpolated 3.0 is 2.99999 at some pixels, and `style == 3.0` then fell through
+// to Isola's flags in a dither across Sarmada's and Valdoro's streets
+varying flat float style_v;
 
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	shoulder = COLOR.a;
 	plaza_len = COLOR.r * 200.0;
-	style = floor(COLOR.g * 8.0 + 0.5);
+	style_v = floor(COLOR.g * 8.0 + 0.5);
 	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	float d = length(v.xyz);
 	// pull toward the camera: a few cm near, more far away (depth precision); the aprons round the
@@ -87,6 +90,7 @@ vec3 fans(vec2 p, float aa) {
 }
 
 void fragment() {
+	float style = floor(style_v + 0.5);
 	float across = (UV.x - 0.5) * width;       // metres from the centre line
 	float along = UV.y;
 	float dist = length(wpos - CAMERA_POSITION_WORLD);
