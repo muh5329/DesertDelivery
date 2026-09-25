@@ -400,9 +400,10 @@ func travel(from_id: String, to_cid: String) -> String:
 	if dest.is_empty(): return "No coach to there."
 	if not dest.open: return "%s." % dest.reason
 	var rider: Rider = game.rider
-	if rider.vehicle != game.bike: return "The coach takes your bike, not the cargo truck: fetch the bike first."
-	if game.gm.carrying and game.gm.current_job() and game.gm.current_job().vehicle == "truck":
-		return "Truck freight can't ride the coach."
+	if rider.vehicle != game.bike: return "The coach takes your bike, not the jeep: fetch the bike first."
+	if game.bike.is_towing(): return "Unhitch the cart first: it can't ride the coach."
+	if game.gm.carrying and DeliverySystem.needs_cargo_vehicle(game.gm.current_job()):
+		return "Cargo freight can't ride the coach."
 	var bike_d := game.bike.global_position.distance_to(rider.courier().global_position)
 	if not rider.is_riding() and bike_d > 40.0: return "Bring your bike to the station: it rides on the roof rack."
 	if not game.gm.spend_coins(int(dest.price)): return "A ticket to %s costs %d coins." % [dest.name, dest.price]

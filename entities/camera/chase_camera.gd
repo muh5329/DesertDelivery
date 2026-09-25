@@ -18,11 +18,11 @@ extends Camera3D
 ##   shake(amount)
 ##   kick(pitch, yaw)          recoil: the view jumps up (rad) and recovers on its own
 
-enum Framing { BIKE, FOOT, SWIM, PLANE, TRUCK }
+enum Framing { BIKE, FOOT, SWIM, PLANE, JEEP }
 
 ## One row per Framing. Everything the chase update needs is a column here — the eases, the
 ## speed gains and the airborne lift used to be `if framing == BIKE` branches inside
-## _chase_update, which meant TRUCK silently inherited whatever the bike was *not*.
+## _chase_update, which meant the old truck's framing silently inherited whatever the bike was *not*.
 ##
 ##   distance/height/look_height/look_ahead/fov  where the camera sits and what it looks at
 ##   orbit          the view direction IS (yaw, pitch) — on foot and swimming
@@ -45,8 +45,10 @@ const FRAMINGS := {
 	Framing.PLANE: {"distance": 7.5, "height": 2.6, "look_height": 1.1,  "look_ahead": 3.0, "fov": 64.0, "orbit": false,
 		"yaw_base": 0.55, "yaw_gain": 0.6, "dist_gain": 1.1, "fov_gain": 7.0,
 		"pos_ease": 6.0, "height_ease": 0.0, "look_ease": 11.2, "fov_ease": 3.0, "air_lift": 0.6},
-	Framing.TRUCK: {"distance": 6.4, "height": 2.8, "look_height": 1.35, "look_ahead": 2.8, "fov": 60.0, "orbit": false,
-		"yaw_base": 0.5, "yaw_gain": 0.35, "dist_gain": 0.9, "fov_gain": 5.5,
+	# LegendOfJeep's chase rig sat a little higher and further back than the bike's, to see
+	# over the roll cage and the swell; the pull-back at speed carries a towed cart into frame.
+	Framing.JEEP:  {"distance": 6.8, "height": 2.7, "look_height": 1.4, "look_ahead": 3.0, "fov": 60.0, "orbit": false,
+		"yaw_base": 0.5, "yaw_gain": 0.35, "dist_gain": 1.2, "fov_gain": 5.5,
 		"pos_ease": 7.0, "height_ease": 5.0, "look_ease": 8.5, "fov_ease": 2.2, "air_lift": 0.0},
 }
 ## Looking back is a deliberate swing, not the framing's own easing.
@@ -233,6 +235,9 @@ func _chase_update(delta: float) -> void:
 	var f := Vector3(-sin(_yaw), 0, -cos(_yaw))
 	var dist: float = _f.distance + sf * float(_f.dist_gain)
 	var h: float = _f.height + sf * 0.25 + float(_f.air_lift)
+	# a rig: pull back and up so the towed cart stays in the frame
+	if target is Vehicle and (target as Vehicle).is_towing():
+		dist += 2.2; h += 0.6
 	var desired := target.global_position - f * dist + Vector3(0, h, 0)
 	if terrain:
 		desired.y = maxf(desired.y, terrain.height_at(desired.x, desired.z) + 0.9)
@@ -268,6 +273,9 @@ func _camera_clearance(from: Vector3, to: Vector3) -> Vector3:
 	query.margin = .025
 	query.collision_mask = 1 | 2 | 16
 	if target is CollisionObject3D: query.exclude = [target.get_rid()]
+	# a towed cart is part of the rig the camera follows, never an obstacle in front of it
+	if target is Vehicle and (target as Vehicle).is_towing():
+		query.exclude = [target.get_rid(), (target as Vehicle).towing.get_rid()]
 	var space := get_world_3d().direct_space_state
 	# Sweeps deliberately ignore shapes already overlapping their starting
 	# sphere. Resolve those contacts first (for example an aim shoulder beside

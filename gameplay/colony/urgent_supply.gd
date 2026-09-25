@@ -3,7 +3,7 @@ extends RefCounted
 ## Urgent supply runs: when a founded town colony runs short of food or of a good, it posts an
 ## optional courier job — "Urgent: 20 bread to Isola Serena" — collected at a town that has it
 ## (the plains market for bread, the ports for fish, the souk for cloth and dates, Valdoro for
-## tools...) and carried in the cargo truck. Taking one (U, or `accept`) makes it the courier's
+## tools...) and carried in the Jeep or the Cart. Taking one (U, or `accept`) makes it the courier's
 ## current job through the DeliverySystem (a JobDefinition like any other, shown on the HUD);
 ## the regular route resumes where it was once it is delivered. Delivery pays the job's reward
 ## (a bonus for the urgency and the distance) and puts the goods into the colony's stock.
@@ -132,7 +132,7 @@ func make_offer(cid: String, item: String) -> Dictionary:
 	return {"id": "%s%s.%s.%d" % [PREFIX, cid, item, qty], "colony": cid, "item": item, "qty": qty, "from": best, "reward": reward}
 
 
-## The JobDefinition for an offer: carried in the cargo truck.
+## The JobDefinition for an offer: carried in the Jeep or the Cart (a cargo load).
 static func job_for(o: Dictionary) -> JobDefinition:
 	var j := JobDefinition.new()
 	j.id = StringName(o.id)
@@ -143,7 +143,7 @@ static func job_for(o: Dictionary) -> JobDefinition:
 	j.reward = int(o.reward)
 	j.cargo_kind = "heavy"
 	j.cargo_mass_kg = clampf(float(o.qty) * EconomyCatalog.mass(String(o.item)), 0.0, 80.0)
-	j.vehicle = "truck"
+	j.vehicle = "cargo"
 	return j
 
 
@@ -161,7 +161,7 @@ func accept(id := "") -> String:
 	if active_job() != null: return "You are already on an urgent run."
 	if gm.carrying: return "Deliver the parcel you are carrying first."
 	if not gm.start_extra_job(job_for(o)): return "The job could not be started."
-	Events.message.emit("Urgent: collect %d %s at %s with the cargo truck, take it to %s. +%d coins." % [int(o.qty),
+	Events.message.emit("Urgent: collect %d %s at %s with the jeep or the cart, take it to %s. +%d coins." % [int(o.qty),
 		EconomyCatalog.item_name(String(o.item)).to_lower(), _db().location_name(StringName(o.from)), _db().location_name(StringName(o.colony)), int(o.reward)], 5.0)
 	return ""
 

@@ -27,6 +27,10 @@ var active_job_override: JobDefinition
 ## The override is an optional job taken on top of the route (an urgent colony supply run): the
 ## route resumes at job_index when it is delivered, instead of moving on.
 var extra_job := false
+## The parcel rides in the Cart instead of on the courier or his vehicle's rack (CargoSystem moves
+## it; a heavy or urgent load collected with a cart hitched goes straight into it).
+var parcel_in_cart := false
+var cart: CargoCart
 var _vehicle_hint_shown := false
 var handoffs_paused := false
 var _foot_package: Node3D
@@ -114,7 +118,20 @@ func set_vehicle(next: Vehicle) -> void:
 	if next == vehicle: return
 	if vehicle: vehicle.set_package_visible(false)
 	vehicle = next
-	if vehicle: vehicle.set_package_visible(carrying)
+	if vehicle: vehicle.set_package_visible(carrying and not parcel_in_cart)
+
+
+## The parcel's weight (kg): a consignment's own, else a small parcel's.
+func carried_mass() -> float:
+	var j := current_job()
+	if j == null or not carrying: return 0.0
+	return maxf(j.cargo_mass_kg, 5.0)
+
+
+## Load the parcel into the Cart, or take it back out (CargoSystem checks the reach).
+func set_parcel_in_cart(v: bool) -> void:
+	parcel_in_cart = v and carrying and cart != null
+	_sync_package_visuals()
 
 
 func current_job() -> JobDefinition:
@@ -190,6 +207,7 @@ func _start_job(i: int, announce: bool = true, publish: bool = true) -> void:
 	_zone_timer = 0.0; _in_zone = false; _foot_hint_shown = false
 	job_index = clampi(i, 0, jobs.size())
 	carrying = false
+	parcel_in_cart = false
 	_all_done = false
 	vehicle.set_package_visible(false)
 	if job_index >= jobs.size():
@@ -225,6 +243,7 @@ func _begin_extra(job: JobDefinition, publish: bool) -> void:
 	_revision += 1
 	active_job_override = job
 	extra_job = true
+	parcel_in_cart = false
 	_all_done = false
 	stage = Stage.TO_PICKUP
 	_zone_timer = 0.0; _in_zone = false; _vehicle_hint_shown = false; _cooldown = 0.0
@@ -233,11 +252,17 @@ func _begin_extra(job: JobDefinition, publish: bool) -> void:
 	if publish: Events.job_changed.emit(job, &"pickup")
 
 
-## Does the courier meet the job's vehicle requirement (the cargo truck for urgent supplies)?
+## Does the courier meet the job's vehicle requirement? A "cargo" load (urgent colony supplies)
+## needs the Jeep or a rig towing the Cart — or, once collected, the load in the Cart.
 func vehicle_ok(courier: Node3D) -> bool:
 	var j := current_job()
-	if j == null or j.vehicle != "truck": return true
-	return courier == vehicle and vehicle is Truck
+	if j == null or not needs_cargo_vehicle(j): return true
+	if carrying and parcel_in_cart: return true
+	return courier == vehicle and vehicle != null and (vehicle is Jeep or vehicle.is_towing())
+
+
+static func needs_cargo_vehicle(j: JobDefinition) -> bool:
+	return j != null and (j.vehicle == "cargo" or j.vehicle == "truck")
 
 
 func _process(delta: float) -> void:
@@ -260,6 +285,10 @@ func _process(delta: float) -> void:
 	var courier: Node3D = player if rider and rider.is_on_foot() else vehicle
 	if courier == null: return
 	var inside := _contains_courier(zone, courier)
+	if carrying and parcel_in_cart and stage == Stage.TO_DROPOFF:
+		# the parcel is in the Cart: the cart must stand in the ring, the courier with it
+		inside = cart != null and _contains_courier(zone, cart) \
+			and (inside or courier.global_position.distance_to(cart.global_position) < 8.0)
 	var velocity_speed := 0.0
 	if courier is CharacterBody3D:
 		velocity_speed = Vector2(courier.velocity.x, courier.velocity.z).length()
@@ -271,7 +300,7 @@ func _process(delta: float) -> void:
 		available = false
 		if not _vehicle_hint_shown:
 			_vehicle_hint_shown = true
-			_say("This load needs the cargo truck: bring it here.", 3.5)
+			_say("This load needs the jeep or the cart: bring one here.", 3.5)
 	if inside and speed < 2.5 and available:
 		_zone_timer += delta
 		if _zone_timer >= 0.5:
@@ -296,7 +325,11 @@ func _complete_stage() -> void:
 		carrying = true
 		parcel_condition = 1.0
 		_impact_cooldown = 0.0
-		vehicle.set_package_visible(true)
+		# a heavy or urgent load collected with the cart hitched goes straight into the cart
+		var riding := rider == null or not rider.is_on_foot()
+		parcel_in_cart = cart != null and riding and vehicle != null and vehicle.is_towing() \
+			and (needs_cargo_vehicle(j) or j.cargo_mass_kg >= 40.0)
+		_sync_package_visuals()
 		if pickup_zone: pickup_zone.queue_free(); pickup_zone = null
 		dropoff_zone = _make_zone(db.location_pos(j.to_location), 6.5)
 		package_collected.emit()
@@ -312,7 +345,9 @@ func _complete_stage() -> void:
 		# Commit cargo and stage before publishing any transaction callbacks.
 		stage = Stage.DONE
 		carrying = false
+		parcel_in_cart = false
 		vehicle.set_package_visible(false)
+		if cart: cart.set_parcel_visible(false)
 		parcel_condition = 1.0
 		_cooldown = 2.5
 		if extra_job: _start_job(job_index, job_index < jobs.size())
@@ -333,7 +368,9 @@ func _contains_courier(zone: Area3D, courier: Node3D) -> bool:
 
 func _sync_package_visuals() -> void:
 	var on_foot := rider != null and rider.is_on_foot()
-	if vehicle: vehicle.set_package_visible(carrying and not on_foot)
+	if not carrying: parcel_in_cart = false
+	if vehicle: vehicle.set_package_visible(carrying and not on_foot and not parcel_in_cart)
+	if cart: cart.set_parcel_visible(carrying and parcel_in_cart)
 	if player and _foot_package == null and player.get("model"):
 		_foot_package = Node3D.new(); _foot_package.name = "CourierParcel"
 		player.model.torso.add_child(_foot_package)
@@ -342,12 +379,12 @@ func _sync_package_visuals() -> void:
 		_foot_package.add_child(Mats.box(Vector3(.28,.32,.16),paper,Vector3(0,.28,.20)))
 		_foot_package.add_child(Mats.box(Vector3(.025,.33,.17),cord,Vector3(0,.28,.20)))
 		_foot_package.add_child(Mats.box(Vector3(.29,.024,.17),cord,Vector3(0,.28,.20)))
-	if _foot_package: _foot_package.visible = carrying and on_foot
+	if _foot_package: _foot_package.visible = carrying and on_foot and not parcel_in_cart
 
 
 func save_state() -> Dictionary:
 	var job := current_job()
-	var data := {"version":2, "receipts":receipts.duplicate(true), "job_id": String(job.id) if job else "", "job_index": job_index, "stage": stage, "deliveries": deliveries, "elapsed": elapsed, "coins": coins, "parcel_condition": parcel_condition}
+	var data := {"version":2, "receipts":receipts.duplicate(true), "job_id": String(job.id) if job else "", "job_index": job_index, "stage": stage, "deliveries": deliveries, "elapsed": elapsed, "coins": coins, "parcel_condition": parcel_condition, "parcel_in_cart": parcel_in_cart}
 	if active_job_override and extra_job:
 		var x := active_job_override
 		data["job_id"] = String(jobs[job_index].id) if job_index < jobs.size() else ""
@@ -384,7 +421,7 @@ func load_state(d: Dictionary) -> void:
 		x.from_location = StringName(String(urgent.from)); x.to_location = StringName(String(urgent.to))
 		x.item = String(urgent.get("item","supplies")); x.reward = maxi(0,int(urgent.get("reward",0)))
 		x.cargo_mass_kg = clampf(float(urgent.get("mass_kg",0.0)),0.0,80.0); x.cargo_kind = String(urgent.get("kind","heavy"))
-		x.vehicle = String(urgent.get("vehicle","truck"))
+		x.vehicle = "cargo" if String(urgent.get("vehicle","cargo")) in ["truck", "cargo"] else String(urgent.get("vehicle",""))
 		_begin_extra(x, false)
 	# Restore the stage directly: loading must never collect again, award coins, or emit
 	# package/delivery events (other systems use those events for real transactions).
@@ -393,6 +430,7 @@ func load_state(d: Dictionary) -> void:
 		_clear_zones()
 		dropoff_zone = _make_zone(db.location_pos(current_job().to_location), 6.5)
 	parcel_condition = clampf(float(d.get("parcel_condition", 1.0)), 0.0, 1.0)
+	parcel_in_cart = carrying and cart != null and bool(d.get("parcel_in_cart", false))
 	_sync_package_visuals()
 	Events.job_changed.emit(current_job(), &"done" if stage==Stage.DONE else (&"dropoff" if carrying else &"pickup"))
 	wallet_changed.emit(coins)

@@ -12,5 +12,6 @@ extends Definition
 @export var cargo_mass_kg := 0.0
 @export var cargo_kind := "standard"
 
-## "truck": only the cargo truck may collect and deliver it (urgent colony supplies).
+## "cargo": only the Jeep, or a rig towing the Cart, may collect it (urgent colony supplies);
+## a save from before the Jeep says "truck", read the same way.
 @export var vehicle := ""

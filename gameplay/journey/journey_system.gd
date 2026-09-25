@@ -1,21 +1,27 @@
 class_name JourneySystem
 extends CanvasLayer
-## Local courier counters: optional consignments, motorcycle fuel/workshop and home rest.
+## Local courier counters: optional consignments, fuel for the bike and the jeep, the bike's workshop
+## and home rest.
 ## Delivery owns earned coins and route state; this provider owns fuel and engine upgrades.
 const HUB_RADIUS:=24.0
 const SERVICE_BIKE_RADIUS:=35.0
 ## Fuel economy, tuned to the country: a full tank rides 30 km on the level with no cargo (the
 ## longest pump-to-pump highway stretch is ~5.2 km, the longest job ~18.5 km), heavy freight
 ## (55 kg) burns a third more, flying burns 1.6x per metre. Running dry leaves a limp (Bike.LIMP_SPEED).
+## The Jeep has its own tank (data/vehicles/jeep.tres: 40 km, planing on water 2.2x); a towed
+## Cart and its load burn more on either (VehicleDefinition.cargo_kg_per_extra_tank).
 const TANK_RANGE_M:=30000.0
 const CARGO_KG_PER_EXTRA_TANK:=160.0
 const FLIGHT_BURN:=1.6
+## Planing on water burns this many times the road rate (the propellers work hard).
+const WATER_BURN:=2.2
 const FULL_TANK_PRICE:=30
 const LOW_FUEL:=[0.25,0.10,0.0]
 const ENGINE_PRICES: Array[int]=[120,240,360]
 const OFFER_TYPES: Array[String]=["light","fragile","heavy"]
 var game: Game
-var fuel_ratio:=1.0
+var fuel_ratio:=1.0          # the bike's tank
+var jeep_fuel:=1.0           # the Jeep's tank
 var engine_level:=0
 var active_cargo_mass_kg:=0.0
 var panel: Control
@@ -26,6 +32,8 @@ var _hubs: Array[StringName]=[]
 var just_closed: bool:
 	get: return game!=null and game.panels.just_closed()
 var _odometer:=0.0
+var _jeep_odometer:=0.0
+var _warned_for: Vehicle
 var _refresh:=0.0
 var _title: Label
 var _wallet: Label
@@ -51,6 +59,7 @@ func setup(p_game: Game) -> void:
 	for job in game.gm.jobs:
 		if job.from_location not in _hubs: _hubs.append(job.from_location)
 	_odometer=game.bike.odometer
+	if game.jeep: _jeep_odometer=game.jeep.odometer
 	services=RoadServices.new(); game.world.add_child(services); services.setup(game)
 	station_panel=StationPanel.new(); get_parent().add_child(station_panel)
 	station_panel.setup(game,self,services)
@@ -96,23 +105,69 @@ func nearby_station() -> Dictionary:
 
 ## The fuel the tank holds, in metres of level road with today's cargo.
 func fuel_range_m() -> float:
-	return fuel_ratio/maxf(_burn_per_m(false),1e-9)
+	var v:=service_vehicle()
+	return tank_of(v)/maxf(_burn_per_m_for(v,false),1e-9)
 
 
 func _burn_per_m(flying: bool) -> float:
-	return (1.0+active_cargo_mass_kg/CARGO_KG_PER_EXTRA_TANK)*(FLIGHT_BURN if flying else 1.0)/TANK_RANGE_M
+	return _burn_per_m_for(game.bike,flying)
+
+
+## Tank burned per metre: the vehicle's own range (its .tres), a third more for heavy freight on
+## the bike (a whole tank more per `cargo_kg_per_extra_tank`), the towed Cart and its load too;
+## flying burns FLIGHT_BURN times, planing on water WATER_BURN times.
+func _burn_per_m_for(v: Vehicle,special: bool) -> float:
+	if v==null or v.definition==null: return 1.0/TANK_RANGE_M
+	var d:=v.definition
+	var mult:=1.0
+	if special: mult=FLIGHT_BURN if v==game.bike else WATER_BURN
+	return (1.0+load_of(v)/d.cargo_kg_per_extra_tank)*mult/d.tank_range_m
+
+
+## What a vehicle hauls (kg): the parcel on its rack, its bed, the Cart it tows.
+func load_of(v: Vehicle) -> float:
+	var kg:=v.towed_mass()
+	if v==game.bike: kg+=active_cargo_mass_kg
+	elif v==game.jeep:
+		kg+=game.jeep.bed.mass()
+		if game.gm.carrying and not game.gm.parcel_in_cart and game.rider.vehicle==v: kg+=game.gm.carried_mass()
+	return kg
+
+
+## The vehicle the pumps and the counter serve: the one the courier drives, or last drove.
+func service_vehicle() -> Vehicle:
+	return game.rider.vehicle if game.rider and game.rider.vehicle else game.bike
+
+
+func tank_of(v: Vehicle) -> float:
+	return jeep_fuel if v!=null and v==game.jeep else fuel_ratio
+
+
+func set_tank(v: Vehicle,ratio: float) -> void:
+	ratio=clampf(ratio,0.0,1.0)
+	if v!=null and v==game.jeep: jeep_fuel=ratio
+	else: fuel_ratio=ratio
+	if v==service_vehicle(): _warned=_warn_level(ratio)
+	_publish_bike_state()
+
+
+## The tank of the vehicle in service (the HUD's gauge).
+func current_tank() -> float:
+	return tank_of(service_vehicle())
 
 
 ## Where the nearest pump is, for the HUD: "" while the tank is comfortable.
 func low_fuel_hint() -> String:
-	if fuel_ratio>=LOW_FUEL[0] or services==null: return ""
+	var tank:=current_tank()
+	if tank>=LOW_FUEL[0] or services==null: return ""
 	var n: Dictionary=services.nearest_fuel(game.rider.courier().global_position)
 	if n.is_empty(): return ""
-	var head:="Out of fuel" if fuel_ratio<=.001 else "Low fuel"
+	var head:="Out of fuel" if tank<=.001 else "Low fuel"
 	return "%s · %s %.1f km %s" % [head,n.station.name,n.distance/1000.0,RoadServices.compass_word(n.bearing)]
 
 func status_text() -> String:
-	return "Fuel %d%% · Engine %d/3%s" % [roundi(fuel_ratio*100),engine_level," · Cargo %.0f kg" % active_cargo_mass_kg if active_cargo_mass_kg>0 else ""]
+	var kg:=load_of(service_vehicle())
+	return "Fuel %d%% · Engine %d/3%s" % [roundi(current_tank()*100),engine_level," · Cargo %.0f kg" % kg if kg>0 else ""]
 
 func open_counter() -> bool:
 	if is_open(): return true
@@ -141,23 +196,25 @@ func use_station(st: Dictionary) -> bool:
 	return refuel_here()
 
 
-## Is the bike on this station's apron (or a counter's forecourt), stopped and on its wheels?
+## Is the vehicle in service (the bike or the jeep) on this station's apron (or a counter's
+## forecourt), stopped and on its wheels?
 func bike_at_station(st: Dictionary) -> bool:
 	if st.is_empty(): return false
+	var v:=service_vehicle()
 	var reach: float=SERVICE_BIKE_RADIUS if st.kind=="counter" else RoadServices.USE_RADIUS+6.0
-	var b:=game.bike.global_position
-	return Vector2(b.x-st.pos.x,b.z-st.pos.z).length()<=reach and game.bike.grounded and absf(game.bike.speed)<3.0
+	var b:=v.global_position
+	return Vector2(b.x-st.pos.x,b.z-st.pos.z).length()<=reach and v.grounded and absf(v.speed)<3.0
 
 
 ## Fill up wherever the courier is: a counter with the bike beside it, or a station's pumps.
 func refuel_here() -> bool:
 	if _bike_at_counter(): return refuel()
 	var st:=nearby_station()
-	if st.is_empty() or not bike_at_station(st): return _result(false,"Bring your bike to the pumps.")
+	if st.is_empty() or not bike_at_station(st): return _result(false,"Bring your %s to the pumps." % _vehicle_word())
 	var price:=refill_price()
 	if price==0: return _result(false,"Your tank is already full.")
 	if not game.gm.spend_coins(price): return _result(false,"You need %d coins to fill the tank." % price)
-	fuel_ratio=1.0; _warned=-1; _publish_bike_state()
+	set_tank(service_vehicle(),1.0)
 	return _result(true,"Tank filled at %s · %d coins paid." % [st.name,price])
 
 
@@ -193,10 +250,18 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if game==null: return
 	var distance:=maxf(0.0,game.bike.odometer-_odometer); _odometer=game.bike.odometer
-	if game.rider.active_vehicle()==game.bike:
-		# Distance, not frame rate or wall time: idling at a shop never drains a tank.
+	var jeep_distance:=0.0
+	if game.jeep:
+		jeep_distance=maxf(0.0,game.jeep.odometer-_jeep_odometer); _jeep_odometer=game.jeep.odometer
+	var active:=game.rider.active_vehicle()
+	# Distance, not frame rate or wall time: idling at a shop never drains a tank.
+	if active==game.bike:
 		fuel_ratio=maxf(0.0,fuel_ratio-distance*_burn_per_m(game.bike.airborne))
-		_warn_fuel()
+	elif active!=null and active==game.jeep:
+		jeep_fuel=maxf(0.0,jeep_fuel-jeep_distance*_burn_per_m_for(game.jeep,game.jeep.afloat))
+	if active!=_warned_for:
+		_warned_for=active; _warned=_warn_level(current_tank())
+	if active!=null: _warn_fuel()
 	_publish_bike_state()
 	_refresh+=delta
 	if _refresh<.25: return
@@ -207,10 +272,15 @@ func _process(delta: float) -> void:
 		_refresh_ui()
 
 ## Say it once per threshold (25 %, 10 %, empty), with the nearest pump.
-func _warn_fuel() -> void:
+func _warn_level(tank: float) -> int:
 	var level:=-1
 	for i in range(LOW_FUEL.size()):
-		if fuel_ratio<=LOW_FUEL[i]+(0.001 if i==LOW_FUEL.size()-1 else 0.0): level=i
+		if tank<=LOW_FUEL[i]+(0.001 if i==LOW_FUEL.size()-1 else 0.0): level=i
+	return level
+
+
+func _warn_fuel() -> void:
+	var level:=_warn_level(current_tank())
 	if level<=_warned: return
 	_warned=level
 	var n: Dictionary=services.nearest_fuel(game.rider.courier().global_position) if services else {}
@@ -228,6 +298,7 @@ func _publish_bike_state() -> void:
 	game.bike.set_meta("cargo_mass_kg",active_cargo_mass_kg if loaded_bike else 0.0)
 	game.bike.set_meta("engine_level",engine_level)
 	game.bike.set_meta("fuel_ratio",fuel_ratio)
+	if game.jeep: game.jeep.set_meta("fuel_ratio",jeep_fuel)
 
 func offers_for(hub: StringName) -> Array[Dictionary]:
 	var result: Array[Dictionary]=[]
@@ -254,27 +325,32 @@ func accept_offer(kind: String) -> bool:
 
 func _bike_at_counter() -> bool:
 	var hub:=nearby_hub()
-	return hub!=&"" and _courier_stopped() and game.bike.global_position.distance_to(game.world.database.location_pos(hub))<=SERVICE_BIKE_RADIUS and game.bike.grounded
+	var v:=service_vehicle()
+	return hub!=&"" and _courier_stopped() and v.global_position.distance_to(game.world.database.location_pos(hub))<=SERVICE_BIKE_RADIUS and v.grounded
+
+func _vehicle_word() -> String:
+	return "jeep" if service_vehicle()==game.jeep else "bike"
 
 func refill_price() -> int:
-	return maxi(1,ceili((1.0-fuel_ratio)*FULL_TANK_PRICE)) if fuel_ratio<.999 else 0
+	var tank:=current_tank()
+	return maxi(1,ceili((1.0-tank)*FULL_TANK_PRICE)) if tank<.999 else 0
 
 func refuel() -> bool:
-	if not _bike_at_counter(): return _result(false,"Bring your bike to the counter for fuel.")
+	if not _bike_at_counter(): return _result(false,"Bring your %s to the counter for fuel." % _vehicle_word())
 	var price:=refill_price()
 	if price==0: return _result(false,"Your tank is already full.")
 	if not game.gm.spend_coins(price): return _result(false,"You need %d coins to fill the tank." % price)
-	fuel_ratio=1.0; _warned=-1; _publish_bike_state()
+	set_tank(service_vehicle(),1.0)
 	return _result(true,"Tank filled · %d coins paid." % price)
 
 func courier_reserve() -> bool:
-	if not _bike_at_counter(): return _result(false,"Bring your bike to the counter for reserve fuel.")
-	if fuel_ratio>=.20: return _result(false,"Reserve fuel is for tanks below 20%.")
-	fuel_ratio=.20; _warned=0; _publish_bike_state()
+	if not _bike_at_counter(): return _result(false,"Bring your %s to the counter for reserve fuel." % _vehicle_word())
+	if current_tank()>=.20: return _result(false,"Reserve fuel is for tanks below 20%.")
+	set_tank(service_vehicle(),.20)
 	return _result(true,"The courier service supplied a 20% reserve. Safe travels.")
 
 func upgrade_engine() -> bool:
-	if not _bike_at_counter(): return _result(false,"Bring your bike to the workshop.")
+	if not _bike_at_counter() or service_vehicle()!=game.bike: return _result(false,"Bring your bike to the workshop: the upgrades are for its engine.")
 	if engine_level>=3: return _result(false,"Your engine is fully upgraded.")
 	var price:=ENGINE_PRICES[engine_level]
 	if not game.gm.spend_coins(price): return _result(false,"You need %d coins for the next engine upgrade." % price)
@@ -297,15 +373,18 @@ func _result(ok: bool, message: String) -> bool:
 	return ok
 
 func save_state() -> Dictionary:
-	return {"version":1,"fuel_ratio":fuel_ratio,"engine_level":engine_level}
+	return {"version":2,"fuel_ratio":fuel_ratio,"jeep_fuel":jeep_fuel,"engine_level":engine_level}
 
 func load_state(data: Dictionary) -> void:
 	fuel_ratio=clampf(float(data.get("fuel_ratio",1.0)),0,1)
-	_warned=-1
-	for i in range(LOW_FUEL.size()):
-		if fuel_ratio<=LOW_FUEL[i]: _warned=i
+	# a save from before the Jeep: its tank starts full
+	jeep_fuel=clampf(float(data.get("jeep_fuel",1.0)),0,1)
 	engine_level=clampi(int(data.get("engine_level",0)),0,3)
-	_odometer=game.bike.odometer; _publish_bike_state()
+	_warned_for=game.rider.active_vehicle() if game.rider else null
+	_warned=_warn_level(current_tank())
+	_odometer=game.bike.odometer
+	if game.jeep: _jeep_odometer=game.jeep.odometer
+	_publish_bike_state()
 	if is_open(): _refresh_ui()
 
 func _build_ui() -> void:
@@ -365,16 +444,16 @@ func _refresh_ui() -> void:
 	var bike_here:=_bike_at_counter()
 	_fuel_button.text="Fill tank · %d coins" % refill_price() if refill_price()>0 else "Tank full"
 	_fuel_button.disabled=not bike_here or refill_price()==0 or game.gm.coins<refill_price()
-	_reserve_button.disabled=not bike_here or fuel_ratio>=.20
+	_reserve_button.disabled=not bike_here or current_tank()>=.20
 	_upgrade_button.text="Engine %d · %d coins" % [engine_level+1,ENGINE_PRICES[engine_level]] if engine_level<3 else "Engine fully upgraded"
-	_upgrade_button.disabled=not bike_here or engine_level>=3 or game.gm.coins<ENGINE_PRICES[mini(engine_level,2)]
+	_upgrade_button.disabled=not bike_here or service_vehicle()!=game.bike or engine_level>=3 or game.gm.coins<ENGINE_PRICES[mini(engine_level,2)]
 	_rest_button.disabled=_opened_hub!=&"villa_rosa_office"
 	var counter: Dictionary=services.by_id.get("counter.%s" % _opened_hub,{}) if services else {}
 	_travel_button.disabled=counter.is_empty() or not counter.get("coach",false)
 	_travel_button.tooltip_text="Tickets to the towns you have visited; your bike rides on the roof rack." if not _travel_button.disabled else "No coach stops at this counter. Try Villa Rosa or a town."
 	_rest_button.tooltip_text="Sleep at home in Villa Rosa until tomorrow morning. Parcels have no deadline."
 	_reserve_button.tooltip_text="Free courier reserve brings a tank below 20% back to 20%."
-	_service_note.text=status_text()+"  ·  "+("Your bike is ready for service." if bike_here else "Bring your bike within 35 m for fuel and upgrades.")
+	_service_note.text=status_text()+"  ·  "+("Your %s is ready for service." % _vehicle_word() if bike_here else "Bring your %s within 35 m for fuel and upgrades." % _vehicle_word())
 	_status.text=_feedback if not _feedback.is_empty() else ("Your parcel is safe. Complete the current delivery before choosing another." if game.gm.carrying else "Collect at the delivery marker. Fragile cargo loses value in crashes and hard landings; heavy loads need more runway. Reserve fuel is free below 20%.")
 
 func _place(control: Control,rect: Rect2) -> void:

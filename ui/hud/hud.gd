@@ -285,7 +285,7 @@ func _build() -> void:
 	_prompt_bg.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_prompt_bg.position = Vector2(28, -174)
 	root.add_child(_prompt_bg)
-	_controls = _label("W/S ride  ·  A/D steer  ·  Space brake\nE hop off  ·  T unfold wings  ·  R recover\nB counter / fuel  ·  N island journal\nTruck: Q winch  ·  G packing (while stopped)\nF5 save  ·  F9 load", 15)
+	_controls = _label("W/S ride  ·  A/D steer  ·  Space brake\nE hop off  ·  T unfold wings  ·  R recover\nB counter / fuel  ·  N island journal\nH hitch the cart  ·  G load / unload (stopped)\nF5 save  ·  F9 load", 15)
 	_controls.position = Vector2(14, 10)
 	_prompt_bg.add_child(_controls)
 
@@ -304,7 +304,7 @@ func _draw_compass() -> void:
 	c.draw_colored_polygon(PackedVector2Array([tip, l, Vector2.ZERO, r]), col)
 	# low fuel: a pump marker on the rim toward the nearest station
 	var game := Game.current
-	if game and game.journey and game.journey.services and game.journey.fuel_ratio < JourneySystem.LOW_FUEL[0]:
+	if game and game.journey and game.journey.services and game.journey.current_tank() < JourneySystem.LOW_FUEL[0]:
 		var n: Dictionary = game.journey.services.nearest_fuel(_actor_pos())
 		if not n.is_empty():
 			var cam_f := -camera.global_transform.basis.z
@@ -342,7 +342,7 @@ func _draw_needle() -> void:
 
 
 func _draw_fuel() -> void:
-	var value:=clampf(float(bike.get_meta("fuel_ratio",1.0)),0,1)
+	var value:=clampf(float(_active_vehicle().get_meta("fuel_ratio",1.0)),0,1)
 	var low:=value<JourneySystem.LOW_FUEL[0]
 	if value<JourneySystem.LOW_FUEL[1]:
 		# reserve: the whole gauge blinks
@@ -399,7 +399,7 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	_stamina_bar.visible = on_foot
 	_stamina_label.visible = on_foot
 	_prompt_bg.position.y = -260 if on_foot else -174
-	_controls.text = "WASD move · Shift sprint · Space jump\nRMB aim · LMB / F fire · V reload\nCtrl / Q dodge · Mouse / JLIK look\nE mount · B counter / fuel · N journal\nF5 save · F9 load" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB counter / fuel · N journal\nTruck: Q winch · G packing\nF5 save · F9 load"
+	_controls.text = "WASD move · Shift sprint · Space jump\nRMB aim · LMB / F fire · V reload\nCtrl / Q dodge · Mouse / JLIK look\nE mount · H hitch · G load / unload\nB counter / fuel · N journal · F5 / F9" if on_foot else "W/S ride · A/D steer · Space brake\nE hop off · T wings · R recover\nB counter / fuel · N journal\nJeep: Shift boost · Q winch · H hitch\nG load / unload · F5 save · F9 load"
 	_stamina_bar.max_value = pl.stamina_max
 	_stamina_bar.value = pl.stamina
 	_stamina_label.text = "Catch your breath — release Shift" if pl.sprint_exhausted else "Stamina  %d%%  ·  Ctrl / Q dodge" % roundi(pl.stamina / pl.stamina_max * 100.0)
@@ -408,19 +408,23 @@ func set_mode(bk: Bike, pl: Player, gn: GunSystem) -> void:
 	# the Garand's clip and the crosshair live in CombatHud; the tin cans are a practice score
 	_gun_label.text = "Tin cans %d/%d" % [gn.targets_hit, gn.targets_total] if on_foot and gn.targets_hit > 0 else ""
 	if on_foot:
-		_mode_label.text = "Swimming" if pl.swimming else "On foot  ·  E by the bike or truck to drive"
-	elif rider and vehicle == rider.truck:
-		var truck: Truck = rider.truck
-		if truck.cargo_build_mode:
-			_mode_label.text = "PACKING  —  WASD move · Z rotate · Space place · X undo · G finish  —  %s" % truck.cargo_status()
-		elif truck.winch_attached:
-			_mode_label.text = "TRUCK  —  winch pulling %.0f m · Q release  —  %s" % [truck.winch_distance, truck.cargo_status()]
+		_mode_label.text = "Swimming" if pl.swimming else "On foot  ·  E by the bike or the jeep to drive  ·  G by a cart or a store"
+	elif rider and vehicle == rider.jeep:
+		var jeep: Jeep = rider.jeep
+		var rig := "  ·  towing the cart (%.0f kg)" % jeep.towed_mass() if jeep.is_towing() else ""
+		var boost := "  ·  boost %d%%" % roundi(jeep.boost_left / maxf(jeep.definition.boost_seconds, 0.01) * 100.0)
+		if jeep.afloat:
+			_mode_label.text = "JEEP AFLOAT  —  W/S throttle · A/D rudder · drive up a beach to land%s" % boost
+		elif jeep.winch_attached:
+			_mode_label.text = "JEEP  —  winch pulling %.0f m · Q release%s" % [jeep.winch_distance, rig]
 		else:
-			_mode_label.text = "TRUCK  —  Q winch · stop + G pack cargo · E exit  —  %s" % truck.cargo_status()
+			_mode_label.text = "JEEP  —  Shift boost · Q winch · H hitch · E exit%s%s" % [boost, rig]
 	elif bk.airborne:
 		_mode_label.text = "Flying  —  S up · W down · Shift boost  —  altitude %d m" % int(bk.altitude)
 	elif bk.wings_out:
 		_mode_label.text = "Plane mode  —  W past %d km/h, then S to lift off · T folds wings" % int(bk.takeoff_speed * 3.6)
+	elif bk.is_towing():
+		_mode_label.text = "Towing the cart (%.0f kg)  ·  H unhitch when stopped · G load" % bk.towed_mass()
 	else:
 		_mode_label.text = "E hop off · T wings"
 
@@ -441,11 +445,11 @@ func _on_job_changed(job: JobDefinition, st: StringName) -> void:
 	if job == null:
 		_objective.text = "All packages delivered — nice riding!"
 		return
-	var truck := "  ·  cargo truck" if job.vehicle == "truck" else ""
+	var needs := "  ·  jeep or cart" if DeliverySystem.needs_cargo_vehicle(job) else ""
 	if st == &"pickup":
-		_objective.text = "Collect: %s  →  at %s%s" % [job.item, gm.db.location_name(job.from_location), truck]
+		_objective.text = "Collect: %s  →  at %s%s" % [job.item, gm.db.location_name(job.from_location), needs]
 	else:
-		_objective.text = "Deliver: %s  →  to %s%s" % [job.item, gm.db.location_name(job.to_location), truck]
+		_objective.text = "Deliver: %s  →  to %s%s" % [job.item, gm.db.location_name(job.to_location), needs]
 
 
 func _process(delta: float) -> void:
@@ -466,12 +470,17 @@ func _process(delta: float) -> void:
 	_cargo_label.text="%.0f kg cargo   ·   Engine +%d   ·   Fuel %d%% (~%.0f km)" % [float(bike.get_meta("cargo_mass_kg",0.0)),int(bike.get_meta("engine_level",0)),int(float(bike.get_meta("fuel_ratio",1.0))*100),range_km]
 	if gm.carrying and gm.current_job() and gm.current_job().cargo_kind=="fragile":
 		_cargo_label.text+="   ·   Intact %d%%" % roundi(gm.parcel_condition*100)
-	if rider and vehicle==rider.truck: _cargo_label.text="Cargo truck  ·  Stop to arrange your load"
+	if rider and vehicle==rider.jeep and game_ref and game_ref.journey:
+		_cargo_label.text="%.0f kg aboard   ·   Fuel %d%% (~%.0f km)" % [game_ref.journey.load_of(vehicle),roundi(game_ref.journey.jeep_fuel*100),range_km]
+	elif rider and bike.is_towing():
+		_cargo_label.text+="   ·   Cart %.0f kg" % bike.towed_mass()
+	if gm.carrying and gm.parcel_in_cart: _cargo_label.text+="   ·   Parcel in the cart"
 	var game:=Game.current
 	if _urgent and game and game.colony and game.colony.economy:
 		_urgent.text = game.colony.economy.urgent.hud_text()
 	if game and game.get("journey"):
 		_service_hint.text=game.journey.interaction_hint()
+		if _service_hint.text=="" and game.get("cargo") and game.cargo: _service_hint.text=game.cargo.hint()
 		if game.journey.is_open() or game.catalogue.is_open(): _service_hint.text=""
 	if gm and gm.stage != DeliverySystem.Stage.DONE:
 		var d := (gm.target_position() - _actor_pos()).length()
