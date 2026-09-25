@@ -257,9 +257,14 @@ python3 world/mapgen/foliage.py                  # bake the leaf / grass cards i
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast --out=/tmp/x
 python3 reference/compare.py /tmp/x/cliff_coast.png reference/ref_cliff_coast.png   # similarity vs the reference
 ```
+`tests/view.gd` pins the island clock at `DayNight.REFERENCE_HOUR` (14:44), the hour whose sun is the
+reference's (48° up, south-west); `--hour=H` overrides it.
 
 Debug keys in game: **F3** overlay (fps, chunk, loaded chunks, entities per tier, draw calls...),
 **F5/F9** quick save/load, **F6** teleport to the next hub, **F7** reload the chunk under you, **F8** toggle streaming.
+**F10** graphics quality (Low / Medium / High / Ultra, saved; High is the default, tuned for an M4 Pro at a
+Retina window; `--quality=low|medium|high|ultra` overrides it for one run). The island runs a 48-minute
+day: dusk at ~19:40, night until ~5:30 (`--hour=H` pins the clock for renders).
 
 The latest measured frame rates, controller changes, visual reviews and limitations are in [the performance and controls report](artifacts/performance-controls/README.md).
 

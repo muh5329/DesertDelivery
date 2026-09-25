@@ -356,7 +356,9 @@ func _hide(b: Dictionary) -> void:
 	node.visible = false
 	var fisher: Node3D = node.get_node_or_null("Fisher")
 	if fisher: fisher.visible = false
-	_pool.append(node)
+	# m-4: keep a small reserve of boat views; free the rest (a harbour's fleet left behind)
+	if _pool.size() >= 3: node.queue_free()
+	else: _pool.append(node)
 	b.node = null
 
 

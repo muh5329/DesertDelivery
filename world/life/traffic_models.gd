@@ -27,6 +27,7 @@ static func build(kind: String) -> Node3D:
 	match kind:
 		"car":
 			var car := IslandArt.instantiate("island_car"); root.add_child(car)
+			VehicleLights.dress(car, false)
 			for n in ["WheelFL", "WheelFR", "WheelRL", "WheelRR"]:
 				var w := car.find_child(n, true, false); if w: wheels.append(w)
 			for n in ["SteeringFL", "SteeringFR"]:
@@ -34,6 +35,7 @@ static func build(kind: String) -> Node3D:
 			seat = Transform3D(Basis().scaled(Vector3.ONE * 0.77), Vector3(-.31, -.067, .065))
 		"lorry":
 			var truck := IslandArt.instantiate("courier_truck"); root.add_child(truck)
+			VehicleLights.dress(truck, false)
 			for id in ["FL", "FR", "RL", "RR"]:
 				var w := truck.find_child("Wheel" + id, true, false); if w: wheels.append(w)
 			for id in ["FL", "FR"]:

@@ -213,6 +213,19 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	_update_rings()
+	# m-5: the placement (every height, slope, splat and noise lookup: 15-35 ms a tile) runs on a
+	# worker, one tile at a time; this thread only makes the MultiMeshes of a finished tile
+	if _job >= 0:
+		if not WorkerThreadPool.is_task_completed(_job): return
+		_finish_job()
+		return
+	if not near_pending.is_empty(): _start(near_pending.pop_front(), true)
+	elif not pending.is_empty(): _start(pending.pop_front(), false)
+
+
+## Unload the tiles out of range and list the missing ones, nearest first.
+func _update_rings() -> void:
 	var p := _view_pos()
 	var t := Vector2i(floori(p.x / TILE), floori(p.z / TILE))
 	if t != _last:
@@ -228,8 +241,48 @@ func _process(_delta: float) -> void:
 			if maxi(absi(k.x - tn.x), absi(k.y - tn.y)) > NEAR_RADIUS + 1:
 				near_loaded[k].queue_free(); near_loaded.erase(k)
 		near_pending = _ring(tn, NEAR_RADIUS, near_loaded, NEAR)
-	if not near_pending.is_empty(): _build_near(near_pending.pop_front())
-	elif not pending.is_empty(): build_tile(pending.pop_front())
+
+
+## Wait for the tile being planned and emit it if it is still wanted.
+func _finish_job() -> void:
+	if _job < 0: return
+	WorkerThreadPool.wait_for_task_completion(_job)
+	_job = -1
+	var t0 := Time.get_ticks_usec()
+	if _job_near:
+		if not near_loaded.has(_job_key) and _in_range(_job_key, _last_near, NEAR_RADIUS + 1): _emit_near(_job_key, _job_out)
+	elif not loaded.has(_job_key) and _in_range(_job_key, _last, RADIUS + 1): _emit_tile(_job_key, _job_out)
+	last_build_ms = (Time.get_ticks_usec() - t0) / 1000.0
+	max_build_ms = maxf(max_build_ms, last_build_ms)
+	_job_out = {}
+
+
+var _job := -1
+var _job_key := Vector2i.ZERO
+var _job_near := false
+var _job_out: Dictionary = {}
+var last_build_ms := 0.0
+
+
+func _start(k: Vector2i, near: bool) -> void:
+	_job_key = k; _job_near = near
+	_job = WorkerThreadPool.add_task(func(): _job_out = _plan_near(k) if near else _plan_tile(k), false, "flora tile")
+
+
+static func _in_range(k: Vector2i, c: Vector2i, r: int) -> bool:
+	return maxi(absi(k.x - c.x), absi(k.y - c.y)) <= r
+
+
+## Wait for a tile being planned on the worker (flush, shutdown).
+func wait() -> void:
+	if _job >= 0:
+		WorkerThreadPool.wait_for_task_completion(_job)
+		_job = -1
+		_job_out = {}
+
+
+func _exit_tree() -> void:
+	wait()
 
 
 func _ring(t: Vector2i, r: int, have: Dictionary, size: float) -> Array[Vector2i]:
@@ -248,7 +301,8 @@ func _ring(t: Vector2i, r: int, have: Dictionary, size: float) -> Array[Vector2i
 
 ## Build everything round the camera now (render tools, tests).
 func flush() -> void:
-	_process(0.0)
+	_finish_job()
+	_update_rings()
 	while not near_pending.is_empty(): _build_near(near_pending.pop_front())
 	while not pending.is_empty(): build_tile(pending.pop_front())
 
@@ -307,9 +361,12 @@ func build_tile(k: Vector2i) -> void:
 
 
 func _build_tile_impl(k: Vector2i) -> void:
-	var node := Node3D.new(); node.name = "Wild_%d_%d" % [k.x, k.y]
-	node.position = Vector3(k.x * TILE, 0, k.y * TILE)
-	add_child(node); loaded[k] = node
+	_emit_tile(k, _plan_tile(k))
+
+
+## Where everything on a wilderness tile goes (pure: no nodes, safe on a worker thread).
+func _plan_tile(k: Vector2i) -> Dictionary:
+	var origin := Vector3(k.x * TILE, 0, k.y * TILE)
 	var rng := _rng_for(k, 1)
 	var groups: Dictionary = {}          # species -> [xforms, colors]
 	var rocks: Array = [[], []]
@@ -336,7 +393,7 @@ func _build_tile_impl(k: Vector2i) -> void:
 					var us := rng.randf_range(0.7, 1.25)
 					var ub := Basis(Vector3.UP, r4 * TAU * 7.0)
 					if usp == "log": ub = ub * Basis(Vector3.RIGHT, rng.randf_range(-0.08, 0.08))
-					groups[usp][0].append(Transform3D(ub.scaled(Vector3(us, us, us)), Vector3(x + 2.5, hu - (0.15 if usp == "log" else 0.05), z - 1.5) - node.position))
+					groups[usp][0].append(Transform3D(ub.scaled(Vector3(us, us, us)), Vector3(x + 2.5, hu - (0.15 if usp == "log" else 0.05), z - 1.5) - origin))
 					groups[usp][1].append(Color(0.9 + r4 * 0.2, 0.95, 0.8))
 					extras += 1
 			var base_chance := 0.012
@@ -352,7 +409,7 @@ func _build_tile_impl(k: Vector2i) -> void:
 			if sp == "pine" and h > 1150.0: continue
 			if not groups.has(sp): groups[sp] = [[] as Array[Transform3D], [] as Array[Color]]
 			var s := sc * (0.7 if h > 950.0 else 1.0)
-			groups[sp][0].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.9, 1.15), s)), Vector3(x, h - 0.1, z) - node.position))
+			groups[sp][0].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.9, 1.15), s)), Vector3(x, h - 0.1, z) - origin))
 			var v := rng.randf_range(-0.1, 0.1)
 			groups[sp][1].append(Color(1.0 + v, 1.0 + v * 0.8, 1.0 + v * 0.5))
 			count += 1
@@ -366,7 +423,7 @@ func _build_tile_impl(k: Vector2i) -> void:
 		if rng.randf() > 0.15 + sp.r * 0.8: continue
 		var h := _site(x, z, 1.4)
 		if is_nan(h): continue
-		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).rotated(Vector3.RIGHT, rng.randf_range(-0.3, 0.3)).scaled(Vector3(s, s * rng.randf_range(0.5, 1.0), s)), Vector3(x, h - s * 0.3, z) - node.position))
+		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).rotated(Vector3.RIGHT, rng.randf_range(-0.3, 0.3)).scaled(Vector3(s, s * rng.randf_range(0.5, 1.0), s)), Vector3(x, h - s * 0.3, z) - origin))
 		rocks[1].append(Color(1, 1, 1))
 	# scree and boulders under the cliffs and in the forests
 	for i in range(40):
@@ -376,10 +433,20 @@ func _build_tile_impl(k: Vector2i) -> void:
 		if rng.randf() > f * 0.35: continue
 		var h := _site(x, z, 1.1)
 		if is_nan(h): continue
-		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.45, 0.8), s)), Vector3(x, h - s * 0.35, z) - node.position))
+		rocks[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.45, 0.8), s)), Vector3(x, h - s * 0.35, z) - origin))
 		rocks[1].append(Color(1, 1, 1))
-	_hedges(k, node, groups, rng)
-	_fields(k, node, groups, rng)
+	_hedges(k, origin, groups, rng)
+	_fields(k, origin, groups, rng)
+	var cb := ground.biome_at(k.x * TILE + TILE * 0.5, k.y * TILE + TILE * 0.5)
+	return {"groups": groups, "rocks": rocks, "cb": cb}
+
+
+func _emit_tile(k: Vector2i, plan: Dictionary) -> void:
+	var node := Node3D.new(); node.name = "Wild_%d_%d" % [k.x, k.y]
+	node.position = Vector3(k.x * TILE, 0, k.y * TILE)
+	add_child(node); loaded[k] = node
+	var groups: Dictionary = plan.groups
+	var rocks: Array = plan.rocks
 	for sp in groups:
 		var set: Dictionary = species[sp]
 		var xf: Array = groups[sp][0]; var cl: Array = groups[sp][1]
@@ -395,7 +462,7 @@ func _build_tile_impl(k: Vector2i) -> void:
 			_emit(node, variants[v], buckets[v][0], buckets[v][1], 0.0, FULL_RANGE if is_tree else 420.0, is_tree)
 			if is_tree: _emit(node, set.card[0], buckets[v][0], buckets[v][1], FULL_RANGE, CARD_RANGE, false)
 		instance_total += xf.size()
-	var cb := ground.biome_at(k.x * TILE + TILE * 0.5, k.y * TILE + TILE * 0.5)
+	var cb: int = plan.cb
 	var rparts: Array = desert_rock_parts if (cb == Terrain.Biome.BADLANDS or cb == Terrain.Biome.DUNES) else rock_parts
 	for v in range(rparts.size()):
 		var xs: Array[Transform3D] = []; var cs: Array[Color] = []
@@ -406,7 +473,7 @@ func _build_tile_impl(k: Vector2i) -> void:
 
 
 ## Hedgerows on the farmland parcel edges (the same parcels outer_terrain.gdshader paints).
-func _hedges(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGenerator) -> void:
+func _hedges(k: Vector2i, origin: Vector3, groups: Dictionary, rng: RandomNumberGenerator) -> void:
 	var x0 := k.x * TILE; var z0 := k.y * TILE
 	if ground.splat_at(x0 + TILE * 0.5, z0 + TILE * 0.5).b < 0.2 and ground.splat_at(x0, z0).b < 0.2: return
 	# the hill and island country fences its fields with dry-stone walls, the plains with hedges
@@ -418,7 +485,7 @@ func _hedges(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 		var d: float = c.distance_to(vc[0])
 		if d < best: best = d; walls = vc[1] in ["valdoro", "isola", "sarmada"]
 	if walls and best < 3500.0:
-		_walls(k, node, groups, rng)
+		_walls(k, origin, groups, rng)
 		return
 	for j in range(0, int(TILE / 3.0)):
 		for i in range(0, int(TILE / 3.0)):
@@ -431,7 +498,7 @@ func _hedges(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 			if is_nan(h): continue
 			if not groups.has("hedge"): groups["hedge"] = [[] as Array[Transform3D], [] as Array[Color]]
 			var s := rng.randf_range(0.8, 1.3)
-			groups.hedge[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.4), s)), Vector3(x, h - 0.1, z) - node.position))
+			groups.hedge[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.4), s)), Vector3(x, h - 0.1, z) - origin))
 			groups.hedge[1].append(Color(0.8, 0.95, 0.7))
 
 
@@ -440,7 +507,7 @@ func _hedges(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 var _vine_centres: Array = []
 
 
-func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGenerator) -> void:
+func _fields(k: Vector2i, origin: Vector3, groups: Dictionary, rng: RandomNumberGenerator) -> void:
 	var x0 := k.x * TILE; var z0 := k.y * TILE
 	var c := Vector2(x0 + TILE * 0.5, z0 + TILE * 0.5)
 	if ground.splat_at(c.x, c.y).b < 0.2 and ground.splat_at(x0, z0).b < 0.2 and ground.splat_at(x0 + TILE, z0 + TILE).b < 0.2: return
@@ -452,8 +519,9 @@ func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 		if d < vc[2] and vc[1] in ["campo", "valdoro", "puerto"]: near_vines = true
 		if d < vc[2] * 0.7: near_town = true
 	var added := 0
-	# rows run along the parcel's furrows: the shader's parcel frame is rotated 0.35 rad
-	var row_dir := Vector2(cos(-0.35), sin(-0.35))
+	# rows run along the parcel's furrows: the district's parcel frame angle (parcel_frame)
+	var ang: float = parcel_frame(c)[2]
+	var row_dir := Vector2(cos(-ang), sin(-ang))
 	var row_yaw := atan2(-row_dir.y, row_dir.x)
 	var perp_dir := Vector2(-row_dir.y, row_dir.x)
 	for j in range(-58, 59):
@@ -469,7 +537,7 @@ func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 				var h := _site(x, z, 0.3)
 				if is_nan(h): continue
 				if not groups.has("vine"): groups["vine"] = [[] as Array[Transform3D], [] as Array[Color]]
-				groups.vine[0].append(Transform3D(Basis(Vector3.UP, row_yaw), Vector3(x, h - 0.05, z) - node.position))
+				groups.vine[0].append(Transform3D(Basis(Vector3.UP, row_yaw), Vector3(x, h - 0.05, z) - origin))
 				groups.vine[1].append(Color(0.95 + rng.randf() * 0.1, 1.0, 0.85))
 				added += 1
 			elif crop == 5 and posmod(i * 3 + j * 7, 11) == 0 and added < 2400:
@@ -478,7 +546,7 @@ func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 				var v := int(f.w * 3.0) % 3
 				var key := "hay%d" % v
 				if not groups.has(key): groups[key] = [[] as Array[Transform3D], [] as Array[Color]]
-				groups[key][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(x, h2 - 0.05, z) - node.position))
+				groups[key][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(x, h2 - 0.05, z) - origin))
 				groups[key][1].append(Color(1, 1, 1))
 				added += 1
 			elif crop == 4 and near_town and posmod(j, 3) == 0 and added < 2400:
@@ -486,7 +554,7 @@ func _fields(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGen
 				if is_nan(h3): continue
 				if not groups.has("olive"): groups["olive"] = [[] as Array[Transform3D], [] as Array[Color]]
 				var s := rng.randf_range(0.8, 1.0)
-				groups.olive[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, h3 - 0.1, z) - node.position))
+				groups.olive[0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, h3 - 0.1, z) - origin))
 				groups.olive[1].append(Color(1.0, 1.0, 0.95))
 				added += 1
 
@@ -498,9 +566,8 @@ func _fields_centres() -> void:
 
 
 ## Dry-stone walls along the parcel edges: 3 m segments laid along whichever edge is nearer.
-func _walls(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGenerator) -> void:
+func _walls(k: Vector2i, origin: Vector3, groups: Dictionary, rng: RandomNumberGenerator) -> void:
 	var x0 := k.x * TILE; var z0 := k.y * TILE
-	var ax := Vector2(cos(-0.35), sin(-0.35)); var ay := Vector2(-ax.y, ax.x)
 	for j in range(0, int(TILE / 3.0)):
 		for i in range(0, int(TILE / 3.0)):
 			var x := x0 + i * 3.0 + 1.5; var z := z0 + j * 3.0 + 1.5
@@ -511,18 +578,32 @@ func _walls(k: Vector2i, node: Node3D, groups: Dictionary, rng: RandomNumberGene
 			var h := _site(x, z, 0.45)
 			if is_nan(h): continue
 			var along_x := OuterFlora.field_edge_along_x(Vector2(x, z))
+			var fa: float = parcel_frame(Vector2(x, z))[2]
+			var ax := Vector2(cos(-fa), sin(-fa)); var ay := Vector2(-ax.y, ax.x)
 			var d := ax if along_x else ay
 			if not groups.has("fieldwall"): groups["fieldwall"] = [[] as Array[Transform3D], [] as Array[Color]]
-			groups.fieldwall[0].append(Transform3D(Basis(Vector3.UP, atan2(-d.y, d.x)).scaled(Vector3(1.0, rng.randf_range(0.85, 1.15), 1.0)), Vector3(x, h - 0.12, z) - node.position))
+			groups.fieldwall[0].append(Transform3D(Basis(Vector3.UP, atan2(-d.y, d.x)).scaled(Vector3(1.0, rng.randf_range(0.85, 1.15), 1.0)), Vector3(x, h - 0.12, z) - origin))
 			groups.fieldwall[1].append(Color(1, 1, 1))
+
+
+## The farmland's parcel frame at w (outer_terrain.gdshader `parcel_frame`, P-2: per-district
+## furrow angle and row depth, per-row parcel length): [p (frame coordinates), cell size, angle].
+static func parcel_frame(w: Vector2) -> Array:
+	var dq := w / 1300.0 + Vector2(sin(w.y * 0.0009), sin(w.x * 0.0011)) * 0.3
+	var did := Vector2(floorf(dq.x), floorf(dq.y))
+	var ang := 0.35 + (_hash21(did * 13.0 + Vector2(5.0, 5.0)) - 0.5) * 1.4
+	var p := _rot(w, ang) + Vector2(sin(w.y * 0.0021) * 40.0, sin(w.x * 0.0017) * 35.0)
+	var rh := lerpf(80.0, 150.0, _hash21(did * 13.0 + Vector2(9.0, 9.0)))
+	var row := floorf(p.y / rh)
+	var len := lerpf(110.0, 280.0, _hash21(Vector2(row, did.x * 31.0 + did.y * 7.0 + 3.0)))
+	p.x += _hash21(Vector2(row, 17.0)) * len
+	return [p, Vector2(len, rh), ang]
 
 
 ## Does the nearest parcel edge at w run along the parcel frame's x axis (true) or its y axis?
 static func field_edge_along_x(w: Vector2) -> bool:
-	var p := _rot(w, 0.35) + Vector2(sin(w.y * 0.0021) * 40.0, sin(w.x * 0.0017) * 35.0)
-	var cell := Vector2(190.0, 115.0)
-	var row := floorf(p.y / cell.y)
-	p.x += _hash21(Vector2(row, 17.0)) * cell.x
+	var fr := parcel_frame(w)
+	var p: Vector2 = fr[0]; var cell: Vector2 = fr[1]
 	var fx := p.x / cell.x - floorf(p.x / cell.x); var fy := p.y / cell.y - floorf(p.y / cell.y)
 	return minf(fy, 1.0 - fy) * cell.y < minf(fx, 1.0 - fx) * cell.x
 
@@ -530,10 +611,8 @@ static func field_edge_along_x(w: Vector2) -> bool:
 ## The parcel pattern of outer_terrain.gdshader `fields()`: (crop, distance to the parcel edge,
 ## furrow, random) - kept in step with the shader.
 static func field_at(w: Vector2) -> Vector4:
-	var p := _rot(w, 0.35) + Vector2(sin(w.y * 0.0021) * 40.0, sin(w.x * 0.0017) * 35.0)
-	var cell := Vector2(190.0, 115.0)
-	var row := floorf(p.y / cell.y)
-	p.x += _hash21(Vector2(row, 17.0)) * cell.x
+	var fr := parcel_frame(w)
+	var p: Vector2 = fr[0]; var cell: Vector2 = fr[1]
 	var id := Vector2(floorf(p.x / cell.x), floorf(p.y / cell.y))
 	var f := Vector2(p.x / cell.x - id.x, p.y / cell.y - id.y)
 	var crop := floorf(_hash21(id) * 6.0)
@@ -553,9 +632,11 @@ static func _hash21(p: Vector2) -> float:
 
 
 func _build_near(k: Vector2i) -> void:
-	var node := Node3D.new(); node.name = "Grass_%d_%d" % [k.x, k.y]
-	node.position = Vector3(k.x * NEAR, 0, k.y * NEAR)
-	add_child(node); near_loaded[k] = node
+	_emit_near(k, _plan_near(k))
+
+
+func _plan_near(k: Vector2i) -> Dictionary:
+	var origin := Vector3(k.x * NEAR, 0, k.y * NEAR)
 	var rng := _rng_for(k, 2)
 	var groups: Dictionary = {}
 	for i in range(900):
@@ -584,9 +665,17 @@ func _build_near(k: Vector2i) -> void:
 			fl = 0.18 + 0.3 * smoothstep(0.45, 0.8, _clump.get_noise_2d(x * 3.0, z * 3.0) * 0.5 + 0.5)
 		if kind == "grass" and rng.randf() < fl: kind = ["flower_y", "flower_p", "flower_w"][rng.randi_range(0, 2)]
 		if not groups.has(kind): groups[kind] = [[] as Array[Transform3D], [] as Array[Color]]
-		groups[kind][0].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.8, 1.25), s)), Vector3(x, h - 0.05, z) - node.position))
+		groups[kind][0].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(s, s * rng.randf_range(0.8, 1.25), s)), Vector3(x, h - 0.05, z) - origin))
 		var v := rng.randf_range(-0.12, 0.12)
 		groups[kind][1].append(Color(0.9 + v, 0.92 + v * 0.8, 0.75 + v * 0.5))
+	return {"groups": groups}
+
+
+func _emit_near(k: Vector2i, plan: Dictionary) -> void:
+	var node := Node3D.new(); node.name = "Grass_%d_%d" % [k.x, k.y]
+	node.position = Vector3(k.x * NEAR, 0, k.y * NEAR)
+	add_child(node); near_loaded[k] = node
+	var groups: Dictionary = plan.groups
 	for kind in groups:
 		_emit(node, grass_parts[kind], groups[kind][0], groups[kind][1], 0.0, 150.0, false)
 		instance_total += groups[kind][0].size()

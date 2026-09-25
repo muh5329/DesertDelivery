@@ -12,6 +12,7 @@ res://
 │   ├── app/                 game.gd (root, boot + wiring), game.tscn (main scene), game_state.gd, cli_args.gd
 │   ├── events/              event_bus.gd  → autoload `Events`
 │   ├── save/                save_manager.gd → autoload `Saves`
+│   ├── settings/            graphics_settings.gd (quality presets, user://graphics.cfg)
 │   ├── definitions/         definition.gd (base Resource: id + display_name)
 │   └── utils/               materials.gd (Mats: primitive mesh + material helpers)
 ├── world/
@@ -20,6 +21,8 @@ res://
 │   ├── database/            world_database.gd (recipes per chunk, locations, hubs), hub.gd
 │   ├── streaming/           world_streamer.gd, chunk.gd
 │   ├── terrain/             terrain.gd (map-driven heightfield, roads, bridges, viaducts -> Terrain3D), bridge.gd
+│   ├── sky/                 day_night.gd (DayNight: sun, moon, sky, fog, the dn_* shader globals), night_lights.gd
+│   │                        (lamp-light pool, bulb glass), lighthouse_beam.gd, vehicle_lights.gd, campfire_glow.gd
 │   ├── outer/               the 25 km outer world (ADR 0010): outer_world.gd (OuterWorld: queries + collision),
 │   │                        outer_ground.gd (the lattice surface), outer_terrain_view.gd + .gdshader (CDLOD),
 │   │                        outer_roads.gd (network, ribbons, masonry / concrete bridges, road furniture),
@@ -68,7 +71,8 @@ res://
 │                            colony_props.gd + mesh_bits.gd (yards, scaffolds), ship_model.gd (coaster, schooner),
 │                            road_haulage.gd (RoadHaulage: carters' wagons between colonies by road)
 ├── ai/                      autopilot.gd (a Controls.Source that drives a Vehicle along the roads)
-├── ui/                      hud/hud.gd, debug/debug_overlay.gd, mayor_view.gd (F4) + mayor/ (theme, trade page)
+├── ui/                      hud/hud.gd, debug/debug_overlay.gd, mayor_view.gd (F4) + mayor/ (theme, trade page),
+│                            settings/graphics_menu.gd (F10 quality presets)
 ├── data/                    the database: island maps, outer/ (the outer world), config/world.tres, vehicles/*.tres, jobs/*.tres
 └── tests/                   in-game test nodes and render tools (run with --test=NAME)
 ```
@@ -219,6 +223,22 @@ far shadows to 520 m). SDFGI is off (a 25 km world displaced on the GPU; cascade
 speed). The Compatibility renderer ignores all of it. `OuterWorld._follow_camera` grows the far
 plane with altitude and keeps the sea plane under the camera; the sea fogs into the sky's horizon
 colour before the far plane, so the horizon never shows the sky's lower half.
+
+**Day and night (ADR 0013).** `DayNight` (world/sky, under the Environment) turns IslandLife's hour
+into the sun and the moon (one DirectionalLight: the sun by day, the moon by night), the sky
+(gradient, discs, stars, cloud colours), the environment (ambient, fog, exposure), the sea's own
+fog and horizon, and the global shader uniforms `dn_fill` / `dn_night` / `dn_lamps` / `dn_windows`
+/ `dn_sun_dir` (project.godot `[shader_globals]`) that every material faking its own light reads.
+Lamp glass glows everywhere by `dn_lamps`; `NightLights` moves a small pool of OmniLights onto the
+nearest lamps (group `night_lights`); lighthouse beams, headlights (`VehicleLights`) and camp fires
+(`CampfireGlow`) are in world/sky too.
+
+**Quality presets.** `GraphicsSettings` (core/settings): Low / Medium / High (default) / Ultra -
+the post stack, shadows, anti-aliasing (FXAA, TAA, FSR 2 on Retina, MSAA + alpha-to-coverage),
+LOD bias, anisotropy, the lamp-light budget. F10 opens `GraphicsMenu`; `--quality=` overrides for
+one run. Textures that reach 3D materials from scripts go through `TexMips.ensure` (the importer's
+defaults give them no mipmaps); the arch kit's and the terrain's texture arrays are VRAM-compressed
+(S3TC / BPTC) on the worker threads at boot.
 
 ## Persistence
 

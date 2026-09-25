@@ -136,6 +136,10 @@ func _hook_sea() -> void:
 		var m: ShaderMaterial = sea.material_override
 		_sea_mat = m
 		m.set_shader_parameter("outer_height", view.material.get_shader_parameter("height_lin"))
+		view.height_lin_ready.connect(func(tex: Texture2D, sc: float, off: float):
+			m.set_shader_parameter("outer_height", tex)
+			m.set_shader_parameter("outer_height_scale", sc)
+			m.set_shader_parameter("outer_height_offset", off))
 		m.set_shader_parameter("outer_enabled", true)
 		var est := PackedVector2Array()
 		for q in ground.plan.get("estuary", ESTUARY): est.append(Vector2(q[0], q[1]))

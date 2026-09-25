@@ -179,6 +179,7 @@ func _boot_ui() -> void:
 		if Saves.save_game("quick"): mayor.show_note("Colony and journey saved.")
 		else: mayor.show_note("Could not save the game.")
 	)
+	var gfx := GraphicsMenu.new(); ui.add_child(gfx); gfx.setup(self)   # F10: quality presets
 	var dbg := Node.new(); dbg.name = "Debug"; add_child(dbg)
 	debug = DebugOverlay.new(); debug.name = "DebugOverlay"; dbg.add_child(debug)
 	debug.setup(self)

@@ -89,6 +89,27 @@ static func _cache_key(p_in: Dictionary) -> String:
 static func _baked_path(key: String) -> String:
 	return BAKED_DIR + "/" + key.sha256_text() + ".res"
 
+static var _prefetching: Dictionary = {}   # path -> true: requested from the threaded loader
+
+
+## m-5: read the whole baked library on the loader's threads after the boot, so a piece a streamed
+## chunk needs later is already in memory (a first load from disk cost up to ~100 ms on the main
+## thread mid-ride). Pieces already cached are skipped; `cached()` collects a prefetched one.
+## Off in headless runs (tests) unless `--prefetch-rocks` is given.
+static func prefetch_library() -> void:
+	if not use_baked_library: return
+	if DisplayServer.get_name() == "headless" and not "--prefetch-rocks" in OS.get_cmdline_user_args(): return
+	if "--no-prefetch-rocks" in OS.get_cmdline_user_args(): return
+	if not DirAccess.dir_exists_absolute(BAKED_DIR): return
+	var have := {}
+	for key: String in _cache: have[_baked_path(key)] = true
+	for f in DirAccess.get_files_at(BAKED_DIR):
+		if not f.ends_with(".res"): continue
+		var path := BAKED_DIR + "/" + f
+		if have.has(path) or _prefetching.has(path): continue
+		if ResourceLoader.load_threaded_request(path, "", false) == OK: _prefetching[path] = true
+
+
 static func cached(p_in: Dictionary) -> Dictionary:
 	var key := _cache_key(p_in)
 	if _cache.has(key): return _cache[key]
@@ -96,7 +117,11 @@ static func cached(p_in: Dictionary) -> Dictionary:
 	_cache_parameters[key] = _canonical_parameters(p_in)
 	if use_baked_library and ResourceLoader.exists(path):
 		var start := Time.get_ticks_usec()
-		var baked: Resource = load(path)
+		var baked: Resource = null
+		if _prefetching.has(path):
+			_prefetching.erase(path)
+			baked = ResourceLoader.load_threaded_get(path)     # waits only if that read is still running
+		if baked == null: baked = load(path)
 		if baked != null and baked.get_meta("key", "") == key and baked.has_meta("piece"):
 			var piece: Variant = baked.get_meta("piece")
 			if _valid_piece(piece):

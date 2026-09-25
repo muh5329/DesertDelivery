@@ -384,7 +384,13 @@ uniform vec3 col_b : source_color;
 varying vec3 lp;
 void vertex() { lp = VERTEX; }
 void fragment() {
-	float s = step(0.5, fract(lp.y * 16.0));
+	// a filtered stripe: a hard step() crawls and moires as the man moves away (m-16)
+	float y = lp.y * 16.0;
+	float w = max(fwidth(y), 1e-4);
+	// box filter of step(0.5, fract(y)) over the pixel: the integral is floor(y) / 2 + max(fract(y) - 0.5, 0)
+	float i1 = floor(y + w * 0.5) * 0.5 + max(fract(y + w * 0.5) - 0.5, 0.0);
+	float i0 = floor(y - w * 0.5) * 0.5 + max(fract(y - w * 0.5) - 0.5, 0.0);
+	float s = clamp((i1 - i0) / w, 0.0, 1.0);
 	ALBEDO = mix(col_a, col_b, s);
 	ROUGHNESS = 0.9;
 }

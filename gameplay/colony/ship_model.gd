@@ -329,6 +329,7 @@ static func _wake_shader() -> Shader:
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, shadows_disabled;
 instance uniform float strength = 1.0;
+global uniform vec3 dn_fill;   // unshaded foam: dark at night with everything else (DayNight)
 float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
@@ -340,7 +341,7 @@ void fragment() {
 	float rims = smoothstep(0.0, 0.25, edge) * (1.0 - smoothstep(0.35, 0.6, edge)) * (1.0 - uv.y * 0.8);
 	float a = clamp((centre * 0.9 + rims * 0.8) * smoothstep(0.25, 0.75, churn) + centre * 0.25, 0.0, 1.0);
 	a *= (1.0 - smoothstep(0.6, 1.0, uv.y)) * strength;
-	ALBEDO = vec3(0.95, 0.97, 0.97);
+	ALBEDO = vec3(0.95, 0.97, 0.97) * dn_fill;
 	ALPHA = a * 0.85;
 }
 """

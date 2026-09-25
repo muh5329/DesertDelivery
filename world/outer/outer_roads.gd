@@ -382,6 +382,7 @@ func _build_tile_impl(t: Vector2i) -> void:
 		for i in range(lamp_pts.size()): mm.set_instance_transform(i, lamp_pts[i])
 		var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.visibility_range_end = 900.0
 		node.add_child(mmi)
+		NightLights.register(mmi, _lamp_heads(lamp_pts))
 
 
 ## Offsets across the ribbon. Highways, roads and tracks carry a gravel shoulder beyond the
@@ -724,6 +725,7 @@ func _build_bridge(e: Dictionary, a: int, b: int) -> void:
 		for i in range(lamps.size()): mm.set_instance_transform(i, lamps[i])
 		var mmi := MultiMeshInstance3D.new(); mmi.multimesh = mm; mmi.visibility_range_end = 900.0
 		bridges_node.add_child(mmi)
+		NightLights.register(mmi, _lamp_heads(lamps))
 	bridge_count += 1
 
 
@@ -960,7 +962,14 @@ func _lamp_mesh() -> ArrayMesh:
 	_box(st2, Vector3(0, 6.9, 0.7), Vector3(0.35, 0.18, 0.6))
 	st2.commit(m1)
 	var pole := StandardMaterial3D.new(); pole.albedo_color = Color(0.3, 0.32, 0.33); pole.metallic = 0.5; pole.roughness = 0.5
-	var glow := StandardMaterial3D.new(); glow.albedo_color = Color(1.0, 0.95, 0.8); glow.emission_enabled = true; glow.emission = Color(1.0, 0.85, 0.55); glow.emission_energy_multiplier = 0.6
-	m1.surface_set_material(0, pole); m1.surface_set_material(1, glow)
+	# the lamp head is the shared bulb glass: dark by day, lit with the street lamps (DayNight)
+	m1.surface_set_material(0, pole); m1.surface_set_material(1, NightLights.bulb_material())
 	_lamp = m1
 	return _lamp
+
+
+## Where each lamp's light hangs (under the head at the end of the arm), for the NightLights pool.
+static func _lamp_heads(xfs: Array[Transform3D]) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	for xf in xfs: out.append(xf * Vector3(0, 6.6, 0.7))
+	return out

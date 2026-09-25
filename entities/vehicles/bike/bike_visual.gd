@@ -61,6 +61,7 @@ func _build_bike(p: Node3D) -> void:
 	var model: Node3D = BIKE_MODEL.instantiate()
 	p.add_child(model)
 	Storybook.apply(model)
+	VehicleLights.dress(model, true)     # headlamp + tail glass, the headlight at night (world/sky)
 	fork_pivot = model.find_child("ForkPivot", true, false)
 	front_wheel = model.find_child("FrontWheel", true, false)
 	rear_wheel = model.find_child("RearWheel", true, false)

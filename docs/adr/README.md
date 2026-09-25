@@ -19,3 +19,4 @@ reopening. If the friction it names has changed, reopen it.
 | [0008](0008-hub-surfaces.md) | A Hub declares its surfaces; the geometry is derived from them |
 | [0009](0009-ground-and-map-contract.md) | Two named ground queries, and a checked map contract |
 | [0010](0010-outer-world.md) | The outer world is generated offline and answered by one lattice |
+| [0013](0013-day-night-and-quality.md) | One clock lights the world; lamps glow everywhere but light only near the camera; quality is a preset |

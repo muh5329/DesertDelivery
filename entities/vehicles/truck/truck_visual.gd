@@ -28,6 +28,7 @@ func _ready() -> void:
 func _build_truck() -> void:
 	var model := IslandArt.instantiate("courier_truck")
 	add_child(model)
+	VehicleLights.dress(model, true)     # lamps and headlight at night (world/sky)
 	for id in ["FL", "FR", "RL", "RR"]:
 		wheels.append(model.find_child("Wheel" + id, true, false))
 		if id.begins_with("F"):
