@@ -84,7 +84,7 @@ func _run() -> void:
 				if frames > 30 and s._pending.is_empty() and s._building.is_empty() and game.world.outer.roads.pending.is_empty() and game.world.outer.flora.pending.is_empty(): break
 		game.bike.global_position = Vector3(start.x, game.world.terrain.height_at(start.x, start.z) + 2.0, start.z)
 		game.world.set_focus(game.bike)
-		await _settle(900)
+		await _settle(game.cli.get_int("end_settle", 900))
 		_mem("lap %d back at the start" % (lap + 1))
 	var after := _snapshot()
 	var rows: Array = []
