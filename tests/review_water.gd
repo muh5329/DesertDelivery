@@ -26,6 +26,8 @@ func _run() -> void:
 	game.encounters.ambush_enabled = false
 	var outer: OuterWorld = game.world.outer
 	var plan := outer.plan()
+	var dry := game.bike.global_position
+	var dry_fwd := game.bike.flat_forward()
 	var lk: Dictionary = plan.lake
 	var level := float(lk.level)
 	# a point in the lake: the lowest ground inside the polygon
@@ -47,13 +49,17 @@ func _run() -> void:
 	await _secs(2.0)
 	var pp := game.player.global_position
 	print("[water] 1 on foot in the lake: swimming=%s, feet at %.1f, surface %.1f -> %s" % [game.player.swimming, pp.y, level, "UNDER WATER, walking on the bed" if pp.y < level - 1.0 and not game.player.swimming else "ok"])
-	# 2 the bike
-	var shore := best
-	game.bike.place(best + Vector3.UP * 0.5, Vector3.FORWARD)
-	game.player.place(best + Vector3(1.2, 0.3, 0), Vector3.FORWARD)
-	await _secs(0.2)
-	print("[water] mount: ", game.rider.request_mount(), " mode ", game.rider.mode)
+	# 2 the bike, ridden: mounted on dry land (a swimming courier can't mount a bike on the bed
+	# 129 m below him; a parked bike is not driven), then put into the lake
+	game.bike.place(dry + Vector3.UP * 0.5, dry_fwd)
+	game.player.place(dry + Vector3(1.2, 0.3, 0), dry_fwd)
 	game.world.set_focus(game.bike)
+	outer.refresh_collision()
+	await _secs(0.5)
+	print("[water] mount: ", game.rider.request_mount(), " mode ", game.rider.mode)
+	await _secs(0.3)
+	game.bike.place(best + Vector3.UP * 0.5, Vector3.FORWARD)
+	outer.refresh_collision()
 	var splashed := [false]
 	game.bike.fell_in_sea.connect(func(): splashed[0] = true)
 	await _secs(2.0)

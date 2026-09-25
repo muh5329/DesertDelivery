@@ -132,8 +132,12 @@ func _routines_and_bodies() -> void:
 	for p: Townsperson in pop.people:
 		if p.state == Townsperson.State.WALKING:
 			walking += 1
-			var q: Vector3 = p.sample(tf._walked(p, t))[0]
-			if not pop.clear(q.x, q.z, 0.0) or q.y < 0.2: inside += 1
+			# (a walk starts and ends on its spot: a bench seat, a stall, a quay edge, inside that
+			# prop's footprint by design; the street part is what this checks)
+			var w := tf._walked(p, t)
+			var q: Vector3 = p.sample(w)[0]
+			var on_spot := w < 1.0 or w > p.path_length() - 1.0
+			if not on_spot and (not pop.clear(q.x, q.z, 0.0) or q.y < 0.2): inside += 1
 		elif p.state == Townsperson.State.AT_SPOT: at_spot += 1
 		if p.entry != p.entry_at(fposmod(day + 600.0, 1440.0)): moved += 1
 	check(moved > 20, "routines move people between spots in an hour of the morning (%d moved)" % moved)
