@@ -147,7 +147,7 @@ func _start() -> void:
 	var mid := (bike.global_position + jeep.global_position + game.cart.global_position) / 3.0
 	var side := jeep.global_transform.basis.x.normalized()
 	follow = null
-	cam.global_position = mid + side * 13.0 - jeep.flat_forward() * 6.0 + Vector3.UP * 4.5
+	cam.global_position = mid - side * 12.0 + jeep.flat_forward() * 3.0 + Vector3.UP * 3.2
 	cam.look_at(mid + Vector3.UP * 0.8, Vector3.UP)
 	_stream(mid)
 	await _shoot("start")
@@ -237,8 +237,13 @@ func _town() -> void:
 		var ri: int = outer.roads.by_id.get("street.%s.main" % tid, -1)
 		if ri < 0: continue
 		var P: PackedVector3Array = outer.roads.roads[ri].pts
-		if P.size() > 80:
-			path = P.slice(10, P.size() - 5); break
+		if P.size() < 8: continue
+		# the last ~70 m of the main street, up to the plaza: among the houses
+		var k := P.size() - 1
+		var run := 0.0
+		while k > 0 and run < 70.0:
+			run += P[k].distance_to(P[k - 1]); k -= 1
+		path = P.slice(k, P.size()); break
 	if path.is_empty(): return
 	var bike := game.bike; var cart := game.cart
 	if game.hitch.tow_vehicle(): game.hitch._decouple()
@@ -252,7 +257,7 @@ func _town() -> void:
 	await frames(40)
 	follow = bike
 	follow_offset = Vector3(-4.6, 3.4, 6.8); follow_look = Vector3(0, 0.7, 2.0)
-	await _pursue(bike, path, 7.0, 6.0)
+	await _pursue(bike, path, 6.0, 4.0)
 	sc.intent = Controls.Intent.new(); sc.intent.brake = 0.35
 	_stream(bike.global_position)
 	await _shoot("town")
