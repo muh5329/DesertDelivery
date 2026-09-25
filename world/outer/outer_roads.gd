@@ -48,6 +48,7 @@ func setup(p_outer: OuterWorld, p_terrain: Terrain) -> void:
 		var br := PackedByteArray(); br.resize(pts.size())
 		for span in r.bridges:
 			for k in range(int(span[0]), int(span[1]) + 1): br[k] = 1
+			_ease_deck(pts, int(span[0]), int(span[1]))
 		var e := {"id": r.id, "cls": r["class"], "kind": KIND.get(r["class"], 1), "width": float(r.width), "pts": pts, "bridge": br,
 			"bridges": r.bridges, "nav": -1, "from": r.get("from", ""), "to": r.get("to", ""), "join": r.get("join", {})}
 		if r["class"] == "street": e.kind = 3
@@ -183,6 +184,19 @@ func _core_seams() -> void:
 			"bridges": [[0, pts.size() - 1]], "nav": -1, "from": "", "to": "", "widths": widths, "seam": true, "tail": tail,
 			"rail_from": maxi(bank - 3, 0)})
 		seams.append({"id": "seam.%s" % e.id, "road": core, "from": bank_end, "bank_from": start, "pts": pts})
+
+
+## A deck's profile is the road's: grade limited but not its change, so a deck over a gully could
+## kink 8 % at one sample (road.dam's bridge threw the bike 0.34 s). The interior samples are eased
+## (three 1-2-1 passes; the abutments stay), a few centimetres at most.
+static func _ease_deck(pts: PackedVector3Array, a: int, b: int) -> void:
+	if b - a < 3: return
+	for _pass in range(3):
+		var prev := pts[a].y
+		for k in range(a + 1, b):
+			var y := pts[k].y
+			pts[k].y = 0.25 * prev + 0.5 * y + 0.25 * pts[k + 1].y
+			prev = y
 
 
 ## A road that joins another starts (or ends) on the parent's centre line; its ribbon is trimmed
@@ -661,6 +675,7 @@ static func _box(st: SurfaceTool, c: Vector3, s: Vector3) -> void:
 ## the stone and concrete weather like the towns. Collision: the deck and the parapets' inner faces.
 func _build_bridge(e: Dictionary, a: int, b: int) -> void:
 	var pts: PackedVector3Array = e.pts
+	_flare_ends = (0 if (a == 0 and String(e.get("from", "")).begins_with("core_")) else 1) | (0 if e.get("seam", false) else 2)
 	a = maxi(a - 1, 0); b = mini(b + 1, pts.size() - 1)
 	if b - a < 2: return
 	var hw: float = e.width * 0.5 + 0.8
@@ -720,9 +735,24 @@ static func _deck_faces(C: PackedVector3Array, Rt: PackedVector3Array, hw: float
 		faces.append_array(PackedVector3Array([l0, r0, r1, l0, r1, l1]))
 		if k < rail_from: continue
 		for side: float in [-1.0, 1.0]:
-			var e0: Vector3 = C[k] + Rt[k] * side * (hw - inset); var e1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - inset)
+			var e0: Vector3 = C[k] + Rt[k] * side * (hw - inset) + Rt[k].normalized() * side * _flare(k, rail_from, C.size())
+			var e1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - inset) + Rt[k + 1].normalized() * side * _flare(k + 1, rail_from, C.size())
 			var up := Vector3(0, ph, 0)
 			faces.append_array(PackedVector3Array([e0, e1, e1 + up, e0, e1 + up, e0 + up]))
+
+
+## The parapets flare out at both ends of a deck (FLARE m over the last sample): a rider on the
+## approach's shoulder meets them at a glancing angle, not their end head-on (the Isola causeway's
+## inner bridge end crashed the bike).
+## Not where the deck runs on into another: a spoke's first span meets its core seam's deck.
+const FLARE := 1.4
+static var _flare_ends := 3            # bit 1: the start flares, bit 2: the end (set per bridge)
+
+
+static func _flare(k: int, first: int, n: int) -> float:
+	if k == first and (_flare_ends & 1) != 0: return FLARE
+	if k == n - 1 and (_flare_ends & 2) != 0: return FLARE
+	return 0.0
 
 
 ## Both windings of a quad (walls whose outward side depends on the road's curve direction).
@@ -832,8 +862,10 @@ func _pier_box(m: ArchMesh, c: Vector3, rt: Vector3, half_across: float, along: 
 static func _parapets(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array, hw: float, thick: float, h: float, wall: Color, cope: Color, rail_from := 0) -> void:
 	for side: float in [-1.0, 1.0]:
 		for k in range(rail_from, C.size() - 1):
-			var o0: Vector3 = C[k] + Rt[k] * side * hw; var o1: Vector3 = C[k + 1] + Rt[k + 1] * side * hw
-			var i0: Vector3 = C[k] + Rt[k] * side * (hw - thick); var i1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - thick)
+			var f0: Vector3 = Rt[k].normalized() * side * _flare(k, rail_from, C.size())
+			var f1: Vector3 = Rt[k + 1].normalized() * side * _flare(k + 1, rail_from, C.size())
+			var o0: Vector3 = C[k] + Rt[k] * side * hw + f0; var o1: Vector3 = C[k + 1] + Rt[k + 1] * side * hw + f1
+			var i0: Vector3 = C[k] + Rt[k] * side * (hw - thick) + f0; var i1: Vector3 = C[k + 1] + Rt[k + 1] * side * (hw - thick) + f1
 			var up := Vector3(0, h, 0)
 			m.layer = float(ArchMaterials.ASHLAR) + 0.3; m.tint = wall
 			m.ground = minf(C[k].y, C[k + 1].y) - 3.0; m.eave = maxf(C[k].y, C[k + 1].y) + h + 0.5
@@ -874,10 +906,12 @@ func _concrete_bridge(m: ArchMesh, C: PackedVector3Array, Rt: PackedVector3Array
 	m.layer = float(ArchMaterials.IRON) + 0.3; m.tint = Color(0.62, 0.64, 0.66)
 	for side: float in [-1.0, 1.0]:
 		for k in range(rail_from, n - 1):
-			var p0 := C[k] + Rt[k] * side * (hw - 0.22) + Vector3(0, 1.1, 0); var p1 := C[k + 1] + Rt[k + 1] * side * (hw - 0.22) + Vector3(0, 1.1, 0)
+			var f0: Vector3 = Rt[k].normalized() * side * _flare(k, rail_from, n)
+			var f1: Vector3 = Rt[k + 1].normalized() * side * _flare(k + 1, rail_from, n)
+			var p0 := C[k] + Rt[k] * side * (hw - 0.22) + f0 + Vector3(0, 1.1, 0); var p1 := C[k + 1] + Rt[k + 1] * side * (hw - 0.22) + f1 + Vector3(0, 1.1, 0)
 			_q2(m, p0, p1, p1 + Vector3(0, 0.12, 0), p0 + Vector3(0, 0.12, 0))
 			if k % 1 == 0:
-				var c := C[k] + Rt[k] * side * (hw - 0.22)
+				var c := C[k] + Rt[k] * side * (hw - 0.22) + f0
 				m.cbox(c + Vector3(0, 0.98, 0), Vector3(0.08, 0.26, 0.08))
 	_deck_faces(C, Rt, hw, 0.45, 1.2, faces, rail_from)
 
