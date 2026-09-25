@@ -20,8 +20,8 @@ extends Resource
 
 ## Equipment that is not a colony good: [title, kg, coins, look, use, colour].
 const EQUIPMENT := {
-	"ammo_crate": ["Ammo crate (4 clips)", 6.0, 24, "ammo", "ammo", Color("5b6340")],
-	"fuel_can": ["Fuel can (20 L)", 18.0, 12, "can", "fuel", Color("a8322a")],
+	"ammo_crate": ["Ammo crate", 6.0, 24, "ammo", "ammo", Color("5b6340")],     # four Garand clips
+	"fuel_can": ["Fuel can", 18.0, 12, "can", "fuel", Color("a8322a")],          # 20 L: a quarter tank
 }
 ## The equipment a road station's shop keeps in stock.
 const SHOP_STOCK := ["fuel_can", "ammo_crate"]

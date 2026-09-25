@@ -149,11 +149,19 @@ func _build_spray() -> void:
 	_spray.initial_velocity_min = 1.5; _spray.initial_velocity_max = 4.0
 	_spray.gravity = Vector3(0, -9, 0)
 	_spray.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; _spray.emission_box_extents = Vector3(0.9, 0.05, 0.2)
-	var m := QuadMesh.new(); m.size = Vector2(0.35, 0.35)
-	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.92, 0.96, 1.0, 0.55)
+	var m := QuadMesh.new(); m.size = Vector2(0.45, 0.45)
+	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.94, 0.97, 1.0, 0.5)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.vertex_color_use_as_albedo = true
+	# a soft round droplet cloud, not a square
+	var soft := GradientTexture2D.new(); soft.width = 32; soft.height = 32
+	soft.fill = GradientTexture2D.FILL_RADIAL; soft.fill_from = Vector2(0.5, 0.5); soft.fill_to = Vector2(1.0, 0.5)
+	soft.gradient = Gradient.new(); soft.gradient.set_color(0, Color.WHITE); soft.gradient.set_color(1, Color(1, 1, 1, 0))
+	mat.albedo_texture = soft
 	m.material = mat; _spray.mesh = m
+	_spray.color_ramp = Gradient.new()
+	_spray.color_ramp.set_color(0, Color(1, 1, 1, 0.8)); _spray.color_ramp.set_color(1, Color(1, 1, 1, 0.0))
 	_spray.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_spray)
 

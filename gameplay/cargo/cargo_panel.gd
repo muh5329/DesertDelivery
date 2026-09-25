@@ -10,7 +10,7 @@ extends CanvasLayer
 
 const W := 1180.0
 const H := 660.0
-const COL_W := 262.0
+const COL_W := 268.0
 
 var game: Game
 var cargo: CargoSystem
@@ -222,6 +222,7 @@ func _column(i: int) -> Control:
 		"store":
 			var t: ColonyTown = h.town
 			sub.text = "Colony stock  ·  %.0f / %.0f kg" % [t.stock_mass(), t.capacity()]
+			sub.tooltip_text = String(h.get("building", ""))
 			bar.max_value = t.capacity(); bar.value = t.stock_mass()
 		"shop":
 			sub.text = "Shop  ·  buy for coins, half back"

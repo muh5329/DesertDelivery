@@ -91,7 +91,7 @@ func nearest_store(at: Vector3) -> Dictionary:
 				var d := Vector2(p.x - at.x, p.z - at.z).length()
 				if d < best_d and absf(p.y - at.y) < 8.0:
 					best_d = d
-					best = {"id": "store", "title": "%s · %s" % [t.display_name, EconomyCatalog.building(b.type).get("name", "Warehouse")], "kind": "store", "town": t, "colony": cid}
+					best = {"id": "store", "title": "%s warehouse" % t.display_name.get_slice(" (", 0), "building": String(EconomyCatalog.building(b.type).get("name", "Warehouse")), "kind": "store", "town": t, "colony": cid}
 		if not best.is_empty(): return best
 	if game.journey != null:
 		var st: Dictionary = game.journey.nearby_station()

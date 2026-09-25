@@ -72,8 +72,8 @@ func _build_dust() -> void:
 	_dust.spread = 38; _dust.initial_velocity_min = 1.2; _dust.initial_velocity_max = 3.2
 	_dust.gravity = Vector3(0, 0.5, 0); _dust.damping_min = 1.0; _dust.damping_max = 2.0
 	_dust.local_coords = false
-	var mesh := SphereMesh.new(); mesh.radius = 0.38; mesh.height = 0.76; mesh.radial_segments = 7; mesh.rings = 4
-	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.84, 0.72, 0.52, 0.28)
+	var mesh := SphereMesh.new(); mesh.radius = 0.28; mesh.height = 0.56; mesh.radial_segments = 7; mesh.rings = 4
+	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.84, 0.72, 0.52, 0.2)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mesh.material = mat; _dust.mesh = mesh; _dust.emitting = false
 	_dust.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -250,7 +250,9 @@ func _physics_process(delta: float) -> void:
 		fell_in_sea.emit()
 		reset_to_road(true)
 	if visual: visual.update_visual(self, delta)
-	_dust.emitting = grounded and absf(speed) > definition.dust_min_speed and not _wet()
+	# dust off the road (or in a slide), not in a trail down the asphalt
+	var off_road: bool = terrain == null or terrain.road_dist_at(global_position.x, global_position.z) > 4.0
+	_dust.emitting = grounded and absf(speed) > definition.dust_min_speed and not _wet() and (off_road or drive.slip > 0.3)
 
 
 ## A cart cannot float: with one hitched the Jeep is a land vehicle.

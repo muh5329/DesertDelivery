@@ -63,6 +63,7 @@ func setup(p_slots: Array[Vector3], p_slot_mass: float) -> void:
 			mmi.multimesh = mm
 			var mat := StandardMaterial3D.new()
 			mat.vertex_color_use_as_albedo = true
+			mat.vertex_color_is_srgb = true      # the palette is written in sRGB
 			mat.roughness = 0.85
 			mmi.material_override = mat
 			add_child(mmi)
@@ -114,7 +115,10 @@ func show_inventory(inv: Inventory) -> void:
 	var free := slots.size() - (1 if _parcel_on else 0)
 	for id: String in order:
 		var item := ItemDefinition.get_item(id)
-		var stacks := maxi(1, ceili(item.mass * int(contents[id]) / slot_mass))
+		# one stack per `slot_mass` kg, but never more stacks than the units need (two fuel cans
+		# are one stack of cans, not two)
+		var units: int = (PARTS[item.look][0][3] as Array).size() if PARTS.has(item.look) else 1
+		var stacks := maxi(1, mini(ceili(item.mass * int(contents[id]) / slot_mass), ceili(float(contents[id]) / float(units))))
 		for i in stacks:
 			if plan.size() >= free: break
 			plan.append([item.look, item.colour])

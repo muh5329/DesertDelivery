@@ -30,6 +30,7 @@ func _ready() -> void:
 	game.encounters.ambush_enabled = false
 	game.vitals.health.invulnerable = 1e9
 	DirAccess.make_dir_recursive_absolute(out)
+	Engine.max_physics_steps_per_frame = 64
 	cam = Camera3D.new(); cam.fov = 55.0; cam.far = 30000; cam.near = 0.1
 	add_child(cam)
 	game.world.terrain.set_view_camera(cam)
@@ -59,17 +60,30 @@ func _process(_d: float) -> void:
 	cam.look_at(follow.global_position + b * follow_look, Vector3.UP)
 
 
-## Rendering is off between shots (llvmpipe draws a frame in seconds): the scene is set up and
-## driven at full speed, then drawn for `settle` frames and saved.
+## Between shots the camera looks at the empty sky (llvmpipe draws a frame in seconds; the sky is
+## cheap) and physics may run many steps a frame, so set-ups and drives go at full speed; a shot
+## is drawn for `settle` frames and saved.
 func _shoot(name: String) -> void:
-	RenderingServer.render_loop_enabled = true
+	print("[shots] drawing ", name)
+	var outer: OuterWorld = game.world.outer
+	if outer and outer.ok:
+		outer.view.update_selection(cam.global_position, -cam.global_basis.z)
+		outer.roads.flush()
+		outer.flora.flush()
 	for i in settle: await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	var p := "%s/%s.png" % [out, name]
 	img.save_png(p)
 	print("saved ", p)
-	RenderingServer.render_loop_enabled = false
+	_sky_cam()
+
+
+func _sky_cam() -> void:
+	follow = null
+	var c := game.rider.courier().global_position
+	cam.global_position = c + Vector3(0, 400, 0)
+	cam.look_at(c + Vector3(0.01, 1000, 0), Vector3.FORWARD)
 
 
 func _stream(at: Vector3) -> void:
@@ -110,10 +124,11 @@ func _pursue(v: Vehicle, pts: PackedVector3Array, cap: float, seconds: float) ->
 
 
 func _run() -> void:
-	RenderingServer.render_loop_enabled = false
+	_sky_cam()
 	cam.current = true
 	_hud(false)
 	await frames(10)
+	print("[shots] ready")
 	if _want("start"): await _start()
 	if _want("jeep"): await _jeep()
 	if _want("hitch"): await _hitch()
@@ -174,9 +189,14 @@ func _highway() -> void:
 	for e in outer.roads.roads:
 		if String(e.get("cls", "")) != "highway" or e.get("seam", false): continue
 		var P: PackedVector3Array = e.pts
-		if P.size() < 700: continue
-		# a straight-ish stretch well away from the ends
-		path = P.slice(300, 520)
+		if P.size() < 400: continue
+		# the straightest 160-sample stretch, well away from the ends
+		var best := INF
+		for k in range(60, P.size() - 220, 20):
+			var a := P[k + 80] - P[k]; var b := P[k + 160] - P[k + 80]
+			a.y = 0; b.y = 0
+			var bend := absf(a.signed_angle_to(b, Vector3.UP)) + absf(P[k + 160].y - P[k].y) * 0.02
+			if bend < best: best = bend; path = P.slice(k, k + 170)
 		break
 	if path.is_empty(): return
 	var jeep := game.jeep; var cart := game.cart
@@ -191,11 +211,14 @@ func _highway() -> void:
 	await frames(30)
 	follow = jeep
 	follow_offset = Vector3(5.5, 2.6, 7.5); follow_look = Vector3(0, 0.8, 2.4)
-	await _pursue(jeep, path, 16.0, 7.0)
+	await _pursue(jeep, path, 12.0, 7.0)
+	var road: Dictionary = game.world.terrain.nearest_road(jeep.global_position)
+	print("[shots] highway: %.1f m off the road centre at %.1f m/s" % [(road.point as Vector3).distance_to(jeep.global_position), jeep.speed])
 	_stream(jeep.global_position)
 	await _shoot("highway")
+	follow = jeep
 	follow_offset = Vector3(-9.0, 4.5, -6.0); follow_look = Vector3(0, 0.6, 2.8)
-	await _pursue(jeep, path, 16.0, 1.5)
+	await _pursue(jeep, path, 12.0, 1.5)
 	await _shoot("highway_front")
 	sc.intent = Controls.Intent.new(); sc.intent.brake = 1.0
 	await frames(90)
@@ -224,7 +247,7 @@ func _town() -> void:
 	_stream(bike.global_position)
 	await frames(40)
 	follow = bike
-	follow_offset = Vector3(-4.2, 2.2, 6.5); follow_look = Vector3(0, 0.8, 1.8)
+	follow_offset = Vector3(-4.6, 3.4, 6.8); follow_look = Vector3(0, 0.7, 2.0)
 	await _pursue(bike, path, 7.0, 6.0)
 	_stream(bike.global_position)
 	await _shoot("town")
@@ -254,7 +277,9 @@ func _water() -> void:
 	follow_offset = Vector3(6.5, 2.4, 3.5); follow_look = Vector3(0, 0.5, 0.5)
 	_stream(jeep.global_position)
 	await _shoot("water")
-	follow_offset = Vector3(-4.0, 1.4, 7.0); follow_look = Vector3(0, 0.6, 0)
+	follow = jeep
+	sc.intent.steer = 0.0
+	follow_offset = Vector3(-6.5, 3.4, 9.5); follow_look = Vector3(0, 0.6, 0)
 	await _shoot("water_rear")
 	sc.intent = Controls.Intent.new()
 

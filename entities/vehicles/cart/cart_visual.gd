@@ -34,8 +34,8 @@ func _ready() -> void:
 		rigid.add_child(Mats.box(Vector3(0.30, 0.10, 2.0), wood if i % 2 == 0 else wood_dark, Vector3(-0.66 + i * 0.33, 0.66, 0)))
 	for side in [-1.0, 1.0]:
 		var x: float = side * 0.80
-		for i in range(3):
-			rigid.add_child(Mats.box(Vector3(0.08, 0.15, 2.0), boards[i], Vector3(x, 0.84 + i * 0.18, 0)))
+		for i in range(2):          # two boards: the load shows over the sides
+			rigid.add_child(Mats.box(Vector3(0.08, 0.15, 2.0), boards[i], Vector3(x, 0.80 + i * 0.17, 0)))
 		for z in [-0.93, 0.93]:
 			rigid.add_child(Mats.box(Vector3(0.12, 0.66, 0.10), metal, Vector3(x, 1.01, z)))
 			for y in [0.8, 1.2]:
@@ -45,9 +45,9 @@ func _ready() -> void:
 		rigid.add_child(_fender(side, fender))
 		var wheel := _wheel(Vector3(side * 0.95, WHEEL_RADIUS, AXLE_Z), frame, metal)
 		wheels.append(wheel)
-	for i in range(3):
-		rigid.add_child(Mats.box(Vector3(1.52, 0.15, 0.08), boards[i], Vector3(0, 0.84 + i * 0.18, 0.95)))
-		rigid.add_child(Mats.box(Vector3(1.52, 0.15, 0.08), boards[i], Vector3(0, 0.84 + i * 0.18, -0.95)))
+	for i in range(2):
+		rigid.add_child(Mats.box(Vector3(1.52, 0.15, 0.08), boards[i], Vector3(0, 0.80 + i * 0.17, 0.95)))
+		rigid.add_child(Mats.box(Vector3(1.52, 0.15, 0.08), boards[i], Vector3(0, 0.80 + i * 0.17, -0.95)))
 	rigid.add_child(Mats.limb(Vector3(-1.04, WHEEL_RADIUS, AXLE_Z), Vector3(1.04, WHEEL_RADIUS, AXLE_Z), 0.05, frame))
 	# two tail reflectors, so it reads at night behind the courier
 	var red := Mats.solid(Color(0.75, 0.10, 0.08), 0.4, 0.0, Color(0.35, 0.02, 0.0))
@@ -73,7 +73,7 @@ func _fender(side: float, mat: Material) -> Node3D:
 		var r := WHEEL_RADIUS + 0.07
 		var p0 := Vector3(side * 0.95, WHEEL_RADIUS + cos(a0) * r, AXLE_Z + sin(a0) * r)
 		var p1 := Vector3(side * 0.95, WHEEL_RADIUS + cos(a1) * r, AXLE_Z + sin(a1) * r)
-		n.add_child(Mats.box(Vector3(0.24, 0.025, p0.distance_to(p1) + 0.01), mat, (p0 + p1) * 0.5, Vector3(-rad_to_deg((a0 + a1) * 0.5), 0, 0)))
+		n.add_child(Mats.box(Vector3(0.24, 0.025, p0.distance_to(p1) + 0.01), mat, (p0 + p1) * 0.5, Vector3(rad_to_deg((a0 + a1) * 0.5), 0, 0)))
 	return n
 
 
