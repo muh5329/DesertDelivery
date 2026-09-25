@@ -220,6 +220,21 @@ adapter, depth, leverage, locality) follow the codebase-design vocabulary.
   game, vegetables, fish, dates, olives...).
 - **Carter / road route** — a wagon carrying goods by road between two colonies (`RoadHaulage`).
 
+## Loading and the map
+
+- **Boot stage** — one named step of the boot (`Game._boot_stages`): the loading screen draws a
+  frame between stages; its bar is the stages' measured share (`Game.BOOT_WEIGHTS`).
+- **Loading screen** — `LoadingScreen`: key art, title, the stage line, the bar, a **tip**. Up from
+  the boot's first frame, and over a **long move** (a ticket, F6, a far respawn or load) until the
+  world is **settled** (`WorldManager.settled()`: nothing round the focus left to build) and the
+  frames are smooth.
+- **Minimap** — the HUD's round map (top right), **heading-up** or **north-up**, three **zoom
+  levels** widened by speed and flight. **Full map** — the M panel. Both draw the **baked map**
+  (`data/minimap`: the **overview** and the **insets**) and the **markers** over it.
+- **Waypoint** — a point the player sets on the full map; on the minimap, the compass rim, saved,
+  cleared on arrival. **Discovered** camp — a camp or cove the courier has come near (450 m): only
+  those are on the map.
+
 ## Architecture (see ARCHITECTURE.md)
 
 - **Game** — the root node: boots the managers and wires them; `Game.current` for tests/tools.

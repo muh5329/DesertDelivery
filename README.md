@@ -36,6 +36,9 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 | In the load panel: column / line · destination · move 1 / 10 / all · empty the column · use · close | A D / ← → · W S / ↑ ↓ · Tab · Space / Shift+Space / Enter · X · U · G / Esc | — |
 | Courier counter / fuel station (stopped on its apron) | B | B |
 | Island journal | N | — |
+| Full-screen map: drag / WASD pan, wheel / +- zoom, click sets a waypoint, right click clears it, C centres on you, R heading-up / north-up minimap, M / Esc closes | M | Start (left stick pans, triggers zoom, A waypoint at the cross, X clears, B closes) |
+| Minimap zoom: close / medium / far (it also widens with speed and in flight) | Z | D-pad down |
+| Minimap heading-up / north-up | Shift+Z | — |
 | Take an urgent colony supply job | U | — |
 | Close journal / quit | Esc | B closes journal |
 
@@ -54,6 +57,8 @@ The gameplay pass adds explicit player/resident states, responsive bike and truc
 - **Plane** — T / D-pad-up folds the wings out. Throttle (W) past 54 km/h, then pull back (S / ↓) to lift off. In the air the engine cruises on its own: S/↓ raises the nose, W/↑ lowers it, A/D bank, Shift boosts. To land, nose down gently and pull up just before touchdown; T folds the wings again.
 - Flight can climb to **5,000 m above sea level**, well above the outer island mountains.
 - **Fuel** — a full tank rides about 30 km on the level (heavy freight burns a third more, flying 1.6x per metre); the HUD shows the range and, below a quarter tank, the nearest pump. Run dry and the bike limps on at 25 km/h. Red **FUEL** signs mark the stations: one at the edge of every town, highway service stops every ~5 km, and the courier counters. Stop on the apron and press **B**: a service stop fills the tank for coins, a town station opens its window (fuel and **coach & ferry** tickets: fast travel with the bike to any town you have already ridden to, for coins and game time).
+- **Loading screen** — the boot draws a loading screen from its first frame (key art, the stage being built, a progress bar driven by the real boot stages, gameplay tips) and keeps it up until the world round the courier is built and the frames are smooth. Coach and ferry tickets, F6, a far respawn and a far quick load show it too.
+- **Minimap and map** — top right, under the day card: the country painted as a storybook map, heading-up (Shift+Z: north-up), centred on you. It shows the pickup and drop-off (pinned to the rim with a pointer when beyond it), your waypoint, the parked bike, jeep and cart, fuel stations and courier counters, the bandit camps and pirate coves you have found, colony halls, sea lanes and ships near a port, and place names. Z cycles three zoom levels, which widen with speed and in flight. M opens the full map: click to set a waypoint (it shows on the minimap and as a blue diamond on the compass, and clears itself when you get there).
 - Esc twice within 3 s quits (the first press also frees the mouse; click to re-capture).
 
 ## The loop
@@ -259,6 +264,12 @@ python3 world/mapgen/expand.py                   # 720 m map -> data/ (1248 m wo
 python3 world/mapgen/textures.py                 # pack / bake the ground textures in assets/terrain
 python3 world/mapgen/outer_textures.py           # bake meadow / alpine / snow / asphalt / cobble textures
 python3 world/mapgen/outer.py                    # generate the outer world into data/outer (~1 min)
+godot --headless --path . -- --test=minimap_export   # refresh world/mapgen/minimap_core.json (the core's roads, houses, places)
+python3 world/mapgen/minimap.py                  # bake the minimap into data/minimap (overview + 1.5 m insets, ~30 s)
+python3 world/mapgen/key_art.py SHOT.png         # grade a beauty shot (tests/uiux_shots.gd --views=keyart) into the loading screen's key art
+godot --headless --path . -- --test=uiux_tests   # boot stages, loading screen readiness, the baked map, markers, waypoint, zoom, full map
+xvfb-run -a -s "-screen 0 1600x900x24" godot --path . --rendering-driver vulkan -- --facet --quality=low --test=uiux_shots --out=/tmp/uiux --views=highway,town,flying --boot-shot=/tmp/uiux/boot   # the loading screen per stage, the minimap
+
 godot --headless --path . -- --test=dump_core_exits   # refresh world/mapgen/core_exits.json after changing the core exits
 python3 world/mapgen/foliage.py                  # bake the leaf / grass cards in assets/foliage (--bleed: re-bleed only)
 python3 world/mapgen/tree_bark.py [--extract]    # the trees' bark tubes (from world/mapgen/tree_skeletons.json)
@@ -293,8 +304,8 @@ See `ARCHITECTURE.md` for the full picture; `CONTEXT.md` for the domain vocabula
 - `entities/` – `EntityManager` (ids + simulation tiers), player (`Player`, `Rider`, `RiderModel`), vehicles (`Vehicle` base, `GroundDrive`, `Bike`, `Jeep` + `PlaningDrive`, the `CargoCart` + `HitchSystem`), camera, enemies (`Enemy`, `EnemyOutfit`, `EnemyWeapons`)
 - `gameplay/` – `GameplayManager`, `Controls` seam, `DeliverySystem` + `JobDefinition`, cargo (`Inventory`, `ItemDefinition`, `CargoSystem`, `CargoPanel`), weapons (`GunSystem`, `GarandModel`, `MeshKit`, `WeaponAudio`), combat (`EncounterDirector`, `CampKit`, `PlayerVitals`, `Health`, `CombatFx`)
 - `ai/` – `Autopilot`
-- `ui/` – `HUD`, `DebugOverlay`
-- `data/` – island maps, `outer/` (outer world heights, maps and plan), `config/world.tres`, vehicle definitions (`bike.tres`, `jeep.tres`), `jobs/*.tres`
+- `ui/` – `HUD`, `DebugOverlay`, `loading/` (`LoadingScreen`), `map/` (`WorldMap`, `Minimap`, `FullMap`, `MapIcons`, `map.gdshader`)
+- `data/` – island maps, `outer/` (outer world heights, maps and plan), `minimap/` (the baked map), `config/world.tres`, vehicle definitions (`bike.tres`, `jeep.tres`), `jobs/*.tres`
 - `tests/` – test nodes and render tools
 
 ## Credits: the Jeep and the Cart

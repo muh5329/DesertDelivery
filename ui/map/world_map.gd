@@ -70,7 +70,12 @@ static func load_image(which: String) -> Image:
 	return img if err == OK else null
 
 
+static var decode_ms := 0
+static var wait_ms := 0
+
+
 static func _decode() -> void:
+	var t0 := Time.get_ticks_msec()
 	for which in ["overview", "detail"]:
 		var img := load_image(which)
 		if img == null: continue
@@ -80,6 +85,7 @@ static func _decode() -> void:
 		# insets stay exact so the close zoom's street lines are crisp
 		if which == "overview": img.compress(Image.COMPRESS_S3TC, Image.COMPRESS_SOURCE_SRGB)
 		_images[which] = img
+	decode_ms = Time.get_ticks_msec() - t0
 
 
 func setup(p_game: Game) -> void:
@@ -91,11 +97,14 @@ func setup(p_game: Game) -> void:
 
 ## The textures, made on the main thread from the worker's images (waits for it if need be).
 func finish() -> void:
+	var t0 := Time.get_ticks_msec()
 	if _task >= 0:
 		WorkerThreadPool.wait_for_task_completion(_task)
 		_task = -1
+	wait_ms = Time.get_ticks_msec() - t0
 	if _images.has("overview"): overview = ImageTexture.create_from_image(_images.overview)
 	if _images.has("detail"): detail = ImageTexture.create_from_image(_images.detail)
+	if overview: print("[map] textures: decoded on a worker in %d ms, the boot waited %d ms, uploaded in %d ms" % [decode_ms, wait_ms, Time.get_ticks_msec() - t0 - wait_ms])
 	_images.clear()
 
 

@@ -79,8 +79,11 @@ res://
 │                            road_haulage.gd (RoadHaulage: carters' wagons between colonies by road)
 ├── ai/                      autopilot.gd (a Controls.Source that drives a Vehicle along the roads)
 ├── ui/                      hud/hud.gd, debug/debug_overlay.gd, mayor_view.gd (F4) + mayor/ (theme, trade page),
-│                            settings/graphics_menu.gd (F10 quality presets)
-├── data/                    the database: island maps, outer/ (the outer world), config/world.tres, vehicles/*.tres, jobs/*.tres
+│                            settings/graphics_menu.gd (F10 quality presets), loading/loading_screen.gd (LoadingScreen),
+│                            map/ (WorldMap: the baked map + waypoint + discovery; Minimap in the HUD; FullMap (M);
+│                            MapIcons; map.gdshader)
+├── data/                    the database: island maps, outer/ (the outer world), minimap/ (the baked map),
+│                            config/world.tres, vehicles/*.tres, jobs/*.tres
 └── tests/                   in-game test nodes and render tools (run with --test=NAME)
 ```
 
@@ -88,6 +91,7 @@ res://
 
 ```
 Game (core/app/game.gd)            boots, wires, holds the CLI/session state
+├── LoadingScreen                  up from the first frame of the boot, and over long moves
 ├── WorldManager
 │   ├── Environment                sky, sun, sea, abyss, boundaries, Terrain — always resident
 │   │   └── OuterWorld             outer terrain (CDLOD), collision tiles, roads, bridges, town silhouettes, wilderness, rivers
@@ -104,11 +108,36 @@ Game (core/app/game.gd)            boots, wires, holds the CLI/session state
 │   └── Autopilot                  only with --autotest / --shots
 ├── CargoSystem                    the courier's pack, the holds in reach, the stores
 ├── BikeAudio
-├── UI / HUD, CargoPanel (G)
+├── UI / HUD (+ Minimap), CargoPanel (G), WorldMap, FullMap (M)
 └── Debug / DebugOverlay           F3
 ```
 
-Nothing else is a top-level node. Autoloads: `Events`, `Saves`. That is the whole global surface.
+Nothing else is a top-level node.
+
+## The boot and the loading screen
+
+`Game._boot` is a sequence of named stages — `WorldManager.setup_steps` (terrain, ground, core,
+the four `OuterWorld.SETUP_STEPS`, sky, textures), then vehicles, gameplay, life, colony, UI and
+the first streaming ring — with one frame between stages so the `LoadingScreen` draws the stage and
+a bar weighted by the measured stage times (`Game.BOOT_WEIGHTS`). Meanwhile the tree is paused (no
+physics step, no streaming, no life) and the viewport's 3D is off, so a stage frame costs the
+loading screen alone. `booted` / `boot_finished` mark the end; the test runner starts there.
+In play the screen then waits (a PanelStack panel: controls blocked, HUD back) for
+`WorldManager.settled()` — chunks, collision tiles, road ribbons and the near wilderness round the
+focus built — and a run of smooth frames, then fades. `Game.relocate(text, move)` draws it before a
+long move (coach & ferry tickets, F6); `Game.cover_move(from, text)` covers one that already
+happened (a far respawn, F9). Tests, tools, `--autotest` and `--shots` dismiss it at once.
+
+## The map
+
+`world/mapgen/minimap.py` bakes the map offline into `data/minimap`: a 4096² overview of the whole
+25 km square (north, -z, up) and an atlas of 1.5 m/px insets (the core, every town and hamlet),
+from `data/outer`, the core's map and `world/mapgen/minimap_core.json` (the core's runtime roads and
+houses, dumped by `tests/minimap_export.gd`). `WorldMap` decodes both on a worker during the boot
+(the overview DXT1-compressed) and owns the waypoint, the minimap's zoom and orientation and the
+camps discovered (saved as `map`); `markers()` gathers the dynamic markers (10 Hz). `Minimap` (in the
+HUD's root, so it hides with the HUD) and `FullMap` draw the texture with `map.gdshader` (view centre,
+metres per pixel, rotation; insets faded in close up) and only the markers per frame. Autoloads: `Events`, `Saves`. That is the whole global surface.
 
 ## The flow
 
