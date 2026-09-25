@@ -1374,7 +1374,8 @@ static func _tree_parts(model: String, kind: String, scale: float) -> Array[Prop
 			else:
 				# m-7: the bark shader (assets/trees/bark.gdshader): opaque, both faces lit, the dark
 				# map as a pattern over a warm bark colour, mipmapped (the trunks were black shards)
-				mat = _bark_material((src as BaseMaterial3D).albedo_texture if src is BaseMaterial3D else null)
+				var bm := src as BaseMaterial3D
+				mat = _bark_material(bm.albedo_texture if bm else null, bm.normal_texture if bm and bm.normal_enabled else null)
 			parts.append(PropPart.new(one, mat, xf * (mi as Node3D).transform))
 	root.free()
 	_tree_parts_cache[key] = parts
@@ -1382,12 +1383,15 @@ static func _tree_parts(model: String, kind: String, scale: float) -> Array[Prop
 
 
 static var _bark_mats: Dictionary = {}
-static func _bark_material(tex: Texture2D) -> ShaderMaterial:
-	var key := tex.resource_path if tex else ""
+static func _bark_material(tex: Texture2D, normal: Texture2D = null) -> ShaderMaterial:
+	var key := (tex.resource_path if tex else "") + "|" + (normal.resource_path if normal else "")
 	if _bark_mats.has(key): return _bark_mats[key]
 	var m := ShaderMaterial.new()
 	m.shader = load(TREE_DIR + "bark.gdshader")
 	if tex: m.set_shader_parameter("bark_tex", TexMips.ensure(tex))
+	if normal:
+		m.set_shader_parameter("bark_normal", TexMips.ensure(normal, false, true))
+		m.set_shader_parameter("use_normal", 1.0)
 	_bark_mats[key] = m
 	return m
 
