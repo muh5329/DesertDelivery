@@ -207,6 +207,27 @@ func _run() -> void:
 	var sig_a := _signature(outer.flora.loaded[key])
 	outer.flora.loaded[key].free(); outer.flora.loaded.erase(key); outer.flora.build_tile(key)
 	_check(sig_a == _signature(outer.flora.loaded[key]), "a rebuilt wilderness tile is identical (deterministic)")
+	# nothing grows on a town's paving (the Mac's Puerto plaza had grass through its setts)
+	var town: Dictionary = plan.towns[0]
+	for tt: Dictionary in plan.towns:
+		if tt.id == "puerto": town = tt
+	var pz: Array = town.plaza if town.plaza != null else [town.center[0], 0.0, town.center[1]]
+	cam.global_position = Vector3(float(pz[0]), outer.height_at(float(pz[0]), float(pz[2])) + 2.0, float(pz[2]))
+	outer.flora.flush()
+	var on_paving := 0; var near_n := 0; var first := ""
+	for dict: Dictionary in [outer.flora.near_loaded, outer.flora.loaded]:
+		for tile: Node3D in dict.values():
+			for mmi in tile.get_children():
+				if not mmi is MultiMeshInstance3D: continue
+				var mm: MultiMesh = mmi.multimesh
+				for i in range(mm.instance_count):
+					var p: Vector3 = tile.position + mm.get_instance_transform(i).origin
+					if Vector2(p.x, p.z).distance_to(Vector2(float(pz[0]), float(pz[2]))) > 250.0: continue
+					near_n += 1
+					if outer.roads.on_ribbon(p.x, p.z, 0.05) or outer.flora._on_plot(p.x, p.z):
+						on_paving += 1
+						if first == "": first = "%s at %.1f, %.1f" % [mmi.name, p.x, p.z]
+	_check(on_paving == 0, "no grass, tree or boulder on the streets, plazas, quays or plots of %s (%d of %d instances within 250 m%s)" % [town.id, on_paving, near_n, (": " + first) if first != "" else ""])
 	outer.roads.flush()
 	_check(outer.roads.loaded.size() <= (2 * OuterRoads.RADIUS + 3) * (2 * OuterRoads.RADIUS + 3), "road ribbon tiles bounded (%d)" % outer.roads.loaded.size())
 	cam.queue_free()

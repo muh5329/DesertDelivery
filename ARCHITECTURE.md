@@ -41,7 +41,9 @@ res://
 │   └── mapgen/              extract.py (painting → 720 m map), expand.py (→ 1248 m world + new land), textures.py,
 │                            outer.py (+ outer_*.py: the outer world → data/outer; outer_water.py rivers, wadis,
 │                            erg, oases; outer_props.py town dressing), outer_textures.py,
-│                            facades.py (the architecture kit's PBR layers → assets/buildings)
+│                            facades.py (the architecture kit's PBR layers → assets/buildings),
+│                            trees.py + tree_bark.py (the Quaternius trees' leaf cards + procedural bark tubes),
+│                            tree_impostors.py (their far impostors → assets/trees/impostors), foliage.py
 ├── assets/terrain/          ground textures for Terrain3D
 ├── addons/terrain_3d/       the Terrain3D GDExtension (rendering + collision of the ground)
 ├── entities/
@@ -209,6 +211,15 @@ the shader's `bob`), jetties, portal cranes, net racks, hay, gardens, dry-stone 
 `OuterProps` files a town's `props` records (world/mapgen/outer_props.py) per 60 m chunk as recipes:
 one ArchCtx group per chunk, the plaza trees through the wilderness' tree models; it also builds the
 quay walls along every `quay_edges` polyline and Valdoro's `terraces`.
+
+**Trees.** Every tree model (assets/trees: TwistedTree_1-3, Pine_1-5) is two surfaces through
+`WorldKit._tree_parts(model, kind, scale)`: the pack's leaf cards (the leaf shader paints them
+with the kind's palette) and bark that `world/mapgen/tree_bark.py` rebuilt as closed tapered
+tubes from a skeleton recovered from the pack's decimated trunks (`tree_skeletons.json`). The
+core scatters, the rock builders' crest pines, the outer wilderness and the plaza planters all
+take them from there. Far away (OuterFlora beyond 260 m) a tree is `WorldKit.tree_impostor`: the
+same model baked by `tree_impostors.py` into three cards of data (height, bark, occlusion,
+coverage) that the leaf shader colours like the near leaves - one draw call per variant bucket.
 
 The plan of a building (`ArchStyles.plan`) is a pure function of the plot and its seed, so the far
 silhouette (`BuildingKit.build_lod`) always matches the detailed building. `tests/building_showcase.gd`
