@@ -1432,8 +1432,11 @@ func _flower_parts(col: Color) -> Array[PropPart]:
 	return parts
 
 
-func _spawn_multimesh(parts: Array[PropPart], xforms: Array[Transform3D], colors: Array[Color], collide_radius: float = 0.0, shadows: bool = true, far: float = 0.0) -> void:
+## `origin`: where the MultiMeshInstance3D stands (the instances are placed relative to it), so a
+## recipe's nodes sit inside the extent it declared (architecture_tests), not at the sink's origin.
+func _spawn_multimesh(parts: Array[PropPart], xforms: Array[Transform3D], colors: Array[Color], collide_radius: float = 0.0, shadows: bool = true, far: float = 0.0, origin := Vector3.ZERO) -> void:
 	if xforms.is_empty(): return
+	var to_local := Transform3D(Basis(), -origin)
 	for part in parts:
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -1441,10 +1444,11 @@ func _spawn_multimesh(parts: Array[PropPart], xforms: Array[Transform3D], colors
 		mm.mesh = part.mesh
 		mm.instance_count = xforms.size()
 		for i in range(xforms.size()):
-			mm.set_instance_transform(i, xforms[i] * part.xform)
+			mm.set_instance_transform(i, to_local * xforms[i] * part.xform)
 			mm.set_instance_color(i, colors[i])
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
+		mmi.position = origin
 		mmi.material_override = part.mat
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if far > 0.0:

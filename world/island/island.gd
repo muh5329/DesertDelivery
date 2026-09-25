@@ -1859,5 +1859,6 @@ func _town_courtyard_garden(center: Vector2, forward: Vector2, right: Vector2) -
 		for z in [-.85,.85]: bench.add_child(Mats.box(Vector3(.45,.50,.16),Mats.solid(STONE_DARK,.9),Vector3(0,.25,z)))
 		var lamp:=center+right*sign_v*3.2+forward*11.0
 		_lamp_post(sink,Vector3(lamp.x,_ground(lamp.x,lamp.y),lamp.y))
-	_spawn_multimesh(shrubs,shrub_x,shrub_c,0.0,false)
-	_spawn_multimesh(flowers,flower_x,flower_c,0.0,false)
+	var at:=Vector3(center.x,_ground(center.x,center.y),center.y)
+	_spawn_multimesh(shrubs,shrub_x,shrub_c,0.0,false,0.0,at)
+	_spawn_multimesh(flowers,flower_x,flower_c,0.0,false,0.0,at)
