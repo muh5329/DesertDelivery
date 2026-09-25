@@ -49,6 +49,10 @@ var catalogue: ResidentCatalogue
 var journey: JourneySystem
 var colony: ColonySystem
 var mayor: MayorView
+## The map: its data and state (WorldMap), the HUD's minimap, the full-screen map (M).
+var map: WorldMap
+var minimap: Minimap
+var full_map: FullMap
 var _mayor_player_physics := false
 var _mayor_camera_physics := false
 var _mayor_hud_visible := true
@@ -74,21 +78,106 @@ var _shot_t := 0.0
 var _shot_n := 0
 
 
+## The boot, stage by stage: [id, text on the loading screen, weight (its share of a typical boot,
+## measured), what it does]. `_boot` draws one loading-screen frame between stages.
+func _boot_stages() -> Array:
+	var stages: Array = []
+	var world_text := {&"terrain": "Shaping the island", &"ground": "Painting the ground", &"core": "Laying out the core island",
+		&"outer_data": "Unrolling the outer country", &"outer_roads": "Surveying the roads",
+		&"outer_towns": "Raising the towns", &"outer_wild": "Rivers and wilderness",
+		&"sky": "Sky, sea and light", &"textures": "Uploading the building textures"}
+	world = WorldManager.new(); world.name = "WorldManager"; add_child(world)
+	for step in world.setup_steps(config):
+		stages.append([step[0], world_text.get(step[0], String(step[0])), BOOT_WEIGHTS.get(step[0], 1.0), step[1]])
+	stages.append([&"vehicles", "Fuelling the bike and the jeep", BOOT_WEIGHTS.vehicles, _boot_entities])
+	stages.append([&"gameplay", "Deliveries, the Garand and the camps", BOOT_WEIGHTS.gameplay, _boot_gameplay])
+	stages.append([&"life", "Waking the islanders", BOOT_WEIGHTS.life, func():
+		life = IslandLife.new(); life.name = "IslandLife"; world.add_child(life)
+		life.setup(world, entities)])
+	stages.append([&"colony", "Colonies and shipping lanes", BOOT_WEIGHTS.colony, func():
+		colony = ColonySystem.new(); colony.name = "Colony"; add_child(colony)
+		colony.setup(self)])
+	stages.append([&"ui", "Maps and the HUD", BOOT_WEIGHTS.ui, func():
+		_boot_ui()
+		_wire()
+		_start_controls()])
+	stages.append([&"streaming", "Building the world around you", BOOT_WEIGHTS.streaming, _start_world])
+	return stages
+
+
+## Measured on a boot (ms, cloud box); only the ratios matter. The settling after the boot
+## (townsfolk, shaders, the first smooth frames) is the bar's last stretch.
+const BOOT_WEIGHTS := {&"terrain": 2000.0, &"ground": 2100.0, &"core": 2450.0, &"outer_data": 420.0,
+	&"outer_roads": 330.0, &"outer_towns": 390.0, &"outer_wild": 120.0, &"sky": 20.0, &"textures": 150.0,
+	&"vehicles": 90.0, &"gameplay": 130.0, &"life": 190.0, &"colony": 50.0, &"ui": 90.0, &"streaming": 150.0}
+## The share of the bar the boot stages fill; the rest is the settling.
+const BOOT_SHARE := 0.92
+
+var loading: LoadingScreen
+## True once every boot stage has run (tests start then); `boot_finished` is emitted at that point.
+var booted := false
+signal boot_finished
+var boot_ms: Dictionary = {}
+## Frames the boot took (one per stage plus the first): the staging's whole overhead.
+var boot_frames := 0
+
+
 func _ready() -> void:
 	current = self
 	_read_cli()
 	config = load("res://data/config/world.tres")
-	_boot_world()
-	_boot_entities()
-	_boot_gameplay()
-	life = IslandLife.new(); life.name = "IslandLife"; world.add_child(life)
-	life.setup(world, entities)
-	colony = ColonySystem.new(); colony.name = "Colony"; add_child(colony)
-	colony.setup(self)
-	_boot_ui()
-	_wire()
-	_start()
+	loading = LoadingScreen.new(); loading.name = "LoadingScreen"; add_child(loading)
+	loading.enabled = _interactive()
+	_boot()
+
+
+## A person is playing: not a test, a tool, the autotest or the screenshot run, not headless.
+func _interactive() -> bool:
+	return DisplayServer.get_name() != "headless" and not cli.has("test") and not state.autotest and state.shots_dir == ""
+
+
+## Build the world stage by stage behind the loading screen. The tree is paused meanwhile (no
+## physics step, no streaming, no life) and the 3D view is off (the frames in between cost only
+## the loading screen), so the staging adds a few milliseconds, not frames of simulation.
+func _boot() -> void:
+	var tree := get_tree()
+	tree.paused = true
+	var vp := get_viewport()
+	var had_3d := vp.disable_3d
+	vp.disable_3d = true
+	var vsync := DisplayServer.window_get_vsync_mode()
+	if DisplayServer.get_name() != "headless": DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	var t_boot := Time.get_ticks_msec()
+	WorldMap.warm()              # the map textures decode on a worker while the world generates
+	var stages := _boot_stages()
+	var total := 0.0
+	for st in stages: total += float(st[2])
+	var done := 0.0
+	for st in stages:
+		loading.set_stage(st[0], st[1], done / total * BOOT_SHARE)
+		await tree.process_frame      # draws the loading screen with this stage's line (the first: before any work)
+		if cli.has("boot-shot"): _boot_shot(st[0])
+		var t0 := Time.get_ticks_msec()
+		(st[3] as Callable).call()
+		boot_ms[st[0]] = Time.get_ticks_msec() - t0
+		done += float(st[2])
+	loading.set_stage(&"settle", "Settling in", BOOT_SHARE)
+	vp.disable_3d = had_3d
+	if DisplayServer.get_name() != "headless": DisplayServer.window_set_vsync_mode(vsync)
+	tree.paused = false
+	booted = true
+	boot_frames = Engine.get_process_frames()
 	print("[game] world generated in %d ms (%d recipes in %d chunks); tree %d nodes" % [world.generate_ms, world.database.record_count, world.database.chunks().size(), get_tree().get_node_count()])
+	print("[game] boot %d ms in %d stages: %s" % [Time.get_ticks_msec() - t_boot, stages.size(), boot_ms])
+	boot_finished.emit()
+	if loading.enabled:
+		# up until the world round the courier is built and the first frames stop hitching
+		loading.wait_until_ready(world.settled, world.settle_remaining, panels)
+		loading.finished.connect(func(): hud.skip_title(), CONNECT_ONE_SHOT)
+	else:
+		loading.dismiss()
+	if cli.has("test"):
+		_run_test(cli.get_string("test"))
 
 
 func _read_cli() -> void:
@@ -97,11 +186,6 @@ func _read_cli() -> void:
 	state.shot_interval = cli.get_float("shot-interval", 4.0)
 	state.max_time = cli.get_float("maxtime", 240.0)
 	state.need_deliveries = cli.get_int("deliveries", 1)
-
-
-func _boot_world() -> void:
-	world = WorldManager.new(); world.name = "WorldManager"; add_child(world)
-	world.setup(config)
 
 
 func _boot_entities() -> void:
@@ -203,6 +287,10 @@ func _boot_ui() -> void:
 		else: mayor.show_note("Could not save the game.")
 	)
 	var gfx := GraphicsMenu.new(); ui.add_child(gfx); gfx.setup(self)   # F10: quality presets
+	map = WorldMap.new(); ui.add_child(map); map.setup(self)
+	map.finish()
+	minimap = Minimap.new(); hud.attach_minimap(minimap); minimap.setup(self, map)
+	full_map = FullMap.new(); ui.add_child(full_map); full_map.setup(self, map)
 	var dbg := Node.new(); dbg.name = "Debug"; add_child(dbg)
 	debug = DebugOverlay.new(); debug.name = "DebugOverlay"; dbg.add_child(debug)
 	debug.setup(self)
@@ -226,6 +314,8 @@ func _wire() -> void:
 		_refocus(rider.mode))
 	Events.package_collected.connect(func(_id): print("[game] package collected at t=%.1f" % state.time))
 	Events.delivery_completed.connect(_on_delivery)
+	Events.player_died.connect(func(): _down_at = rider.courier().global_position)
+	Events.player_respawned.connect(func(_pos): cover_move(_down_at, "Coming to by the road"))
 	Saves.register("delivery", gameplay.delivery)
 	Saves.register("gun", gameplay.gun)
 	Saves.register("vitals", gameplay.vitals)
@@ -240,10 +330,12 @@ func _wire() -> void:
 	Saves.register("catalogue", catalogue)
 	Saves.register("journey", journey)
 	Saves.register("colony", colony)
+	Saves.register("map", map)
 
 
-func _start() -> void:
+func _start_controls() -> void:
 	Controls.install_foot_bindings()
+	Controls.install_map_bindings()
 	player_controls = Controls.Keyboard.new()
 	scripted_controls = Controls.Scripted.new()
 	var use_scripted := state.autotest or state.shots_dir != ""
@@ -254,14 +346,15 @@ func _start() -> void:
 		print("[game] autopilot enabled (autotest=%s shots=%s)" % [state.autotest, state.shots_dir])
 	if state.shots_dir != "":
 		DirAccess.make_dir_recursive_absolute(state.shots_dir)
+
+
+func _start_world() -> void:
 	if cli.has("nostream"):
 		world.streamer.load_everything()
 	else:
 		world.streamer.load_all_pending()   # the first ring of chunks before the first frame
 	if cli.has("load"):
 		Saves.load_game(cli.get_string("load", "quick"))
-	if cli.has("test"):
-		_run_test(cli.get_string("test"))
 
 
 ## --test=<name>: run res://tests/<name>.gd as a node inside the booted game (the test runner).
@@ -275,6 +368,48 @@ func _run_test(name: String) -> void:
 	var t: Node = script.new()
 	t.name = "Test_" + name
 	add_child(t)
+
+
+## A move this far (m) is a long one: the loading screen covers it.
+const FAR_MOVE := 400.0
+var _down_at := Vector3.ZERO
+
+
+## --boot-shot=DIR (render tools): the frame just drawn, the loading screen at this stage.
+func _boot_shot(id: StringName) -> void:
+	var dir := cli.get_string("boot-shot", "/tmp/boot")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var img := get_viewport().get_texture().get_image()
+	if img: img.save_png("%s/boot_%02d_%s.png" % [dir, loading.stage_log.size(), id])
+
+
+## A long move (a coach or ferry ticket, F6): the loading screen is drawn first, then `move` runs,
+## and the screen stays up until the world round the courier is built. Without a loading screen
+## (tests, tools) the move simply runs now.
+func relocate(text: String, move: Callable) -> void:
+	if loading == null or not loading.enabled or loading.showing():
+		move.call()
+		return
+	loading.cover(text, panels)
+	await _drawn_frame()
+	move.call()
+	loading.wait_until_ready(world.settled, world.settle_remaining, panels)
+
+
+## After a move that has already happened (a respawn, a loaded save): if it went far, cover the
+## world popping in round the courier's new place.
+func cover_move(from: Vector3, text: String) -> void:
+	if loading == null or not loading.enabled or loading.showing(): return
+	var to := rider.courier().global_position
+	if Vector2(from.x, from.z).distance_to(Vector2(to.x, to.z)) < FAR_MOVE: return
+	loading.cover(text, panels)
+	loading.wait_until_ready(world.settled, world.settle_remaining, panels)
+
+
+## Wait until a frame has been drawn (the headless server draws none: one process frame).
+func _drawn_frame() -> void:
+	if DisplayServer.get_name() == "headless": await get_tree().process_frame
+	else: await RenderingServer.frame_post_draw
 
 
 ## The streamer and the tiers follow whoever the player is right now.
@@ -293,6 +428,7 @@ func use_scripted_controls() -> Controls.Scripted:
 
 
 func _input(event: InputEvent) -> void:
+	if not booted: return
 	if not event is InputEventKey or not event.pressed or event.echo: return
 	match event.keycode:
 		KEY_F4:
@@ -303,7 +439,10 @@ func _input(event: InputEvent) -> void:
 				if mayor.active: mayor.show_note("Colony and journey saved.")
 		KEY_F9:
 			panels.close_all()
-			if Saves.load_game("quick"): Events.message.emit("Game loaded.", 2.0)
+			var from := rider.courier().global_position
+			if Saves.load_game("quick"):
+				Events.message.emit("Game loaded.", 2.0)
+				cover_move(from, "Loading your journey")
 			else: Events.message.emit("No save yet (F5 saves).", 2.0)
 		_:
 			return
@@ -311,6 +450,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not booted: return
 	if mayor != null and mayor.active: return
 	if event is InputEventMouseButton and event.pressed and rider.is_on_foot() and not panels.any_open() and not panels.just_closed():
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP: cam.zoom(-1)
@@ -360,6 +500,7 @@ func _on_delivery(_job_id: StringName, total: int) -> void:
 
 
 func _process(delta: float) -> void:
+	if not booted: return
 	state.time += delta
 	state.fps_n += 1
 	state.fps_acc += Engine.get_frames_per_second()

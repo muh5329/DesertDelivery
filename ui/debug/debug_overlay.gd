@@ -32,7 +32,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_visible = not _visible
 			visible = _visible
 		KEY_F6:
-			teleport_next_hub()
+			game.relocate("Teleporting", teleport_next_hub)
 		KEY_F7:
 			reload_chunk_under_player()
 		KEY_F8:

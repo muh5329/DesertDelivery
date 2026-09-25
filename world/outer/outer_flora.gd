@@ -271,6 +271,11 @@ var _job_out: Dictionary = {}
 var last_build_ms := 0.0
 
 
+## The wilderness right round the viewer is still being planned or built.
+func near_busy() -> bool:
+	return not near_pending.is_empty() or (_job >= 0 and _job_near)
+
+
 func _start(k: Vector2i, near: bool) -> void:
 	_job_key = k; _job_near = near
 	var pave := _paving(k, NEAR if near else TILE)

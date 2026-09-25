@@ -122,6 +122,16 @@ func load_everything() -> void:
 	for c: Vector2i in db.chunks(): _load(c)
 	_pending.clear()
 
+## Nothing waiting to be started or finished round the focus (the loading screen's readiness).
+func idle() -> bool:
+	if not enabled: return true
+	if db != null and db.chunk_of_pos(focus_position()) != _focus_chunk: return false
+	return _pending.is_empty() and _building.is_empty()
+
+## Chunks still to start or finish round the focus.
+func remaining() -> int:
+	return _pending.size() + _building.size()
+
 func is_loaded_at(p: Vector3) -> bool:
 	var c := db.chunk_of_pos(p)
 	return loaded.has(c) and loaded[c].built

@@ -308,6 +308,12 @@ func add_road(points: Array) -> Curve3D:
 
 ## Build the heightfield, stamp roads (bridging water), flatten pads, mesh + collision.
 func build() -> void:
+	build_heightfield()
+	build_surface()
+
+
+## The first half of `build` (a boot stage): the 3 m heightfield with its roads, bridges and pads.
+func build_heightfield() -> void:
 	var t_start := Time.get_ticks_msec()
 	heights.resize(N * N)
 	road_dist.resize(N * N)
@@ -520,6 +526,10 @@ func build() -> void:
 	heights = sm
 	build_ms["heightfield"] = Time.get_ticks_msec() - t_start
 	_compute_slope()
+
+
+## The second half: the drawn and collided ground (Terrain3D, or the facet mesh with --facet).
+func build_surface() -> void:
 	if "--facet" in OS.get_cmdline_user_args():
 		_build_mesh()          # the old painterly look, for comparison renders
 		_build_collision()

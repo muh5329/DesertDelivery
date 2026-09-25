@@ -81,9 +81,15 @@ func _buy_fuel() -> void:
 
 
 func _buy_ticket(cid: String) -> void:
-	var why := services.travel(from_id, cid)
+	var why := services.travel_check(from_id, cid)
 	if why == "":
 		close_panel()
+		var from := from_id
+		var dest: Dictionary = {}
+		for d in services.destinations(from):
+			if d.id == cid: dest = d
+		var how := "Ferry" if dest.get("ferry", false) else "Coach"
+		game.relocate("%s to %s" % [how, dest.get("name", cid)], func(): services.travel(from, cid))
 		return
 	_feedback = why
 	_refresh()

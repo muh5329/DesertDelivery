@@ -391,7 +391,16 @@ func _arrival(cid: String) -> Dictionary:
 
 ## Ride the coach (a ferry between ports) with the bike on the roof rack: pay, the clock moves
 ## on, the courier and his bike are set down at the destination. "" on success, else why not.
+## Why a ticket from `from_id` to `to_cid` cannot be bought now, or "" (nothing is spent).
+func travel_check(from_id: String, to_cid: String) -> String:
+	return _travel(from_id, to_cid, true)
+
+
 func travel(from_id: String, to_cid: String) -> String:
+	return _travel(from_id, to_cid, false)
+
+
+func _travel(from_id: String, to_cid: String, dry: bool) -> String:
 	var from: Dictionary = by_id.get(from_id, {})
 	if from.is_empty() or not from.get("coach", false): return "No coach stops here."
 	var dest: Dictionary = {}
@@ -406,6 +415,7 @@ func travel(from_id: String, to_cid: String) -> String:
 		return "Cargo freight can't ride the coach."
 	var bike_d := game.bike.global_position.distance_to(rider.courier().global_position)
 	if not rider.is_riding() and bike_d > 40.0: return "Bring your bike to the station: it rides on the roof rack."
+	if dry: return "" if game.gm.coins >= int(dest.price) else "A ticket to %s costs %d coins." % [dest.name, dest.price]
 	if not game.gm.spend_coins(int(dest.price)): return "A ticket to %s costs %d coins." % [dest.name, dest.price]
 	var arrive := _arrival(to_cid)
 	var at: Vector3 = arrive.pos

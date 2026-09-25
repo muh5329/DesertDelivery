@@ -210,6 +210,24 @@ class Scripted:
 ## Context-safe subset of Red Sea Baron's InputBindings. Q remains the jeep
 ## winch in its own scheme; only Foot translates this action into a dodge.
 ## Reload is V (free on every scheme) and D-pad left on a gamepad (X is jump, B walks back).
+## The map's keys (FullMap reads them): M / Start opens the full-screen map, Z / D-pad down cycles
+## the minimap's zoom (Shift+Z: heading-up or north-up).
+static func install_map_bindings() -> void:
+	var bindings := {"map_open": [KEY_M], "map_zoom": [KEY_Z]}
+	var pads := {"map_open": [JOY_BUTTON_START], "map_zoom": [JOY_BUTTON_DPAD_DOWN]}
+	for action: String in bindings:
+		if InputMap.has_action(action): continue
+		InputMap.add_action(action)
+		for key: int in bindings[action]:
+			var event := InputEventKey.new()
+			event.physical_keycode = key
+			InputMap.action_add_event(action, event)
+		for button: int in pads[action]:
+			var pad := InputEventJoypadButton.new()
+			pad.button_index = button
+			InputMap.action_add_event(action, pad)
+
+
 static func install_foot_bindings() -> void:
 	var bindings := {"dodge": [KEY_CTRL, KEY_Q], "look_left": [KEY_J],
 		"look_right": [KEY_L], "look_up": [KEY_I], "look_down": [KEY_K], "reload": [KEY_V]}

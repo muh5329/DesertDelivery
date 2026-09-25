@@ -34,28 +34,64 @@ var ok := false
 var build_ms := {}
 
 
+## The steps of `setup`, in order. The game's boot runs one per frame behind the loading screen.
+const SETUP_STEPS: Array[StringName] = [&"outer_data", &"outer_roads", &"outer_towns", &"outer_wild"]
+
+
 func setup(p_terrain: Terrain, database: WorldDatabase, kit: WorldKit, seed_value: int) -> void:
-	name = "OuterWorld"
-	terrain = p_terrain
+	for id in SETUP_STEPS: setup_step(id, p_terrain, database, kit, seed_value)
+
+
+## One step of `setup`; every step after a failed data load does nothing (`ok` false).
+func setup_step(id: StringName, p_terrain: Terrain, database: WorldDatabase, kit: WorldKit, seed_value: int) -> void:
 	var t0 := Time.get_ticks_msec()
-	ok = ground.load_data()
-	build_ms["load"] = Time.get_ticks_msec() - t0
-	if not ok: return
-	t0 = Time.get_ticks_msec()
-	view = OuterTerrainView.new(); add_child(view); view.setup(ground)
-	build_ms["terrain_view"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
-	roads = OuterRoads.new(); add_child(roads); roads.setup(self, terrain)
-	build_ms["roads"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
-	towns = OuterTowns.new(); add_child(towns); towns.setup(self, database, kit)
-	build_ms["towns"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
-	# rivers before the flora: the scatter keeps its trees and grass out of the channels
-	rivers = OuterRivers.new(); add_child(rivers); rivers.setup(self)
-	build_ms["rivers"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
-	flora = OuterFlora.new(); add_child(flora); flora.setup(self, seed_value)
-	build_ms["flora"] = Time.get_ticks_msec() - t0
-	_build_lake()
-	_hook_sea()
-	print("[outer] loaded in %s ms" % [build_ms])
+	match id:
+		&"outer_data":
+			name = "OuterWorld"
+			terrain = p_terrain
+			ok = ground.load_data()
+			build_ms["load"] = Time.get_ticks_msec() - t0
+			if not ok: return
+			t0 = Time.get_ticks_msec()
+			view = OuterTerrainView.new(); add_child(view); view.setup(ground)
+			build_ms["terrain_view"] = Time.get_ticks_msec() - t0
+		&"outer_roads":
+			if not ok: return
+			roads = OuterRoads.new(); add_child(roads); roads.setup(self, terrain)
+			build_ms["roads"] = Time.get_ticks_msec() - t0
+		&"outer_towns":
+			if not ok: return
+			towns = OuterTowns.new(); add_child(towns); towns.setup(self, database, kit)
+			build_ms["towns"] = Time.get_ticks_msec() - t0
+		&"outer_wild":
+			if not ok: return
+			# rivers before the flora: the scatter keeps its trees and grass out of the channels
+			rivers = OuterRivers.new(); add_child(rivers); rivers.setup(self)
+			build_ms["rivers"] = Time.get_ticks_msec() - t0; t0 = Time.get_ticks_msec()
+			flora = OuterFlora.new(); add_child(flora); flora.setup(self, seed_value)
+			build_ms["flora"] = Time.get_ticks_msec() - t0
+			_build_lake()
+			_hook_sea()
+			print("[outer] loaded in %s ms" % [build_ms])
+
+
+## Pieces of ground round the focus still to build (collision tiles, ribbons, near wilderness).
+func settle_remaining() -> int:
+	if not ok: return 0
+	var n := pending.size()
+	if roads: n += roads.pending.size()
+	if flora: n += flora.near_pending.size() + (1 if flora.near_busy() else 0)
+	return n
+
+
+## Nothing of the ground round the focus is still waiting to be built: collision tiles, road
+## ribbons, the near wilderness (the loading screen waits for this after a boot or a long move).
+func settled() -> bool:
+	if not ok: return true
+	if not pending.is_empty(): return false
+	if roads and not roads.pending.is_empty(): return false
+	if flora and flora.near_busy(): return false
+	return true
 
 
 # ---------------------------------------------------------------- aerial perspective

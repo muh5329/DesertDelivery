@@ -51,7 +51,7 @@ SEA_SHALLOW = np.array([156, 206, 200], np.float32) / 255.0
 SEA_MID = np.array([96, 160, 178], np.float32) / 255.0
 SEA_DEEP = np.array([48, 106, 138], np.float32) / 255.0
 WATER = (104, 164, 190)
-ROOF = {"puerto": (192, 104, 78), "valdoro": (116, 118, 122), "sarmada": (236, 228, 212), "isola": (226, 176, 150),
+ROOF = {"puerto": (192, 104, 78), "valdoro": (116, 118, 122), "sarmada": (228, 212, 184), "isola": (226, 176, 150),
         "campo": (200, 150, 96), "core": (196, 110, 80)}
 ROOF_EDGE = (86, 64, 50)
 PAVING = (224, 214, 192)
@@ -110,11 +110,10 @@ def sample(d, xs, zs):
         ci = (xs[inside] + CORE_HALF) / CORE_CELL; cj = (zs[inside] + CORE_HALF) / CORE_CELL
         cc = np.array([cj, ci])
         hc = ndimage.map_coordinates(d["core_h"], cc, order=1, mode="nearest")
-        # the core's sea meets the lagoon's depth over its last 120 m (no square seam in the water)
-        xi, zi = xs[inside], zs[inside]
-        edge = np.clip((CORE_HALF + 16.0 - np.maximum(np.abs(xi), np.abs(zi))) / 120.0, 0.0, 1.0)
+        # the core's sea is the lagoon's depth (its painting has a deeper square round the old
+        # 720 m island): only the shallows by its shores keep their own gradient
         lagoon = -4.6
-        hc = np.where(hc < 0.0, np.minimum(hc * edge + lagoon * (1.0 - edge), -0.2), hc)
+        hc = np.where(hc < 0.0, np.minimum(np.maximum(hc, lagoon), -0.2), hc)
         h[inside] = hc
         bcol[inside] = np.stack([ndimage.map_coordinates(d["core_bcol"][..., c], cc, order=1, mode="nearest") for c in range(3)], -1)
         biome[inside] = ndimage.map_coordinates(d["core_b"], cc, order=0, mode="nearest")
@@ -290,7 +289,8 @@ def draw_vectors(d, cv, detail):
         for s in t["streets"]:
             streets.append((s["kind"], s["width"], [(p[0], p[2]) for p in s["points"]]))
     # paved plazas and courtyards first
-    if detail:
+    # (the overview too: a town's square is its centre on the map)
+    if True:
         for kind, w, pts in streets:
             if kind == "plaza": cv.line(pts, PAVING_EDGE, w / mpp + 2.0)
         for c in core["courtyards"]: cv.disc(c[0], c[1], c[2] + 1.5, PAVING_EDGE)

@@ -206,13 +206,31 @@ func _scatter_scrub(biomes: Array, clusters: int, region: Rect2, min_h: float, h
 
 ## Build the resident world into `env` and describe the rest in `database`.
 func generate(database: WorldDatabase, env: Node3D, seed_v: int) -> void:
+	generate_heightfield(database, env, seed_v)
+	generate_ground()
+	generate_places()
+
+
+## `generate` in three boot stages. First: sky, the heightfield with its roads and pads.
+func generate_heightfield(database: WorldDatabase, env: Node3D, seed_v: int) -> void:
 	db = database
 	sink = env
 	rng.seed = seed_v
-	build_terrain()
+	build_terrain(false)
+
+
+## Second: the drawn ground (Terrain3D), the sea, the boundaries.
+func generate_ground() -> void:
+	sink = terrain.get_parent()
+	terrain.build_surface()
+	_after_terrain()
 	_build_sea()
 	_build_boundaries()
 	sink = null
+
+
+## The second half: coast, biomes, hubs, places, the town and the rest of the island's recipes.
+func generate_places() -> void:
 	_gen_coast_and_islets()
 	_plan_town_courtyards()
 	# the terrain is told what to keep bare (the paved courtyards and their promenades); the grass
@@ -255,7 +273,8 @@ func _gen_courier_signs() -> void:
 
 
 ## Sky, light and the heightfield with its roads and hub pads (resident, into `sink`).
-func build_terrain() -> void:
+## `complete` false stops after the heightfield (`generate_ground` draws it).
+func build_terrain(complete := true) -> void:
 	_load_meta()
 	_build_environment()
 	terrain = Terrain.new()
@@ -269,7 +288,13 @@ func build_terrain() -> void:
 		var c: Vector2 = PLACE_TABLE[id][0]
 		terrain.pads.append(Vector3(c.x, c.y, 9.0))
 	terrain.vine_fields = _vine_field_rects()
-	terrain.build()
+	terrain.build_heightfield()
+	if complete:
+		terrain.build_surface()
+		_after_terrain()
+
+
+func _after_terrain() -> void:
 	_cover_seed = rng.randi()   # drawn here, spent in generate() once the keep-clear regions are known
 	print("[terrain] build stages ms: ", terrain.build_ms)
 

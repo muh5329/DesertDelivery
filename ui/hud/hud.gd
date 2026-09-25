@@ -315,6 +315,14 @@ func _draw_compass() -> void:
 			c.draw_circle(at, 9.0, Color(0.95, 0.55, 0.12, pulse))
 			c.draw_rect(Rect2(at + Vector2(-3.5, -5), Vector2(6, 10)), INK)
 			c.draw_line(at + Vector2(2.5, -3), at + Vector2(5, 1), INK, 1.5)
+	# the map's waypoint: a blue diamond on the rim toward it
+	if game and game.map and game.map.has_waypoint:
+		var wp: Vector3 = game.map.waypoint - _actor_pos()
+		var cf := -camera.global_transform.basis.z
+		var wa := atan2(wp.x, -wp.z) - atan2(cf.x, -cf.z)
+		var wat := Vector2(sin(wa), -cos(wa)) * 44.0
+		c.draw_colored_polygon(PackedVector2Array([wat + Vector2(0, -10), wat + Vector2(8, 0), wat + Vector2(0, 10), wat + Vector2(-8, 0)]), INK)
+		c.draw_colored_polygon(PackedVector2Array([wat + Vector2(0, -7), wat + Vector2(5.5, 0), wat + Vector2(0, 7), wat + Vector2(-5.5, 0)]), Color(0.3, 0.55, 0.9))
 	# package glyph in the centre
 	c.draw_rect(Rect2(-11, -8, 22, 16), Color(0.55, 0.36, 0.22))
 	c.draw_line(Vector2(0, -8), Vector2(0, 8), Color(0.85, 0.72, 0.4), 2.0)
@@ -381,6 +389,17 @@ func setup_combat(gun: GunSystem, vitals: PlayerVitals) -> void:
 	get_child(0).add_child(combat)
 	get_child(0).move_child(combat, 0)
 	combat.setup(gun, vitals, camera, rider, _font)
+
+
+## The minimap goes in the HUD's root: it steps back with the rest of the HUD.
+func attach_minimap(m: Control) -> void:
+	get_child(0).add_child(m)
+
+
+## The loading screen already showed the title: no second title card.
+func skip_title() -> void:
+	_title_t = 0.0
+	_title.visible = false
 
 
 func set_gun(v: bool) -> void:
