@@ -7,7 +7,8 @@ extends Node
 ##   the clock for that view (DayNight.pin_hour); ":bike" parks the courier's bike, rider on, on the
 ##   road nearest the camera's target, facing away from the camera (its headlight shows at night);
 ##   ":traffic" (or ":bike+traffic") puts outer traffic on the roads in front of the camera a few
-##   frames before the shot.
+##   frames before the shot; ":focusat" streams the world round the target instead of 35 % of the
+##   way to it (the same view with the detailed and the far buildings swapped, m-6).
 ##   --settle=N frames per view (default 40), --quality=low|medium|high|ultra.
 
 var out := "/tmp/shots"
@@ -27,6 +28,8 @@ func _ready() -> void:
 		var wh := sz.split("x")
 		get_window().size = Vector2i(int(wh[0]), int(wh[1]))
 	settle = game.cli.get_int("settle", 40)
+	if game.cli.get_string("lod-window-gain", "") != "":
+		ArchMaterials.lod().set_shader_parameter("window_gain", game.cli.get_float("lod-window-gain", 1.0))
 	DirAccess.make_dir_recursive_absolute(out)
 	game.hud.visible = false
 	var ui := game.get_node_or_null("UI")
@@ -44,7 +47,7 @@ func _ready() -> void:
 		if "@" in nm:
 			hour = float(nm.get_slice("@", 1)); nm = nm.get_slice("@", 0)
 		var flags: PackedStringArray = parts[3].split("+") if parts.size() > 3 else PackedStringArray()
-		cams.append([nm, _vec(parts[1], t), _vec(parts[2], t), hour, "bike" in flags, "traffic" in flags])
+		cams.append([nm, _vec(parts[1], t), _vec(parts[2], t), hour, "bike" in flags, "traffic" in flags, 1.0 if "focusat" in flags else 0.35])
 	cam = Camera3D.new(); cam.fov = game.cli.get_float("fov", 62.0); cam.far = 30000; cam.near = 0.1
 	add_child(cam); cam.current = true
 	t.set_view_camera(cam)
@@ -75,7 +78,7 @@ func _place() -> void:
 		if fwd.dot(at - from) < 0.0: fwd = -fwd
 		game.bike.place(road.point + Vector3(0, 0.2, 0), fwd)
 	else:
-		var focus := from.lerp(at, 0.35)
+		var focus := from.lerp(at, cams[idx][6])
 		game.bike.place(Vector3(focus.x, game.world.terrain.height_at(focus.x, focus.z) + 40.0, focus.z), Vector3(0, 0, -1))
 	game.bike.set_physics_process(false)
 	game.world.set_focus(game.bike)
@@ -92,7 +95,7 @@ func _process(_d: float) -> void:
 	frame += 1
 	var from: Vector3 = cams[idx][1]; var at: Vector3 = cams[idx][2]
 	if not cams[idx][4]:
-		var focus := from.lerp(at, 0.35)
+		var focus := from.lerp(at, cams[idx][6])
 		game.bike.global_position = Vector3(focus.x, game.world.terrain.height_at(focus.x, focus.z) + 40.0, focus.z)
 	if cams[idx][5] and frame == maxi(settle - 4, 1): _spawn_traffic(from, at)
 	if frame >= settle:

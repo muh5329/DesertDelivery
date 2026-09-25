@@ -12,6 +12,7 @@ global uniform float dn_night;
 global uniform float dn_windows;
 uniform vec3 sky_fill_color : source_color = vec3(0.70, 0.74, 0.82);
 uniform float sky_fill = 0.10;
+uniform float window_gain = 1.0;          // the lit windows' emission (tools: 0 shows the walls alone)
 
 varying vec3 wpos;
 varying vec3 wnrm;
@@ -45,10 +46,13 @@ void fragment() {
 		float pane = step(0.32, f.x) * step(f.x, 0.68) * step(0.28, f.y) * step(f.y, 0.72);
 		vec3 room = mix(vec3(1.0, 0.56, 0.24), vec3(1.0, 0.76, 0.46), fract(h * 7.13));
 		vec3 near_e = room * pane * step(h, dn_windows) * (0.6 + 0.8 * fract(h * 3.7));
-		// sub-pixel windows shimmer: blend to their average as a cell shrinks under ~2 px
+		// sub-pixel windows shimmer: blend to a glow as a cell shrinks under ~2 px. Not their energy
+		// average (0.13 x dn_windows): the detailed buildings' windows at that range are a few
+		// saturated pixels, so the average spread over every wall pixel read as moonlit plaster -
+		// far rows glowing cream next to dark detailed rows at night. A quarter of it matches them.
 		vec2 fw = fwidth(cell);
 		float far_w = smoothstep(0.2, 0.55, max(fw.x, fw.y));
-		vec3 far_e = vec3(1.0, 0.64, 0.33) * dn_windows * 0.13;
-		EMISSION += mix(near_e, far_e, far_w) * dn_night * 1.7;
+		vec3 far_e = vec3(1.0, 0.64, 0.33) * dn_windows * 0.032;
+		EMISSION += mix(near_e, far_e, far_w) * dn_night * 1.7 * window_gain;
 	}
 }
