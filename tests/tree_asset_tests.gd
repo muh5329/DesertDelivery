@@ -1,7 +1,7 @@
-extends SceneTree
+extends Node
 ## The imported trees' assets: the procedural bark (world/mapgen/tree_bark.py) is closed tubes
 ## within budget, the leaf cards are untouched, and every model has its impostor.
-##   godot --headless --path . -s tests/tree_asset_tests.gd
+##   godot --headless --path . -- --test=tree_asset_tests
 const MODELS := {"TwistedTree_1": 3000, "TwistedTree_2": 3000, "TwistedTree_3": 3000,
 	"Pine_1": 900, "Pine_2": 900, "Pine_3": 900, "Pine_4": 900, "Pine_5": 900}
 const LEAF_TRIS := {"TwistedTree_1": 2352, "TwistedTree_2": 2344, "TwistedTree_3": 2700,
@@ -15,7 +15,7 @@ func _check(cond: bool, label: String) -> void:
 	if not cond: fails += 1
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	for model: String in MODELS:
 		var parts := WorldKit._tree_parts(model, "olive", 1.0)
 		_check(parts.size() == 2, "%s: bark + leaves (%d parts)" % [model, parts.size()])
@@ -56,4 +56,4 @@ func _initialize() -> void:
 		var imp := WorldKit.tree_impostor(model, "pine", 1.0)
 		_check(imp.size() == 1 and (imp[0].mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() == 18, "%s: impostor is one mesh of three cards" % model)
 	print("TREE ASSETS: %s (%d failures)" % ["PASS" if fails == 0 else "FAIL", fails])
-	quit(1 if fails > 0 else 0)
+	get_tree().quit(1 if fails > 0 else 0)

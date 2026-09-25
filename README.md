@@ -256,7 +256,7 @@ godot --headless --path . -- --test=dump_core_exits   # refresh world/mapgen/cor
 python3 world/mapgen/foliage.py                  # bake the leaf / grass cards in assets/foliage (--bleed: re-bleed only)
 python3 world/mapgen/tree_bark.py [--extract]    # the trees' bark tubes (from world/mapgen/tree_skeletons.json)
 python3 world/mapgen/tree_impostors.py           # the trees' far impostors (assets/trees/impostors)
-godot --headless --path . -s tests/tree_asset_tests.gd   # bark closed + in budget, leaves untouched, impostors
+godot --headless --path . -- --test=tree_asset_tests   # bark closed + in budget, leaves untouched, impostors
 xvfb-run -a godot --path . --rendering-driver vulkan -- --facet --test=tree_showcase --out=/tmp/trees --quality=low   # near vs far trees
 xvfb-run godot --path . --rendering-driver opengl3 -- --test=view --spots=cliff_coast --out=/tmp/x
 python3 reference/compare.py /tmp/x/cliff_coast.png reference/ref_cliff_coast.png   # similarity vs the reference
