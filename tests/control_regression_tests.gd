@@ -82,9 +82,9 @@ func _run() -> void:
 	_check(Controls.radial_deadzone(Vector2(0.1, 0)) == Vector2.ZERO, "controller drift is filtered")
 	_check(Controls.radial_deadzone(Vector2(0.181, 0)).length() < 0.01, "controller aim starts continuously at the deadzone")
 	_check(is_finite(Controls.radial_deadzone(Vector2.ONE, 1.0).x), "deadzone endpoint remains finite")
-	for path in ["res://data/vehicles/bike.tres", "res://data/vehicles/truck.tres"]:
+	for path in ["res://data/vehicles/bike.tres", "res://data/vehicles/jeep.tres"]:
 		var definition: VehicleDefinition = load(path)
-		var vehicle: Vehicle = Bike.new() if definition.can_fly else Truck.new()
+		var vehicle: Vehicle = Bike.new() if definition.can_fly else Jeep.new()
 		vehicle.apply_definition(definition)
 		add_child(vehicle)
 		vehicle.set_physics_process(false)

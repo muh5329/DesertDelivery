@@ -75,7 +75,7 @@ func step(delta: float, top_scale: float = 1.0, boost := false) -> bool:
 	# water drag: the hull settles off the plane quickly when the throttle is closed
 	var drag := 0.25 + 0.035 * absf(_g.speed) + (0.6 if throttle < 0.05 and _g.brake < 0.05 else 0.0)
 	_g.speed = move_toward(_g.speed, 0.0, drag * delta)
-	if _g.speed > top * 1.05: _g.speed = move_toward(_g.speed, top, delta * 4.0)
+	if _g.speed > top * 1.05: _g.speed = move_toward(_g.speed, top, delta * 6.0)
 	# --- turning: a rudder needs water flowing past it
 	var authority := clampf(absf(_g.speed) / 6.0, 0.15, 1.0)
 	var yaw_in := _g.steer * _def.water_turn_rate * authority * (-1.0 if _g.speed < -0.1 else 1.0)

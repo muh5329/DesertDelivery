@@ -105,7 +105,7 @@ func _run() -> void:
 ## data table these could only be written for BIKE, because every other framing was defined by
 ## the `else` half of seven branches inside _chase_update.
 func _camera_checks() -> void:
-	for framing in [ChaseCamera.Framing.BIKE, ChaseCamera.Framing.PLANE, ChaseCamera.Framing.TRUCK]:
+	for framing in [ChaseCamera.Framing.BIKE, ChaseCamera.Framing.PLANE, ChaseCamera.Framing.JEEP]:
 		var label: String = ChaseCamera.Framing.keys()[framing]
 		_reset(); probe.speed = 18
 		var camera := ChaseCamera.new(); add_child(camera); camera.set_physics_process(false)
@@ -137,11 +137,11 @@ func _camera_checks() -> void:
 
 
 ## The same table of driving feel, run against every vehicle in data/vehicles. Before the
-## GroundDrive was extracted this could only be written once per vehicle, so the truck had none.
+## GroundDrive was extracted this could only be written once per vehicle, so the old truck had none.
 func _drive_table() -> void:
-	for path in ["res://data/vehicles/bike.tres", "res://data/vehicles/truck.tres"]:
+	for path in ["res://data/vehicles/bike.tres", "res://data/vehicles/jeep.tres"]:
 		var definition: VehicleDefinition = load(path)
-		var v: Vehicle = (Bike.new() if definition.can_fly else Truck.new())
+		var v: Vehicle = (Bike.new() if definition.can_fly else Jeep.new())
 		v.apply_definition(definition)
 		add_child(v)
 		v.set_physics_process(false)

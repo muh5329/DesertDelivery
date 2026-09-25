@@ -38,6 +38,7 @@ var _anchor_node: Node3D
 var _anchor_local := Vector3.ZERO
 var _anchor_static := Vector3.ZERO
 var _wheel_offsets: Array = []
+var _bank_t := 0.0
 
 
 func _ready() -> void:
@@ -104,6 +105,7 @@ func driven() -> bool:
 
 func place(pos: Vector3, forward: Vector3) -> void:
 	_leave_water(false)
+	_bank_t = 0.0
 	detach_winch()
 	super.place(pos, forward)
 
@@ -234,6 +236,7 @@ func _physics_process(delta: float) -> void:
 		_dust.emitting = false
 		return
 	_winch_pull(delta)
+	_bank_climb(delta)
 	var tick := drive.step(delta)
 	drive.climbing = false
 	if tick.crashed: crashed.emit()
@@ -241,7 +244,7 @@ func _physics_process(delta: float) -> void:
 		landed.emit(tick.landed_impact)
 		if visual: visual.landed(tick.landed_impact)
 		if tick.landed_impact > definition.hard_landing_impact: crashed.emit()
-	if can_float() and water.should_float(global_position):
+	if can_float() and _bank_t <= 0.0 and water.should_float(global_position):
 		_enter_water()
 	elif tick.in_sea and not can_float():
 		fell_in_sea.emit()
@@ -281,10 +284,28 @@ func _winch_pull(delta: float) -> void:
 		drive.climbing = true
 
 
+## Out of the water where the shore has a step (the island's beaches drop a metre or two at the
+## waterline): for a few seconds the wheels claw up a bank in front of them, the way the winch
+## lifts the jeep up a face (LegendOfJeep's rigid body did it with its springs). Meanwhile it
+## does not float again, so it cannot bob back and forth at the step.
+func _bank_climb(delta: float) -> void:
+	if _bank_t <= 0.0 or terrain == null: return
+	_bank_t -= delta
+	if drive.throttle < 0.2: return
+	var ahead := global_position + flat_forward() * (definition.wheelbase * 0.5 + 0.9)
+	var rise := terrain.height_at(ahead.x, ahead.z) - global_position.y
+	if rise > 0.15 and rise < 2.4:
+		drive.min_vertical = 2.2
+		drive.climbing = true
+		speed = maxf(speed, 1.5)
+
+
 func _enter_water() -> void:
 	if afloat: return
 	afloat = true
 	detach_winch()
+	# the splash: water takes the speed off a jeep that hits it fast
+	speed = minf(speed * 0.6, definition.water_max_speed * 1.1)
 	drive.grounded = false
 	drive.slip = 0.0
 	water.reset()
@@ -298,7 +319,9 @@ func _leave_water(announce: bool) -> void:
 	drive.grounded = true
 	drive.ground_normal = Vector3.UP
 	rotation = Vector3(0, drive.yaw, 0)
-	if announce: water_exited.emit()
+	if announce:
+		_bank_t = 3.0
+		water_exited.emit()
 
 
 func save_state() -> Dictionary:

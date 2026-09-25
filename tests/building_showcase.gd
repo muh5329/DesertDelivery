@@ -49,7 +49,7 @@ func _ready() -> void:
 		for c in ui.get_children():
 			if c is CanvasLayer or c is Control: c.visible = false
 	game.bike.visible = false; game.player.visible = false
-	if "truck" in game and game.truck: game.truck.visible = false
+	if "jeep" in game and game.jeep: game.jeep.visible = false; game.cart.visible = false
 	if "--nofog" in args:
 		for c in game.world.environment.get_children():
 			if c is WorldEnvironment: c.environment.fog_enabled = false

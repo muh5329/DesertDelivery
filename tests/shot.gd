@@ -30,7 +30,7 @@ func _ready() -> void:
 			for c in ui.get_children():
 				if c is CanvasLayer or c is Control: c.visible = false
 	if not "--player" in OS.get_cmdline_user_args():
-		game.bike.visible = false; game.player.visible = false; game.truck.visible = false
+		game.bike.visible = false; game.player.visible = false; game.jeep.visible = false; game.cart.visible = false
 	var t: Terrain = game.world.terrain
 	for entry in game.cli.get_string("cams", "").split(";", false):
 		var parts := entry.split(":")

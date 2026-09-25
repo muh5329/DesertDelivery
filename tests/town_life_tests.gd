@@ -236,15 +236,15 @@ func _traffic() -> void:
 	if not rec.is_empty():
 		rec.v = 12.0
 		var ahead: Vector3 = tr._sample(rec, float(rec.s) + 40.0)[0]
-		game.truck.set_physics_process(false)
-		game.truck.global_position = ahead
+		game.jeep.set_physics_process(false)
+		game.jeep.global_position = ahead
 		tr._gap_t = 0.0
 		for i in 600: await get_tree().physics_frame
 		print("    stop test: in traffic %s, s %.1f, done %s, limit %.1f, v %.1f" % [tr.vehicles.has(rec), float(rec.s), rec.done, float(rec.limit), float(rec.v)])
-		var gap := (rec.pos as Vector3).distance_to(game.truck.global_position)
-		check(float(rec.v) < 0.5 and gap > 3.0, "a car stops behind the courier's truck in its lane (gap %.1f m, speed %.1f)" % [gap, float(rec.v)])
-		game.truck.set_physics_process(true)
-		game.truck.place(game.world.database.location_pos(&"villa_square") + Vector3(40, 0, 6), Vector3.FORWARD)
+		var gap := (rec.pos as Vector3).distance_to(game.jeep.global_position)
+		check(float(rec.v) < 0.5 and gap > 3.0, "a car stops behind the courier's jeep in its lane (gap %.1f m, speed %.1f)" % [gap, float(rec.v)])
+		game.jeep.set_physics_process(true)
+		game.jeep.place(game.world.database.location_pos(&"villa_square") + Vector3(40, 0, 6), Vector3.FORWARD)
 	# go away: all gone
 	cam.global_position = c + Vector3(3000, 200, 0)
 	game.bike.global_position = cam.global_position
@@ -341,8 +341,8 @@ func _urgent_supply() -> void:
 	var route_index := gm.job_index
 	check(urgent.accept() == "", "the courier takes the job")
 	var job := gm.current_job()
-	check(job != null and String(job.id).begins_with(UrgentSupply.PREFIX) and job.vehicle == "truck", "it is the courier's current job, carried by truck")
-	# pick up with the truck (the bike cannot)
+	check(job != null and String(job.id).begins_with(UrgentSupply.PREFIX) and job.vehicle == "cargo", "it is the courier's current job, carried by jeep or cart")
+	# pick up with the jeep (the bike alone cannot)
 	game.bike.place(gm.target_position(), Vector3.FORWARD)
 	_ground_at(game.bike)
 	await get_tree().create_timer(0.9).timeout
@@ -352,21 +352,21 @@ func _urgent_supply() -> void:
 		await get_tree().physics_frame
 		if game.rider.is_on_foot() or game.rider.request_dismount(): break
 	for i in 30: await get_tree().physics_frame
-	game.truck.place(game.player.global_position + Vector3(1.8, 0, 0), Vector3.FORWARD)
+	game.jeep.place(game.player.global_position + Vector3(1.8, 0, 0), Vector3.FORWARD)
 	for i in 120:
 		await get_tree().physics_frame
 		if game.rider.request_mount(): break
-	check(game.rider.active_vehicle() == game.truck, "the courier drives the cargo truck")
-	game.truck.place(gm.target_position(), Vector3.FORWARD)
-	_ground_at(game.truck)
+	check(game.rider.active_vehicle() == game.jeep, "the courier drives the jeep")
+	game.jeep.place(gm.target_position(), Vector3.FORWARD)
+	_ground_at(game.jeep)
 	await get_tree().create_timer(1.2).timeout
-	check(gm.carrying and gm.stage == DeliverySystem.Stage.TO_DROPOFF, "the truck loads the supplies")
+	check(gm.carrying and gm.stage == DeliverySystem.Stage.TO_DROPOFF, "the jeep loads the supplies")
 	var saved := gm.save_state()
 	gm.load_state(saved)
 	check(gm.carrying and String(gm.current_job().id) == String(job.id), "an urgent run in progress survives save / load")
 	var stock_before := t.count(String(o.item))
-	game.truck.place(gm.target_position(), Vector3.FORWARD)
-	_ground_at(game.truck)
+	game.jeep.place(gm.target_position(), Vector3.FORWARD)
+	_ground_at(game.jeep)
 	await get_tree().create_timer(1.5).timeout
 	check(gm.coins == before + int(o.reward), "delivery pays the reward with its bonus (%d -> %d, reward %d)" % [before, gm.coins, int(o.reward)])
 	check(t.count(String(o.item)) >= stock_before + int(o.qty) - 1, "the colony receives the goods (%d %s)" % [t.count(String(o.item)), o.item])

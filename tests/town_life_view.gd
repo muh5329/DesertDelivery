@@ -30,7 +30,7 @@ func _ready() -> void:
 	if ui:
 		for c in ui.get_children():
 			if c is CanvasLayer or c is Control: c.visible = false
-	game.bike.visible = false; game.player.visible = false; game.truck.visible = false
+	game.bike.visible = false; game.player.visible = false; game.jeep.visible = false; game.cart.visible = false
 	cam = Camera3D.new(); cam.fov = game.cli.get_float("fov", 58.0); cam.far = 30000; cam.near = 0.1
 	add_child(cam); cam.current = true
 	game.world.terrain.set_view_camera(cam)

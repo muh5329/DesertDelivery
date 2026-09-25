@@ -39,7 +39,7 @@ func run() -> void:
 	cam = Camera3D.new(); cam.fov = 60.0; cam.far = 30000; cam.near = 0.1
 	add_child(cam)
 	_hide_ui(true)
-	game.bike.visible = false; game.player.visible = false; game.truck.visible = false
+	game.bike.visible = false; game.player.visible = false; game.jeep.visible = false; game.cart.visible = false
 	if want("district"): await shot_district()
 	if want("docked"): await shot_docked()
 	if want("estuary"): await shot_estuary()

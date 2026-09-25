@@ -36,7 +36,7 @@ func _ready() -> void:
 	if ui:
 		for c in ui.get_children():
 			if c is CanvasLayer or c is Control: c.visible = false
-	game.player.visible = false; game.truck.visible = false
+	game.player.visible = false; game.jeep.visible = false; game.cart.visible = false
 	game.encounters.ambush_enabled = false
 	game.use_scripted_controls()
 	var t: Terrain = game.world.terrain
